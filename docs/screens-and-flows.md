@@ -1,4 +1,4 @@
-# Screens & Flows Spec: "badge" (working name)
+# Screens & Flows Spec: Merit
 *Companion to vision-doc-kids-goals-app.md. This document tracks concrete screen-level decisions as they're made, for handoff to design and to Claude Code. Last updated: Sept 8, 2026.*
 
 ---
@@ -7,7 +7,8 @@
 
 - **Device/auth model (clarified, not previously explicit):** one parent account holds one or more child profiles. The child has no separate login or credentials in v1 — kid-facing screens (home screen, goal picker, badge shelf, celebrations) are used on the parent's device through the child's profile. **Refined further:** the child isn't meant to browse the app independently whenever they want — they interact with it *as a touchpoint with the parent*, at specific moments (e.g., reviewing today together, celebrating an approval together). This is a deliberate design principle, not just an auth limitation: it keeps screen time bounded and mediated by the parent, which is itself part of the product's appeal to parents managing screen time (see vision doc, Section 3).
 - **Navigation model (resolved):** the parent initiates a "Check in with [Child]" session from their own view — this is how the child's home screen actually opens, rather than the child having their own app icon to tap. Once inside a check-in session, the existing Home / Badges / Goal navigation (screen 2) remains valid as designed, since the parent is present for the session. A practical side benefit: celebratory moments (badge unlocks, goal achieved, decline feedback) don't need push notifications firing at arbitrary times — they simply surface at the next check-in, consistent with the bounded-session model. The entry point itself is now designed — see screen 18.
-- **App name (placeholder):** "badge," lowercase wordmark.
+- **App name (decided): Merit.** Replaces the "badge" placeholder used throughout earlier mockups in this doc — those exploratory screens still reference "badge" in places and weren't worth re-rendering retroactively.
+- **Logo mark (decided):** a medal-and-ribbon shape — violet circle (#AFA9EC), mint/teal ribbon tails (#5DCAA5) — with a tone-on-tone "M" monogram (a darker violet fill on the lighter violet circle, not a bold contrasting letter), so the medal shape reads clearly at small sizes (app icon) while the monogram still does real branding work at larger sizes (splash screen, marketing). Implemented as `src/components/Logo.tsx`, shown on the child home screen.
 - **Category names:** "Expected" (unpaid) and "Gigs" (paid, but see below — no dollar amounts shown to the child).
 - **Dual voice:** kid-facing screens are playful, first-person, exclamatory ("You did it!"); parent-facing screens are calm, competent, efficient, no exclamation points.
 - **Color coding (consistent across the app):** teal/aqua = unpaid, trust-based (Expected streaks). Amber/orange = paid, goal-progress (Gigs). Violet = Future Fund / investing. Colors should stay consistent everywhere these concepts appear — a badge, a progress bar, an icon — so a kid can tell the "economy" at a glance without reading.

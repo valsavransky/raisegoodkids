@@ -22,6 +22,7 @@ import { useAppData } from '../../context/AppDataContext';
 import { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { ExpectedItemRow } from '../../components/ExpectedItemRow';
 import { GigItemRow } from '../../components/GigItemRow';
+import { Logo } from '../../components/Logo';
 import { colors } from '../../theme/colors';
 
 type ChildHomeNavigationProp = CompositeNavigationProp<
@@ -64,7 +65,10 @@ export function ChildHomeScreen() {
     <View style={styles.screen}>
       <View style={styles.fixedHeader}>
         <View style={styles.header}>
-          <Text style={styles.wordmark}>badge</Text>
+          <View style={styles.brandRow}>
+            <Logo size={32} />
+            <Text style={styles.wordmark}>Merit</Text>
+          </View>
           <View style={styles.headerRight}>
             <Text style={styles.avatar}>{AVATAR_EMOJI[childProfile?.avatarId ?? ''] ?? '🙂'}</Text>
             <Pressable onPress={() => navigation.navigate('ManageExpectedGigs')} hitSlop={12}>
@@ -180,6 +184,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   wordmark: { fontSize: 22, fontWeight: '800', color: colors.text },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   avatar: { fontSize: 28 },

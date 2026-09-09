@@ -1,6 +1,6 @@
 # raisegoodkids
 
-This project is **"badge"** (working name) — a mobile app that teaches kids goal-setting, responsibility, and earning by splitting daily/weekly household tasks into two categories: **Expected** (unpaid, non-negotiable responsibilities) and **Gigs** (optional, paid work that builds toward a goal).
+This project is **Merit** (formerly "badge") — a mobile app that teaches kids goal-setting, responsibility, and earning by splitting daily/weekly household tasks into two categories: **Expected** (unpaid, non-negotiable responsibilities) and **Gigs** (optional, paid work that builds toward a goal).
 
 For full product vision and UX context, see:
 - `docs/vision-doc-kids-goals-app.md` — product vision, target users, competitive landscape, risks

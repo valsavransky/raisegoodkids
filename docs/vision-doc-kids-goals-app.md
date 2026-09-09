@@ -1,5 +1,7 @@
-# Vision Document: Kids Responsibility, Goals & Earning App
-*Working title: **"badge"** (placeholder, lowercase). Status: early concept / pre-UX. Last updated: Sept 8, 2026.*
+# Vision Document: Merit
+*App name decided: **Merit** (formerly the "badge" working title, used throughout earlier mockups in this doc and screens-and-flows.md — not worth re-rendering every exploratory reference retroactively). Status: early concept / pre-UX, now moving into build. Last updated: Sept 8, 2026.*
+
+**Brand identity (decided):** logo mark is a medal-and-ribbon shape — a violet circle (#AFA9EC) with mint/teal (#5DCAA5) ribbon tails, and a tone-on-tone "M" monogram (a darker violet fill on the lighter violet circle) rather than a bold contrasting letter, so the medal shape reads clearly at small sizes (app icon) while the monogram still does real branding work at larger sizes (splash screen, marketing). Implemented in-app as `src/components/Logo.tsx`, shown on the child home screen next to the "Merit" wordmark.
 
 **Category naming (decided):** the two core categories are called **"Expected"** (unpaid, non-negotiable responsibilities — replaces the earlier working term "table stakes") and **"Gigs"** (optional, paid work). "Must(s)" was considered and rejected for feeling too forceful/strict.
 

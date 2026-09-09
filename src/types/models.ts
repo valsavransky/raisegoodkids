@@ -1,4 +1,4 @@
-// Data model for "badge" — see docs/screens-and-flows.md and
+// Data model for Merit — see docs/screens-and-flows.md and
 // docs/vision-doc-kids-goals-app.md for the product decisions behind these shapes.
 
 /** One login per household. Holds one or more ChildProfiles. No separate
