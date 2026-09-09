@@ -228,6 +228,8 @@ Both converge on a payoff step: redeem the goal (parent fulfills it in real life
 
 ## Known follow-ups / inconsistencies to resolve
 - ~~Content library for age/grade-appropriate Expected items and Gigs needs to be scoped as its own workstream~~ **Started:** an initial 3rd/4th grade set now exists in `content-library-grade-3-4.md` (11 Expected items, 19 Gigs). Still needs expansion to other grades, and real-world testing/revision with families before treating it as final.
+- **Schedule is currently informational only, not tied to Expected/Gigs.** A recurring schedule event (a weekly piano lesson, a recurring homework block for a specific class) isn't linked to the Expected item it implies — right now the two live as separate lists a parent maintains independently. Worth designing how an Expected item could reference a ScheduleEvent (so "piano practice" only shows up on the days it's actually scheduled, rather than every day) once the core loop has been used enough to know whether that precision is actually needed day to day.
+- **Setup forms need a UX pass.** The manual add-event and add-custom-item/gig forms (screens 6-7) are functional but rough — worth revisiting once the core loop has had more real use, to see which fields actually cause friction.
 
 ---
 

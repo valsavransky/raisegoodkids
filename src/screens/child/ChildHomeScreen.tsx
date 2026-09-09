@@ -61,26 +61,29 @@ export function ChildHomeScreen() {
   const streak = expectedStreak();
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Text style={styles.wordmark}>badge</Text>
-        <Text style={styles.avatar}>{AVATAR_EMOJI[childProfile?.avatarId ?? ''] ?? '🙂'}</Text>
+    <View style={styles.screen}>
+      <View style={styles.fixedHeader}>
+        <View style={styles.header}>
+          <Text style={styles.wordmark}>badge</Text>
+          <Text style={styles.avatar}>{AVATAR_EMOJI[childProfile?.avatarId ?? ''] ?? '🙂'}</Text>
+        </View>
+
+        {!goal ? (
+          <Pressable style={styles.emptyGoalCard} onPress={() => navigation.navigate('Goal')}>
+            <Text style={styles.emptyGoalText}>Pick a goal to start earning!</Text>
+          </Pressable>
+        ) : (
+          <View style={styles.goalCard}>
+            <Text style={styles.goalName}>{goal.name}</Text>
+            <View style={styles.progressBarTrack}>
+              <View style={[styles.progressBarFill, { width: `${Math.min(goalProgressPercentage(goal.id), 100)}%` }]} />
+            </View>
+            <Text style={styles.goalProgressText}>{goalProgressPercentage(goal.id)}% there</Text>
+          </View>
+        )}
       </View>
 
-      {!goal ? (
-        <Pressable style={styles.emptyGoalCard} onPress={() => navigation.navigate('Goal')}>
-          <Text style={styles.emptyGoalText}>Pick a goal to start earning!</Text>
-        </Pressable>
-      ) : (
-        <View style={styles.goalCard}>
-          <Text style={styles.goalName}>{goal.name}</Text>
-          <View style={styles.progressBarTrack}>
-            <View style={[styles.progressBarFill, { width: `${Math.min(goalProgressPercentage(goal.id), 100)}%` }]} />
-          </View>
-          <Text style={styles.goalProgressText}>{goalProgressPercentage(goal.id)}% there</Text>
-        </View>
-      )}
-
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
       <View style={styles.sectionHeaderRow}>
         <Text style={[styles.sectionIcon, { color: colors.expected }]}>🔥</Text>
         <Text style={styles.sectionHeader}>Expected today</Text>
@@ -145,13 +148,23 @@ export function ChildHomeScreen() {
           })}
         </>
       )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
+  fixedHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 4,
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   wordmark: { fontSize: 22, fontWeight: '800', color: colors.text },
   avatar: { fontSize: 28 },
@@ -160,10 +173,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     padding: 20,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   emptyGoalText: { fontSize: 16, fontWeight: '700', color: colors.gigs },
-  goalCard: { backgroundColor: colors.surface, borderRadius: 14, padding: 16, marginBottom: 20 },
+  goalCard: { backgroundColor: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16 },
   goalName: { fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 10 },
   progressBarTrack: { height: 10, borderRadius: 5, backgroundColor: colors.border, overflow: 'hidden' },
   progressBarFill: { height: 10, borderRadius: 5, backgroundColor: colors.gigs },
