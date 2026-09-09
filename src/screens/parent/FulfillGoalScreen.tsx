@@ -1,0 +1,66 @@
+// Screen 13: parent — fulfill goal prompt. "Mark as fulfilled" is the gate:
+// the next queued goal doesn't activate until the parent explicitly
+// confirms fulfillment (docs/screens-and-flows.md). Parent-facing voice is
+// calm and efficient — no exclamation points.
+import React from 'react';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../navigation/types';
+import { useAppData } from '../../context/AppDataContext';
+import { colors } from '../../theme/colors';
+
+type Props = NativeStackScreenProps<RootStackParamList, 'FulfillGoal'>;
+
+function daysBetween(startIso: string, endIso: string): number {
+  const ms = new Date(endIso).getTime() - new Date(startIso).getTime();
+  return Math.max(0, Math.round(ms / (1000 * 60 * 60 * 24)));
+}
+
+export function FulfillGoalScreen({ route, navigation }: Props) {
+  const { goalId } = route.params;
+  const { getGoal, childProfile, markGoalFulfilled } = useAppData();
+  const goal = getGoal(goalId);
+
+  const daysTaken = goal?.achievedAt ? daysBetween(goal.createdAt, goal.achievedAt) : null;
+
+  const handleFulfilled = () => {
+    markGoalFulfilled(goalId);
+    navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
+  };
+
+  return (
+    <View style={styles.screen}>
+      <Text style={styles.trophy}>🏆</Text>
+      <Text style={styles.title}>
+        {childProfile?.name ?? 'Your child'} reached "{goal?.name ?? 'their goal'}"
+      </Text>
+      {daysTaken !== null && (
+        <Text style={styles.subtitle}>
+          Reached in {daysTaken} day{daysTaken === 1 ? '' : 's'}
+        </Text>
+      )}
+      <Text style={styles.instruction}>
+        Mark it fulfilled once you've handled it in real life. This is what starts the next goal in the queue.
+      </Text>
+      <Pressable style={styles.fulfilledButton} onPress={handleFulfilled}>
+        <Text style={styles.fulfilledButtonText}>Mark as fulfilled</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  trophy: { fontSize: 48, marginBottom: 16 },
+  title: { fontSize: 20, fontWeight: '700', color: colors.text, textAlign: 'center' },
+  subtitle: { fontSize: 14, color: colors.textMuted, marginTop: 8 },
+  instruction: { fontSize: 14, color: colors.textMuted, textAlign: 'center', marginTop: 24, lineHeight: 20 },
+  fulfilledButton: {
+    marginTop: 28,
+    backgroundColor: colors.expected,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+  },
+  fulfilledButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+});

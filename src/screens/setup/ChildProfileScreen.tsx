@@ -1,6 +1,7 @@
 // Screen 4: parent setup, step 1 of 3 — child profile.
-import React, { useMemo } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, TextInput, Pressable, ScrollView, Modal, Platform, StyleSheet } from 'react-native';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -16,17 +17,45 @@ const AVATAR_OPTIONS = [
   { id: 'avatar-5', emoji: '🦁' },
 ];
 
-const BIRTHDAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+function eightYearsAgo(): Date {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 8);
+  return d;
+}
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'ChildProfile'>;
 
 export function ChildProfileScreen({ navigation }: Props) {
   const { childProfile, setChildProfile } = useSetup();
+  const [showPicker, setShowPicker] = useState(false);
+  const [tempDate, setTempDate] = useState<Date>(eightYearsAgo());
+
+  const parsedBirthday = childProfile.birthday ? new Date(`${childProfile.birthday}T00:00:00`) : null;
+  const formattedBirthday = parsedBirthday
+    ? parsedBirthday.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+    : null;
 
   const canContinue = useMemo(
-    () => childProfile.name.trim().length > 0 && BIRTHDAY_PATTERN.test(childProfile.birthday),
+    () => childProfile.name.trim().length > 0 && childProfile.birthday.length > 0,
     [childProfile.name, childProfile.birthday]
   );
+
+  const openPicker = () => {
+    setTempDate(parsedBirthday ?? eightYearsAgo());
+    setShowPicker(true);
+  };
+
+  const handleAndroidChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    setShowPicker(false);
+    if (event.type === 'set' && selectedDate) {
+      setChildProfile({ birthday: selectedDate.toISOString().slice(0, 10) });
+    }
+  };
+
+  const confirmIOSDate = () => {
+    setChildProfile({ birthday: tempDate.toISOString().slice(0, 10) });
+    setShowPicker(false);
+  };
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -57,13 +86,40 @@ export function ChildProfileScreen({ navigation }: Props) {
       />
 
       <Text style={styles.label}>Birthday</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="YYYY-MM-DD"
-        value={childProfile.birthday}
-        onChangeText={(birthday) => setChildProfile({ birthday })}
-        keyboardType="numbers-and-punctuation"
-      />
+      <Pressable style={styles.input} onPress={openPicker}>
+        <Text style={formattedBirthday ? styles.dateText : styles.datePlaceholder}>
+          {formattedBirthday ?? 'Select birthday'}
+        </Text>
+      </Pressable>
+
+      {showPicker && Platform.OS === 'android' && (
+        <DateTimePicker
+          value={parsedBirthday ?? eightYearsAgo()}
+          mode="date"
+          display="default"
+          maximumDate={new Date()}
+          onChange={handleAndroidChange}
+        />
+      )}
+
+      {Platform.OS === 'ios' && (
+        <Modal visible={showPicker} animationType="slide" transparent onRequestClose={() => setShowPicker(false)}>
+          <View style={styles.modalBackdrop}>
+            <View style={styles.modalCard}>
+              <DateTimePicker
+                value={tempDate}
+                mode="date"
+                display="spinner"
+                maximumDate={new Date()}
+                onChange={(_, date) => date && setTempDate(date)}
+              />
+              <Pressable style={styles.modalDoneButton} onPress={confirmIOSDate}>
+                <Text style={styles.modalDoneButtonText}>Done</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+      )}
 
       <Text style={styles.label}>Grade in school (optional)</Text>
       <Text style={styles.helperText}>
@@ -110,6 +166,8 @@ const styles = StyleSheet.create({
     color: colors.text,
     backgroundColor: colors.surface,
   },
+  dateText: { fontSize: 16, color: colors.text },
+  datePlaceholder: { fontSize: 16, color: colors.textMuted },
   avatarRow: { flexDirection: 'row', gap: 10 },
   avatarOption: {
     width: 52,
@@ -144,4 +202,19 @@ const styles = StyleSheet.create({
   },
   continueButtonDisabled: { opacity: 0.4 },
   continueButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  modalCard: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+  },
+  modalDoneButton: {
+    marginTop: 8,
+    backgroundColor: colors.expected,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  modalDoneButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
 });

@@ -13,3 +13,9 @@ export type MainTabParamList = {
   Schedule: undefined;
   Badges: undefined;
 };
+
+export type RootStackParamList = {
+  MainTabs: undefined;
+  GoalAchieved: { goalId: string };
+  FulfillGoal: { goalId: string };
+};

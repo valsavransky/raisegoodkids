@@ -6,12 +6,18 @@
 // there's only one user type (parent) and they're present for the session.
 import React from 'react';
 import { View, Text, Pressable, FlatList, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppData } from '../../context/AppDataContext';
-import { MainTabParamList } from '../../navigation/types';
+import { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { ExpectedItemRow } from '../../components/ExpectedItemRow';
 import { colors } from '../../theme/colors';
+
+type ChildHomeNavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList, 'Home'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
 
 const AVATAR_EMOJI: Record<string, string> = {
   'avatar-1': '🦊',
@@ -22,7 +28,7 @@ const AVATAR_EMOJI: Record<string, string> = {
 };
 
 export function ChildHomeScreen() {
-  const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList>>();
+  const navigation = useNavigation<ChildHomeNavigationProp>();
   const {
     childProfile,
     expectedItems,
@@ -111,7 +117,13 @@ export function ChildHomeScreen() {
                   <Pressable
                     style={styles.gigRow}
                     disabled={status !== null}
-                    onPress={() => markGigDone(gig.id)}
+                    onPress={() => {
+                      const achievedGoalId = goal?.id;
+                      const achieved = markGigDone(gig.id);
+                      if (achieved && achievedGoalId) {
+                        navigation.navigate('GoalAchieved', { goalId: achievedGoalId });
+                      }
+                    }}
                   >
                     <Text style={styles.gigCoin}>🪙</Text>
                     <Text style={[styles.gigName, status !== null && styles.gigNameDone]}>{gig.name}</Text>

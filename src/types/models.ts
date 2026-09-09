@@ -135,6 +135,7 @@ export interface Goal {
   realWorldCost: number;
   queuePosition: number;
   status: GoalStatus;
+  createdAt: string;
   achievedAt?: string;
   fulfilledAt?: string;
 }

@@ -4,11 +4,11 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SetupProvider } from './src/context/SetupContext';
 import { AppDataProvider, useAppData } from './src/context/AppDataContext';
 import { SetupNavigator } from './src/navigation/SetupNavigator';
-import { MainNavigator } from './src/navigation/MainNavigator';
+import { RootStackNavigator } from './src/navigation/RootStackNavigator';
 
 function RootNavigator() {
   const { childProfile } = useAppData();
-  return childProfile ? <MainNavigator /> : <SetupNavigator />;
+  return childProfile ? <RootStackNavigator /> : <SetupNavigator />;
 }
 
 export default function App() {

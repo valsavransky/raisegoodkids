@@ -46,12 +46,19 @@ interface AppDataContextValue {
 
   activeGoal: () => Goal | undefined;
   queuedGoals: () => Goal[];
+  getGoal: (goalId: string) => Goal | undefined;
   addGoal: (name: string, realWorldCost: number) => void;
   goalProgressPercentage: (goalId: string) => number;
+  /** Advances a fulfilled goal's status and activates the next queued goal —
+   * the gate screen 13 describes ("Mark as fulfilled" is what starts the
+   * next goal, not reaching 100% on its own). */
+  markGoalFulfilled: (goalId: string) => void;
 
   gigPreviewPercentage: (gig: Gig) => number | null;
   gigCompletionStatusToday: (gigId: string) => GigCompletion['status'] | null;
-  markGigDone: (gigId: string) => void;
+  /** Returns true if this completion pushed the goal to 100% (achieved) —
+   * callers use this to trigger the goal-achieved celebration (screen 12). */
+  markGigDone: (gigId: string) => boolean;
 }
 
 const AppDataContext = createContext<AppDataContextValue | undefined>(undefined);
@@ -154,6 +161,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const activeGoal = (): Goal | undefined => goals.find((g) => g.status === 'active');
   const queuedGoals = (): Goal[] =>
     goals.filter((g) => g.status === 'queued').sort((a, b) => a.queuePosition - b.queuePosition);
+  const getGoal = (goalId: string): Goal | undefined => goals.find((g) => g.id === goalId);
 
   const addGoal = (name: string, realWorldCost: number) => {
     const hasActive = goals.some((g) => g.status === 'active');
@@ -164,6 +172,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       realWorldCost,
       queuePosition: goals.length,
       status: hasActive ? 'queued' : 'active',
+      createdAt: new Date().toISOString(),
     };
     setGoals((prev) => [...prev, goal]);
   };
@@ -172,6 +181,18 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return gigCompletions
       .filter((c) => c.goalId === goalId && c.status === 'approved')
       .reduce((sum, c) => sum + c.percentageAwarded, 0);
+  };
+
+  const markGoalFulfilled = (goalId: string) => {
+    setGoals((prev) => {
+      const next = prev.map((g) =>
+        g.id === goalId ? { ...g, status: 'fulfilled' as const, fulfilledAt: new Date().toISOString() } : g
+      );
+      const queued = next.filter((g) => g.status === 'queued').sort((a, b) => a.queuePosition - b.queuePosition);
+      const nextUp = queued[0];
+      if (!nextUp) return next;
+      return next.map((g) => (g.id === nextUp.id ? { ...g, status: 'active' as const } : g));
+    });
   };
 
   const gigPreviewPercentage = (gig: Gig): number | null => {
@@ -188,12 +209,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return completion?.status ?? null;
   };
 
-  const markGigDone = (gigId: string) => {
+  const markGigDone = (gigId: string): boolean => {
     const goal = activeGoal();
-    if (!goal || !futureFund) return;
-    if (gigCompletionStatusToday(gigId) !== null) return;
+    if (!goal || !futureFund) return false;
+    if (gigCompletionStatusToday(gigId) !== null) return false;
     const gig = gigs.find((g) => g.id === gigId);
-    if (!gig) return;
+    if (!gig) return false;
+    const percentageAwarded = computeGigPercentage(gig.effortTier, goal, futureFund.percentage);
     const completion: GigCompletion = {
       id: makeId('gigCompletion'),
       gigId,
@@ -206,9 +228,18 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       status: 'approved',
       approvedAt: new Date().toISOString(),
       isRetry: false,
-      percentageAwarded: computeGigPercentage(gig.effortTier, goal, futureFund.percentage),
+      percentageAwarded,
     };
     setGigCompletions((prev) => [...prev, completion]);
+
+    const priorProgress = goalProgressPercentage(goal.id);
+    const achieved = priorProgress + percentageAwarded >= 100;
+    if (achieved) {
+      setGoals((prev) =>
+        prev.map((g) => (g.id === goal.id ? { ...g, status: 'achieved' as const, achievedAt: new Date().toISOString() } : g))
+      );
+    }
+    return achieved;
   };
 
   return (
@@ -230,8 +261,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         expectedStreak,
         activeGoal,
         queuedGoals,
+        getGoal,
         addGoal,
         goalProgressPercentage,
+        markGoalFulfilled,
         gigPreviewPercentage,
         gigCompletionStatusToday,
         markGigDone,
