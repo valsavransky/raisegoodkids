@@ -1,20 +1,18 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SetupProvider } from './src/context/SetupContext';
+import { SetupNavigator } from './src/navigation/SetupNavigator';
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>badge — coming soon</Text>
+    <SafeAreaProvider>
+      <SetupProvider>
+        <NavigationContainer>
+          <SetupNavigator />
+        </NavigationContainer>
+      </SetupProvider>
       <StatusBar style="auto" />
-    </View>
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
