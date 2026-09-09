@@ -85,7 +85,14 @@ interface AppDataContextValue {
   addScheduleEvent: (event: Omit<ScheduleEvent, 'id' | 'childProfileId'>) => void;
   updateScheduleEvent: (id: string, fields: Omit<ScheduleEvent, 'id' | 'childProfileId'>) => void;
   deleteScheduleEvent: (id: string) => void;
+
   addExpectedItem: (item: { name: string; frequency: ExpectedItem['frequency'] }) => void;
+  updateExpectedItem: (id: string, fields: { name: string; frequency: ExpectedItem['frequency'] }) => void;
+  deleteExpectedItem: (id: string) => void;
+
+  addGig: (gig: { name: string; effortTier: Gig['effortTier'] }) => void;
+  updateGig: (id: string, fields: { name: string; effortTier: Gig['effortTier'] }) => void;
+  deleteGig: (id: string) => void;
 }
 
 const AppDataContext = createContext<AppDataContextValue | undefined>(undefined);
@@ -384,6 +391,29 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     ]);
   };
 
+  const updateExpectedItem = (id: string, fields: { name: string; frequency: ExpectedItem['frequency'] }) => {
+    setExpectedItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...fields } : item)));
+  };
+
+  const deleteExpectedItem = (id: string) => {
+    setExpectedItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const addGig = (gig: { name: string; effortTier: Gig['effortTier'] }) => {
+    setGigs((prev) => [
+      ...prev,
+      { id: makeId('gig'), childProfileId: childProfile?.id ?? '', name: gig.name, effortTier: gig.effortTier, active: true },
+    ]);
+  };
+
+  const updateGig = (id: string, fields: { name: string; effortTier: Gig['effortTier'] }) => {
+    setGigs((prev) => prev.map((g) => (g.id === id ? { ...g, ...fields } : g)));
+  };
+
+  const deleteGig = (id: string) => {
+    setGigs((prev) => prev.filter((g) => g.id !== id));
+  };
+
   return (
     <AppDataContext.Provider
       value={{
@@ -421,6 +451,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         updateScheduleEvent,
         deleteScheduleEvent,
         addExpectedItem,
+        updateExpectedItem,
+        deleteExpectedItem,
+        addGig,
+        updateGig,
+        deleteGig,
       }}
     >
       {children}

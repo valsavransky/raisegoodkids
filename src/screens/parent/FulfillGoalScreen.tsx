@@ -2,6 +2,11 @@
 // the next queued goal doesn't activate until the parent explicitly
 // confirms fulfillment (docs/screens-and-flows.md). Parent-facing voice is
 // calm and efficient — no exclamation points.
+//
+// "I'll do this later" leaves the goal in 'achieved' status rather than
+// forcing fulfillment on the spot — a real trip or purchase often can't
+// happen right at this moment. The Goal tab's "Finish up" action on an
+// achieved goal (see GoalPickerScreen) is how a parent gets back here.
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -45,6 +50,12 @@ export function FulfillGoalScreen({ route, navigation }: Props) {
       <Pressable style={styles.fulfilledButton} onPress={handleFulfilled}>
         <Text style={styles.fulfilledButtonText}>Mark as fulfilled</Text>
       </Pressable>
+      <Pressable
+        style={styles.laterButton}
+        onPress={() => navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] })}
+      >
+        <Text style={styles.laterButtonText}>I'll do this later</Text>
+      </Pressable>
     </View>
   );
 }
@@ -63,4 +74,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   fulfilledButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  laterButton: { marginTop: 16, paddingVertical: 10 },
+  laterButtonText: { color: colors.textMuted, fontSize: 14, fontWeight: '600' },
 });

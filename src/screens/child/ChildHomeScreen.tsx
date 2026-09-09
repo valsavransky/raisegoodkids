@@ -65,7 +65,12 @@ export function ChildHomeScreen() {
       <View style={styles.fixedHeader}>
         <View style={styles.header}>
           <Text style={styles.wordmark}>badge</Text>
-          <Text style={styles.avatar}>{AVATAR_EMOJI[childProfile?.avatarId ?? ''] ?? '🙂'}</Text>
+          <View style={styles.headerRight}>
+            <Text style={styles.avatar}>{AVATAR_EMOJI[childProfile?.avatarId ?? ''] ?? '🙂'}</Text>
+            <Pressable onPress={() => navigation.navigate('ManageExpectedGigs')} hitSlop={12}>
+              <Text style={styles.settingsIcon}>⚙️</Text>
+            </Pressable>
+          </View>
         </View>
 
         {!goal ? (
@@ -174,7 +179,9 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   wordmark: { fontSize: 22, fontWeight: '800', color: colors.text },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   avatar: { fontSize: 28 },
+  settingsIcon: { fontSize: 22 },
   emptyGoalCard: {
     backgroundColor: colors.surface,
     borderRadius: 14,

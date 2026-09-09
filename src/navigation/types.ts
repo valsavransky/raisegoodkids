@@ -21,4 +21,5 @@ export type RootStackParamList = {
   BadgeUnlock: { catalogId: string };
   ImportGoogleCalendar: undefined;
   ImportGoogleCalendarEvents: { calendarId: string };
+  ManageExpectedGigs: undefined;
 };
