@@ -1,9 +1,9 @@
 // Screen 2: child home screen — the primary daily screen. Kid-facing voice
 // is playful and exclamatory (see docs/screens-and-flows.md, "Dual voice").
 //
-// Note on scope: gigs marked done here become 'pending' completions, but
-// there's no approval queue UI yet (that's the next build step), so they'll
-// sit pending indefinitely in this build — that's expected, not a bug.
+// Gigs are marked done directly by the parent during check-in and count
+// toward goal progress immediately — no separate approval queue, since
+// there's only one user type (parent) and they're present for the session.
 import React from 'react';
 import { View, Text, Pressable, FlatList, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -120,9 +120,7 @@ export function ChildHomeScreen() {
                   >
                     <Text style={styles.gigCoin}>🪙</Text>
                     <Text style={[styles.gigName, status !== null && styles.gigNameDone]}>{gig.name}</Text>
-                    <Text style={styles.gigPercentage}>
-                      {status === 'pending' ? 'Awaiting approval' : status === 'approved' ? 'Approved' : `+${percentage}%`}
-                    </Text>
+                    <Text style={styles.gigPercentage}>{status === 'approved' ? 'Done ✓' : `+${percentage}%`}</Text>
                   </Pressable>
                 );
               }}

@@ -2,6 +2,10 @@
 // The convergence point for both the "connect calendar" and "skip" paths
 // from screen 5; today only the skip path feeds events in (manually added
 // here), since calendar import isn't wired up yet.
+//
+// Manual entry uses structured fields (name, day(s)/date, start/end time,
+// whether it repeats) rather than a single free-form recurrence string, so
+// events can later be rendered as a real schedule view.
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, FlatList, Modal, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -18,14 +22,29 @@ const CATEGORIES: { value: ScheduleEventCategory; label: string }[] = [
   { value: 'skip', label: 'Skip' },
 ];
 
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function describeSchedule(event: DraftScheduleEvent): string {
+  const time = event.startTime ? `${event.startTime}${event.endTime ? `-${event.endTime}` : ''}` : '';
+  if (event.recurring) {
+    const days = (event.daysOfWeek ?? []).map((d) => DAY_LABELS[d]).join('/');
+    return [days, time].filter(Boolean).join(' ');
+  }
+  return [event.date, time].filter(Boolean).join(' ');
+}
+
 type Props = NativeStackScreenProps<SetupStackParamList, 'ScheduleReview'>;
 
 export function ScheduleReviewScreen({ navigation }: Props) {
   const { scheduleEvents, setScheduleEvents } = useSetup();
   const [modalVisible, setModalVisible] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
-  const [draftRecurrence, setDraftRecurrence] = useState('');
   const [draftCategory, setDraftCategory] = useState<ScheduleEventCategory>('school');
+  const [draftRecurring, setDraftRecurring] = useState(true);
+  const [draftDaysOfWeek, setDraftDaysOfWeek] = useState<number[]>([]);
+  const [draftDate, setDraftDate] = useState('');
+  const [draftStartTime, setDraftStartTime] = useState('');
+  const [draftEndTime, setDraftEndTime] = useState('');
 
   const updateCategory = (localId: string, category: ScheduleEventCategory) => {
     setScheduleEvents(
@@ -35,18 +54,32 @@ export function ScheduleReviewScreen({ navigation }: Props) {
 
   const openAddModal = () => {
     setDraftTitle('');
-    setDraftRecurrence('');
     setDraftCategory('school');
+    setDraftRecurring(true);
+    setDraftDaysOfWeek([]);
+    setDraftDate('');
+    setDraftStartTime('');
+    setDraftEndTime('');
     setModalVisible(true);
+  };
+
+  const toggleDay = (day: number) => {
+    setDraftDaysOfWeek((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
   };
 
   const confirmAdd = () => {
     if (!draftTitle.trim()) return;
+    if (draftRecurring && draftDaysOfWeek.length === 0) return;
+    if (!draftRecurring && !draftDate.trim()) return;
     const event: DraftScheduleEvent = {
       localId: makeLocalId('event'),
       title: draftTitle.trim(),
-      recurrence: draftRecurrence.trim(),
       category: draftCategory,
+      recurring: draftRecurring,
+      daysOfWeek: draftRecurring ? draftDaysOfWeek : undefined,
+      date: draftRecurring ? undefined : draftDate.trim(),
+      startTime: draftStartTime.trim() || undefined,
+      endTime: draftEndTime.trim() || undefined,
     };
     setScheduleEvents([...scheduleEvents, event]);
     setModalVisible(false);
@@ -68,7 +101,7 @@ export function ScheduleReviewScreen({ navigation }: Props) {
           <View style={styles.eventRow}>
             <View style={styles.eventInfo}>
               <Text style={styles.eventTitle}>{item.title}</Text>
-              {item.recurrence.length > 0 && <Text style={styles.eventRecurrence}>{item.recurrence}</Text>}
+              <Text style={styles.eventRecurrence}>{describeSchedule(item)}</Text>
             </View>
             <View style={styles.categoryRow}>
               {CATEGORIES.map((category) => {
@@ -108,12 +141,7 @@ export function ScheduleReviewScreen({ navigation }: Props) {
               value={draftTitle}
               onChangeText={setDraftTitle}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="When (e.g. Mon/Wed 4-5pm)"
-              value={draftRecurrence}
-              onChangeText={setDraftRecurrence}
-            />
+
             <View style={styles.categoryRow}>
               {CATEGORIES.map((category) => {
                 const selected = draftCategory === category.value;
@@ -130,6 +158,59 @@ export function ScheduleReviewScreen({ navigation }: Props) {
                 );
               })}
             </View>
+
+            <View style={styles.repeatsRow}>
+              <Text style={styles.fieldLabel}>Repeats weekly</Text>
+              <View style={styles.repeatsToggle}>
+                <Pressable
+                  onPress={() => setDraftRecurring(true)}
+                  style={[styles.repeatsOption, draftRecurring && styles.repeatsOptionSelected]}
+                >
+                  <Text style={[styles.repeatsOptionText, draftRecurring && styles.repeatsOptionTextSelected]}>Yes</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setDraftRecurring(false)}
+                  style={[styles.repeatsOption, !draftRecurring && styles.repeatsOptionSelected]}
+                >
+                  <Text style={[styles.repeatsOptionText, !draftRecurring && styles.repeatsOptionTextSelected]}>No</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {draftRecurring ? (
+              <View style={styles.dayRow}>
+                {DAY_LABELS.map((label, index) => {
+                  const selected = draftDaysOfWeek.includes(index);
+                  return (
+                    <Pressable
+                      key={label}
+                      onPress={() => toggleDay(index)}
+                      style={[styles.dayChip, selected && styles.dayChipSelected]}
+                    >
+                      <Text style={[styles.dayChipText, selected && styles.dayChipTextSelected]}>{label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : (
+              <TextInput style={styles.input} placeholder="Date (YYYY-MM-DD)" value={draftDate} onChangeText={setDraftDate} />
+            )}
+
+            <View style={styles.timeRow}>
+              <TextInput
+                style={[styles.input, styles.timeInput]}
+                placeholder="Start (HH:MM)"
+                value={draftStartTime}
+                onChangeText={setDraftStartTime}
+              />
+              <TextInput
+                style={[styles.input, styles.timeInput]}
+                placeholder="End (HH:MM)"
+                value={draftEndTime}
+                onChangeText={setDraftEndTime}
+              />
+            </View>
+
             <View style={styles.modalActions}>
               <Pressable style={styles.modalCancelButton} onPress={() => setModalVisible(false)}>
                 <Text style={styles.modalCancelText}>Cancel</Text>
@@ -162,7 +243,7 @@ const styles = StyleSheet.create({
   eventInfo: { marginBottom: 10 },
   eventTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
   eventRecurrence: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-  categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
   categoryChip: {
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -205,6 +286,35 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     marginBottom: 12,
   },
+  fieldLabel: { fontSize: 14, fontWeight: '600', color: colors.text },
+  repeatsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  repeatsToggle: { flexDirection: 'row', gap: 6 },
+  repeatsOption: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  repeatsOptionSelected: { backgroundColor: colors.expected, borderColor: colors.expected },
+  repeatsOptionText: { fontSize: 13, color: colors.text },
+  repeatsOptionTextSelected: { color: '#fff', fontWeight: '600' },
+  dayRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
+  dayChip: {
+    width: 44,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  dayChipSelected: { backgroundColor: colors.expected, borderColor: colors.expected },
+  dayChipText: { fontSize: 12, color: colors.text },
+  dayChipTextSelected: { color: '#fff', fontWeight: '600' },
+  timeRow: { flexDirection: 'row', gap: 10 },
+  timeInput: { flex: 1 },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 8 },
   modalCancelButton: { paddingVertical: 12, paddingHorizontal: 16 },
   modalCancelText: { color: colors.textMuted, fontSize: 15, fontWeight: '600' },

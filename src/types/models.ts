@@ -22,14 +22,22 @@ export interface ChildProfile {
 export type ScheduleEventCategory = 'school' | 'extracurricular' | 'practice' | 'skip';
 export type ScheduleEventSource = 'google_calendar' | 'manual';
 
-/** From calendar import/review (screens 5-6) — informs realistic Expected/Gig capacity. */
+/** From calendar import/review (screens 5-6) — informs realistic Expected/Gig capacity,
+ * and backs the schedule view. Structured rather than free-form, matching the
+ * metadata a real calendar event carries (name, date/time, whether it repeats). */
 export interface ScheduleEvent {
   id: string;
   childProfileId: string;
   title: string;
   category: ScheduleEventCategory;
-  /** Free-form recurrence/time description (e.g. RRULE string or start/end pair). */
-  recurrence: string;
+  recurring: boolean;
+  /** 0=Sunday..6=Saturday. Only set when recurring. */
+  daysOfWeek?: number[];
+  /** YYYY-MM-DD. Only set when NOT recurring (a one-off event). */
+  date?: string;
+  /** HH:MM, 24-hour. */
+  startTime?: string;
+  endTime?: string;
   source: ScheduleEventSource;
 }
 

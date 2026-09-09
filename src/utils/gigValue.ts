@@ -1,17 +1,9 @@
 // Translates a gig's effort tier into progress toward the active goal.
-//
-// ASSUMPTION FLAGGED FOR CONFIRMATION: docs/vision-doc-kids-goals-app.md says
-// the parent picks an effort tier (not a dollar amount), and the app "backs
-// into" a dollar value behind the scenes — but no concrete dollar-per-tier
-// defaults are specified anywhere in the docs. The values below are a
-// placeholder guess so the progress bar/percentage math has something to
-// run on; they should be reviewed (and probably made parent-configurable)
-// before this is treated as real product behavior.
 import { Goal, GigEffortTier } from '../types/models';
 
 export const EFFORT_TIER_DOLLAR_VALUES: Record<GigEffortTier, number> = {
-  quick: 3,
-  medium: 7,
+  quick: 5,
+  medium: 10,
   big_job: 15,
 };
 

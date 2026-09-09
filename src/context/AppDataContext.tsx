@@ -82,7 +82,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         childProfileId: childId,
         title: e.title,
         category: e.category,
-        recurrence: e.recurrence,
+        recurring: e.recurring,
+        daysOfWeek: e.daysOfWeek,
+        date: e.date,
+        startTime: e.startTime,
+        endTime: e.endTime,
         source: 'manual',
       }))
     );
@@ -196,7 +200,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       childProfileId: childProfile?.id ?? '',
       goalId: goal.id,
       markedDoneAt: new Date().toISOString(),
-      status: 'pending',
+      // Marked directly by the parent during check-in — since there's only
+      // one user type (parent), there's no separate approval queue to defer
+      // to. This counts toward goal progress immediately.
+      status: 'approved',
+      approvedAt: new Date().toISOString(),
       isRetry: false,
       percentageAwarded: computeGigPercentage(gig.effortTier, goal, futureFund.percentage),
     };

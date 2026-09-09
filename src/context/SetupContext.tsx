@@ -21,8 +21,12 @@ export interface DraftChildProfile {
 export interface DraftScheduleEvent {
   localId: string;
   title: string;
-  recurrence: string;
   category: ScheduleEventCategory;
+  recurring: boolean;
+  daysOfWeek?: number[];
+  date?: string;
+  startTime?: string;
+  endTime?: string;
 }
 
 export interface DraftExpectedItem {
