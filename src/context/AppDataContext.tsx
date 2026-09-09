@@ -12,14 +12,25 @@ import {
   GigCompletion,
   Goal,
   FutureFund,
+  Badge,
 } from '../types/models';
 import { DraftChildProfile, DraftScheduleEvent, DraftExpectedItem, DraftGig } from './SetupContext';
 import { makeId } from '../utils/id';
 import { todayString } from '../utils/date';
 import { computeExpectedStreak } from '../utils/streak';
-import { computeGigPercentage } from '../utils/gigValue';
+import { computeGigPercentage, EFFORT_TIER_DOLLAR_VALUES } from '../utils/gigValue';
+import { STREAK_THRESHOLDS, GIG_MILESTONE_THRESHOLDS, getBadgeCatalogEntry } from '../data/badgeCatalog';
 
 const DEFAULT_FUTURE_FUND_PERCENTAGE = 10;
+
+export interface MarkGigDoneResult {
+  achievedGoal: boolean;
+  /** A newly-earned badge's catalogId, if any — only ever set when the goal
+   * WASN'T also achieved this tap, so the bigger goal-achieved celebration
+   * doesn't get upstaged by a badge popup in the same instant. The badge is
+   * still recorded either way; it just surfaces on the shelf instead. */
+  newBadgeCatalogId: string | null;
+}
 
 interface AppDataContextValue {
   childProfile: ChildProfile | null;
@@ -30,6 +41,7 @@ interface AppDataContextValue {
   gigCompletions: GigCompletion[];
   goals: Goal[];
   futureFund: FutureFund | null;
+  badges: Badge[];
 
   completeSetup: (draft: {
     childProfile: DraftChildProfile;
@@ -39,16 +51,23 @@ interface AppDataContextValue {
   }) => void;
 
   isExpectedDoneToday: (expectedItemId: string) => boolean;
-  markExpectedDone: (expectedItemId: string) => void;
+  /** Returns a newly-earned streak badge's catalogId, if any. */
+  markExpectedDone: (expectedItemId: string) => string | null;
   allExpectedDoneToday: () => boolean;
   expectedDoneCountToday: () => { done: number; total: number };
   expectedStreak: () => number;
 
   activeGoal: () => Goal | undefined;
   queuedGoals: () => Goal[];
+  completedGoals: () => Goal[];
   getGoal: (goalId: string) => Goal | undefined;
   addGoal: (name: string, realWorldCost: number) => void;
   setActiveGoal: (goalId: string) => void;
+  /** Only allowed for a non-active goal with zero progress recorded against
+   * it — a goal that was ever active could carry real earned progress. */
+  canModifyGoal: (goalId: string) => boolean;
+  updateGoal: (goalId: string, fields: { name: string; realWorldCost: number }) => void;
+  deleteGoal: (goalId: string) => void;
   goalProgressPercentage: (goalId: string) => number;
   /** Advances a fulfilled goal's status and activates the next queued goal —
    * the gate screen 13 describes ("Mark as fulfilled" is what starts the
@@ -57,9 +76,16 @@ interface AppDataContextValue {
 
   gigPreviewPercentage: (gig: Gig) => number | null;
   gigCompletionStatusToday: (gigId: string) => GigCompletion['status'] | null;
-  /** Returns true if this completion pushed the goal to 100% (achieved) —
-   * callers use this to trigger the goal-achieved celebration (screen 12). */
-  markGigDone: (gigId: string) => boolean;
+  markGigDone: (gigId: string) => MarkGigDoneResult;
+
+  /** Parent logs having actually moved money from the Future Fund into a
+   * real account — reduces the tracked (pending) balance by that amount. */
+  recordFutureFundContribution: (amount: number) => void;
+
+  addScheduleEvent: (event: Omit<ScheduleEvent, 'id' | 'childProfileId'>) => void;
+  updateScheduleEvent: (id: string, fields: Omit<ScheduleEvent, 'id' | 'childProfileId'>) => void;
+  deleteScheduleEvent: (id: string) => void;
+  addExpectedItem: (item: { name: string; frequency: ExpectedItem['frequency'] }) => void;
 }
 
 const AppDataContext = createContext<AppDataContextValue | undefined>(undefined);
@@ -73,6 +99,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [gigCompletions, setGigCompletions] = useState<GigCompletion[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [futureFund, setFutureFund] = useState<FutureFund | null>(null);
+  const [badges, setBadges] = useState<Badge[]>([]);
 
   const completeSetup: AppDataContextValue['completeSetup'] = (draft) => {
     const childId = makeId('child');
@@ -134,8 +161,26 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return expectedCompletions.some((c) => c.expectedItemId === expectedItemId && c.date === today);
   };
 
-  const markExpectedDone = (expectedItemId: string) => {
-    if (isExpectedDoneToday(expectedItemId)) return;
+  const hasBadge = (catalogId: string): boolean => badges.some((b) => b.catalogId === catalogId);
+
+  const awardBadge = (
+    catalogId: string,
+    extra: Partial<Pick<Badge, 'relatedGoalId' | 'relatedGigId' | 'streakCount'>> = {}
+  ) => {
+    const entry = getBadgeCatalogEntry(catalogId);
+    const badge: Badge = {
+      id: makeId('badge'),
+      childProfileId: childProfile?.id ?? '',
+      catalogId,
+      type: entry?.type ?? 'streak',
+      earnedAt: new Date().toISOString(),
+      ...extra,
+    };
+    setBadges((prev) => [...prev, badge]);
+  };
+
+  const markExpectedDone = (expectedItemId: string): string | null => {
+    if (isExpectedDoneToday(expectedItemId)) return null;
     const completion: ExpectedCompletion = {
       id: makeId('expectedCompletion'),
       expectedItemId,
@@ -145,6 +190,16 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       correctedByParent: false,
     };
     setExpectedCompletions((prev) => [...prev, completion]);
+
+    // expectedCompletions state hasn't updated yet in this closure — include
+    // the pending completion directly so the streak reflects today's tap.
+    const newStreak = computeExpectedStreak(expectedItems, [...expectedCompletions, completion], todayString());
+    const threshold = STREAK_THRESHOLDS.find((t) => t.days === newStreak);
+    if (threshold && !hasBadge(threshold.catalogId)) {
+      awardBadge(threshold.catalogId, { streakCount: newStreak });
+      return threshold.catalogId;
+    }
+    return null;
   };
 
   const allExpectedDoneToday = (): boolean => {
@@ -162,6 +217,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const activeGoal = (): Goal | undefined => goals.find((g) => g.status === 'active');
   const queuedGoals = (): Goal[] =>
     goals.filter((g) => g.status === 'queued').sort((a, b) => a.queuePosition - b.queuePosition);
+  const completedGoals = (): Goal[] =>
+    goals
+      .filter((g) => g.status === 'achieved' || g.status === 'fulfilled')
+      .sort((a, b) => (b.achievedAt ?? '').localeCompare(a.achievedAt ?? ''));
   const getGoal = (goalId: string): Goal | undefined => goals.find((g) => g.id === goalId);
 
   const addGoal = (name: string, realWorldCost: number) => {
@@ -198,6 +257,25 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       .reduce((sum, c) => sum + c.percentageAwarded, 0);
   };
 
+  /** Only a non-active goal with zero earned progress is safe to edit or
+   * delete — a goal that was ever active (even if since demoted back to
+   * queued via setActiveGoal) could carry real progress worth protecting. */
+  const canModifyGoal = (goalId: string): boolean => {
+    const goal = getGoal(goalId);
+    if (!goal) return false;
+    return goal.status !== 'active' && goalProgressPercentage(goalId) === 0;
+  };
+
+  const updateGoal = (goalId: string, fields: { name: string; realWorldCost: number }) => {
+    if (!canModifyGoal(goalId)) return;
+    setGoals((prev) => prev.map((g) => (g.id === goalId ? { ...g, ...fields } : g)));
+  };
+
+  const deleteGoal = (goalId: string) => {
+    if (!canModifyGoal(goalId)) return;
+    setGoals((prev) => prev.filter((g) => g.id !== goalId));
+  };
+
   const markGoalFulfilled = (goalId: string) => {
     setGoals((prev) => {
       const next = prev.map((g) =>
@@ -224,13 +302,18 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return completion?.status ?? null;
   };
 
-  const markGigDone = (gigId: string): boolean => {
+  const markGigDone = (gigId: string): MarkGigDoneResult => {
+    const noOp: MarkGigDoneResult = { achievedGoal: false, newBadgeCatalogId: null };
     const goal = activeGoal();
-    if (!goal || !futureFund) return false;
-    if (gigCompletionStatusToday(gigId) !== null) return false;
+    if (!goal || !futureFund) return noOp;
+    if (gigCompletionStatusToday(gigId) !== null) return noOp;
     const gig = gigs.find((g) => g.id === gigId);
-    if (!gig) return false;
+    if (!gig) return noOp;
+
     const percentageAwarded = computeGigPercentage(gig.effortTier, goal, futureFund.percentage);
+    const grossValue = EFFORT_TIER_DOLLAR_VALUES[gig.effortTier];
+    const skimAmount = grossValue * (futureFund.percentage / 100);
+
     const completion: GigCompletion = {
       id: makeId('gigCompletion'),
       gigId,
@@ -245,16 +328,60 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       isRetry: false,
       percentageAwarded,
     };
-    setGigCompletions((prev) => [...prev, completion]);
+    const updatedCompletions = [...gigCompletions, completion];
+    setGigCompletions(updatedCompletions);
+    setFutureFund((prev) => (prev ? { ...prev, balance: prev.balance + skimAmount } : prev));
 
     const priorProgress = goalProgressPercentage(goal.id);
-    const achieved = priorProgress + percentageAwarded >= 100;
-    if (achieved) {
+    const achievedGoal = priorProgress + percentageAwarded >= 100;
+    if (achievedGoal) {
       setGoals((prev) =>
         prev.map((g) => (g.id === goal.id ? { ...g, status: 'achieved' as const, achievedAt: new Date().toISOString() } : g))
       );
     }
-    return achieved;
+
+    // All qualifying badges get recorded, but only one popup ever surfaces
+    // per tap — goal-achieved is silent (the goal celebration IS that
+    // moment), so the first of big-job/milestone wins the popup.
+    let newBadgeCatalogId: string | null = null;
+    if (achievedGoal && !hasBadge('goal_achieved')) {
+      awardBadge('goal_achieved', { relatedGoalId: goal.id });
+    }
+    if (gig.effortTier === 'big_job' && !hasBadge('big_job_done')) {
+      awardBadge('big_job_done', { relatedGigId: gig.id });
+      if (!achievedGoal) newBadgeCatalogId = newBadgeCatalogId ?? 'big_job_done';
+    }
+    const approvedCount = updatedCompletions.filter((c) => c.status === 'approved').length;
+    const gigMilestone = GIG_MILESTONE_THRESHOLDS.find((t) => t.count === approvedCount);
+    if (gigMilestone && !hasBadge(gigMilestone.catalogId)) {
+      awardBadge(gigMilestone.catalogId, { relatedGigId: gig.id });
+      if (!achievedGoal) newBadgeCatalogId = newBadgeCatalogId ?? gigMilestone.catalogId;
+    }
+
+    return { achievedGoal, newBadgeCatalogId };
+  };
+
+  const recordFutureFundContribution = (amount: number) => {
+    setFutureFund((prev) => (prev ? { ...prev, balance: Math.max(0, prev.balance - amount) } : prev));
+  };
+
+  const addScheduleEvent = (event: Omit<ScheduleEvent, 'id' | 'childProfileId'>) => {
+    setScheduleEvents((prev) => [...prev, { ...event, id: makeId('scheduleEvent'), childProfileId: childProfile?.id ?? '' }]);
+  };
+
+  const updateScheduleEvent = (id: string, fields: Omit<ScheduleEvent, 'id' | 'childProfileId'>) => {
+    setScheduleEvents((prev) => prev.map((e) => (e.id === id ? { ...e, ...fields } : e)));
+  };
+
+  const deleteScheduleEvent = (id: string) => {
+    setScheduleEvents((prev) => prev.filter((e) => e.id !== id));
+  };
+
+  const addExpectedItem = (item: { name: string; frequency: ExpectedItem['frequency'] }) => {
+    setExpectedItems((prev) => [
+      ...prev,
+      { id: makeId('expectedItem'), childProfileId: childProfile?.id ?? '', name: item.name, frequency: item.frequency, active: true },
+    ]);
   };
 
   return (
@@ -268,6 +395,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         gigCompletions,
         goals,
         futureFund,
+        badges,
         completeSetup,
         isExpectedDoneToday,
         markExpectedDone,
@@ -276,14 +404,23 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         expectedStreak,
         activeGoal,
         queuedGoals,
+        completedGoals,
         getGoal,
         addGoal,
         setActiveGoal,
+        canModifyGoal,
+        updateGoal,
+        deleteGoal,
         goalProgressPercentage,
         markGoalFulfilled,
         gigPreviewPercentage,
         gigCompletionStatusToday,
         markGigDone,
+        recordFutureFundContribution,
+        addScheduleEvent,
+        updateScheduleEvent,
+        deleteScheduleEvent,
+        addExpectedItem,
       }}
     >
       {children}

@@ -164,6 +164,11 @@ export type BadgeType = 'streak' | 'gig_milestone' | 'big_job_done' | 'goal_achi
 export interface Badge {
   id: string;
   childProfileId: string;
+  /** Which fixed badge-shelf definition this is (see src/data/badgeCatalog.ts).
+   * The shelf is a fixed catalog, each earnable once — this is how "already
+   * earned?" is checked, since `type` alone doesn't distinguish e.g. a
+   * 3-day streak badge from a 30-day one. */
+  catalogId: string;
   type: BadgeType;
   earnedAt: string;
   relatedGoalId?: string;

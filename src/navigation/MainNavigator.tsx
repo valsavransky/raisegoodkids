@@ -5,7 +5,7 @@ import { MainTabParamList } from './types';
 import { ChildHomeScreen } from '../screens/child/ChildHomeScreen';
 import { GoalPickerScreen } from '../screens/child/GoalPickerScreen';
 import { ScheduleViewScreen } from '../screens/child/ScheduleViewScreen';
-import { BadgesPlaceholderScreen } from '../screens/child/BadgesPlaceholderScreen';
+import { BadgesShelfScreen } from '../screens/child/BadgesShelfScreen';
 import { colors } from '../theme/colors';
 
 const TAB_ICONS: Record<keyof MainTabParamList, string> = {
@@ -30,7 +30,7 @@ export function MainNavigator() {
       <Tab.Screen name="Home" component={ChildHomeScreen} />
       <Tab.Screen name="Goal" component={GoalPickerScreen} />
       <Tab.Screen name="Schedule" component={ScheduleViewScreen} />
-      <Tab.Screen name="Badges" component={BadgesPlaceholderScreen} />
+      <Tab.Screen name="Badges" component={BadgesShelfScreen} />
     </Tab.Navigator>
   );
 }

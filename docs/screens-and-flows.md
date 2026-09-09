@@ -237,13 +237,14 @@ Both converge on a payoff step: redeem the goal (parent fulfills it in real life
 
 The full core loop is now specced end to end with no gaps in the primary path: 3-step parent setup → child home screen with self-marking and gated Gigs → parent approval queue → celebratory moments (badge unlock, decline/retry, grit, goal achieved) → goal queue and Future Fund. A reasonable phased build order:
 
-1. **Data model + navigation shell** — Child profile, Expected item (with a simple boolean for excused-today in v1, not a full excusable property), Gig (with effort tier), Goal (with queue position), Future Fund balance, Badge. One parent account, one or more child profiles, no separate child auth (see device/auth model decision above).
-2. **Parent setup flow** (screens 4–7) — profile, schedule import/review, Expected & Gigs selection. Can ship with placeholder/manual content before the full content library is authored.
-3. **Child home screen + self-marking + Gigs lock** (screen 2) — the daily-use core.
-4. **Parent approval queue + decline/retry loop** (screens 8–10) — closes the loop between child action and parent verification.
-5. **Goal system** (screen 3: queued goals, Future Fund skim) + **Goal achieved celebration and fulfillment** (screens 12–13) — the payoff arc.
-6. **Badge shelf** (screen 11) + **badge unlock moments** (screen 1) — can be layered in once the underlying events (streaks, gig milestones, goal completion) exist to trigger them.
-7. **Fast-follow:** the excusable-vs-always-required split (screens 16–17), the Future Fund milestone prompt (screen 14), today's recap (screen 15), multi-child management.
+1. ~~**Data model + navigation shell**~~ **Done.**
+2. ~~**Parent setup flow** (screens 4–7)~~ **Done**, plus a stubbed Google Calendar import (mock data, no real OAuth yet).
+3. ~~**Child home screen + self-marking + Gigs lock** (screen 2)~~ **Done** — Gigs lock later revised to a soft parent-confirmation instead of a hard lock (see Gating, above).
+4. ~~**Parent approval queue + decline/retry loop** (screens 8–10)~~ **Superseded, not built** — see the Approval model revision above; gigs are approved instantly by the present parent instead.
+5. ~~**Goal system** (screen 3) + **Goal achieved celebration and fulfillment** (screens 12–13)~~ **Done**, plus goal editing/deletion for non-active goals with zero earned progress, and switching which queued goal is active.
+6. ~~**Badge shelf** (screen 11) + **badge unlock moments** (screen 1)~~ **Done** — a fixed catalog (streak/gig-milestone/big-job/goal-achieved), not exhaustive; see `src/data/badgeCatalog.ts`. Character/grit badges excluded (need the decline/retry flow, which isn't built).
+7. ~~**Future Fund milestone prompt** (screen 14)~~ **Done**, styled distinctly (violet) from goal cards — dollar balance, progress toward the milestone, the educational Roth IRA/brokerage cards, and a way for the parent to log an actual contribution once money moves to a real account.
+8. **Still fast-follow:** the excusable-vs-always-required split (screens 16–17), today's recap (screen 15), multi-child management, linking Expected items to specific ScheduleEvents (see Known follow-ups).
 
 Content library authoring (age/grade-appropriate Expected items and Gigs, with suggested effort tiers) can happen in parallel with steps 1–3 — it doesn't block scaffolding, only blocks setup being genuinely usable with real suggestions rather than placeholders.
 

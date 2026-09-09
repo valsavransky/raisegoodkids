@@ -95,7 +95,12 @@ export function ChildHomeScreen() {
           key={item.id}
           name={item.name}
           isDone={isExpectedDoneToday(item.id)}
-          onPress={() => markExpectedDone(item.id)}
+          onPress={() => {
+            const newBadgeCatalogId = markExpectedDone(item.id);
+            if (newBadgeCatalogId) {
+              navigation.navigate('BadgeUnlock', { catalogId: newBadgeCatalogId });
+            }
+          }}
         />
       ))}
 
@@ -116,9 +121,11 @@ export function ChildHomeScreen() {
             const status = gigCompletionStatusToday(gig.id);
             const startGig = () => {
               const achievedGoalId = goal.id;
-              const achieved = markGigDone(gig.id);
-              if (achieved) {
+              const { achievedGoal, newBadgeCatalogId } = markGigDone(gig.id);
+              if (achievedGoal) {
                 navigation.navigate('GoalAchieved', { goalId: achievedGoalId });
+              } else if (newBadgeCatalogId) {
+                navigation.navigate('BadgeUnlock', { catalogId: newBadgeCatalogId });
               }
             };
             return (

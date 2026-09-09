@@ -18,4 +18,7 @@ export type RootStackParamList = {
   MainTabs: undefined;
   GoalAchieved: { goalId: string };
   FulfillGoal: { goalId: string };
+  BadgeUnlock: { catalogId: string };
+  ImportGoogleCalendar: undefined;
+  ImportGoogleCalendarEvents: { calendarId: string };
 };

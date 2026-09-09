@@ -7,6 +7,9 @@ import { RootStackParamList } from './types';
 import { MainNavigator } from './MainNavigator';
 import { GoalAchievedScreen } from '../screens/child/GoalAchievedScreen';
 import { FulfillGoalScreen } from '../screens/parent/FulfillGoalScreen';
+import { BadgeUnlockScreen } from '../screens/child/BadgeUnlockScreen';
+import { ImportGoogleCalendarScreen } from '../screens/child/ImportGoogleCalendarScreen';
+import { ImportGoogleCalendarEventsScreen } from '../screens/child/ImportGoogleCalendarEventsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -17,6 +20,11 @@ export function RootStackNavigator() {
       <Stack.Group screenOptions={{ presentation: 'fullScreenModal' }}>
         <Stack.Screen name="GoalAchieved" component={GoalAchievedScreen} />
         <Stack.Screen name="FulfillGoal" component={FulfillGoalScreen} />
+        <Stack.Screen name="BadgeUnlock" component={BadgeUnlockScreen} />
+      </Stack.Group>
+      <Stack.Group screenOptions={{ presentation: 'modal' }}>
+        <Stack.Screen name="ImportGoogleCalendar" component={ImportGoogleCalendarScreen} />
+        <Stack.Screen name="ImportGoogleCalendarEvents" component={ImportGoogleCalendarEventsScreen} />
       </Stack.Group>
     </Stack.Navigator>
   );
