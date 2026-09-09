@@ -32,6 +32,12 @@ export function ExpectedGigsSetupScreen({ navigation }: Props) {
   const [draftEffortTier, setDraftEffortTier] = useState<GigEffortTier>('quick');
 
   useEffect(() => {
+    // KNOWN ISSUE (deferred until real Google Calendar integration): if
+    // calendar import already seeded expectedItems (see
+    // GoogleCalendarEventsScreen), this bails out and content-library
+    // suggestions — both Expected items and Gigs — never get added, even
+    // though Gigs has nothing to do with calendar import. Fix by tracking
+    // "library already applied" separately from "list is non-empty".
     if (expectedItems.length > 0 || gigs.length > 0) return;
     const library = getContentLibraryForGrade(childProfile.grade);
     if (!library) return;
