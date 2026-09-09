@@ -3,8 +3,9 @@
 // small and revise with real usage than over-author guesses up front.
 //
 // ASSUMPTION FLAGGED FOR CONFIRMATION: streak/milestone thresholds below
-// (3/7/14/30 day streaks, 1/5/20 gigs) aren't specified anywhere in the
-// docs — picked as reasonable defaults. Review before treating as final.
+// (3/7/14/30 day streaks, 1/5/20 gigs, $50/$100/$250 Future Fund) aren't
+// specified anywhere in the docs — picked as reasonable defaults. Review
+// before treating as final.
 //
 // Character/grit badges (docs/screens-and-flows.md, screen 10) are
 // deliberately excluded from this catalog: that badge is earned by
@@ -36,6 +37,9 @@ export const BADGE_CATALOG: BadgeCatalogEntry[] = [
   { catalogId: 'gig_milestone_20', type: 'gig_milestone', title: '20 Gigs Done', subtitle: 'Gig badge earned', icon: '🎖️', color: colors.gigs },
   { catalogId: 'big_job_done', type: 'big_job_done', title: 'Big Job Done', subtitle: 'Gig badge earned', icon: '🦸', color: colors.gigs },
   { catalogId: 'goal_achieved', type: 'goal_achieved', title: 'Goal Achieved', subtitle: 'You reached a goal', icon: '🏆', color: colors.gigs },
+  { catalogId: 'future_fund_50', type: 'future_fund_milestone', title: '$50 Saved', subtitle: 'Future Fund badge earned', icon: '🌱', color: colors.futureFund },
+  { catalogId: 'future_fund_100', type: 'future_fund_milestone', title: '$100 Saved', subtitle: 'Future Fund badge earned', icon: '🪴', color: colors.futureFund },
+  { catalogId: 'future_fund_250', type: 'future_fund_milestone', title: '$250 Saved', subtitle: 'Future Fund badge earned', icon: '🌳', color: colors.futureFund },
 ];
 
 export function getBadgeCatalogEntry(catalogId: string): BadgeCatalogEntry | undefined {
@@ -53,4 +57,13 @@ export const GIG_MILESTONE_THRESHOLDS: { count: number; catalogId: string }[] = 
   { count: 1, catalogId: 'gig_milestone_1' },
   { count: 5, catalogId: 'gig_milestone_5' },
   { count: 20, catalogId: 'gig_milestone_20' },
+];
+
+// Growth-themed escalation (sprout → potted plant → tree) matching the
+// Future Fund's "watch it grow" framing. $50 matches the current milestone
+// threshold; $100/$250 give something bigger to keep working toward.
+export const FUTURE_FUND_THRESHOLDS: { amount: number; catalogId: string }[] = [
+  { amount: 50, catalogId: 'future_fund_50' },
+  { amount: 100, catalogId: 'future_fund_100' },
+  { amount: 250, catalogId: 'future_fund_250' },
 ];

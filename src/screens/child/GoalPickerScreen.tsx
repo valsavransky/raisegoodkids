@@ -23,6 +23,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppData } from '../../context/AppDataContext';
 import { Goal } from '../../types/models';
 import { MainTabParamList, RootStackParamList } from '../../navigation/types';
+import { AppHeader } from '../../components/AppHeader';
 import { colors } from '../../theme/colors';
 
 type GoalPickerNavigationProp = CompositeNavigationProp<
@@ -181,6 +182,7 @@ export function GoalPickerScreen() {
 
   return (
     <View style={styles.screen}>
+      <AppHeader />
       <View style={styles.header}>
         <Text style={styles.title}>{goals.length === 0 ? 'Pick a goal to start earning' : 'Your goals'}</Text>
       </View>
@@ -316,7 +318,7 @@ export function GoalPickerScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  header: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 8 },
+  header: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 8 },
   title: { fontSize: 22, fontWeight: '700', color: colors.text },
   list: { flex: 1 },
   listContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20 },

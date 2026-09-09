@@ -22,21 +22,13 @@ import { useAppData } from '../../context/AppDataContext';
 import { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { ExpectedItemRow } from '../../components/ExpectedItemRow';
 import { GigItemRow } from '../../components/GigItemRow';
-import { Logo } from '../../components/Logo';
+import { AppHeader } from '../../components/AppHeader';
 import { colors } from '../../theme/colors';
 
 type ChildHomeNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Home'>,
   NativeStackNavigationProp<RootStackParamList>
 >;
-
-const AVATAR_EMOJI: Record<string, string> = {
-  'avatar-1': '🦊',
-  'avatar-2': '🐱',
-  'avatar-3': '🐼',
-  'avatar-4': '🐸',
-  'avatar-5': '🦁',
-};
 
 export function ChildHomeScreen() {
   const navigation = useNavigation<ChildHomeNavigationProp>();
@@ -64,32 +56,23 @@ export function ChildHomeScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.fixedHeader}>
-        <View style={styles.header}>
-          <View style={styles.brandRow}>
-            <Logo size={32} />
-            <Text style={styles.wordmark}>Merit</Text>
-          </View>
-          <View style={styles.headerRight}>
-            <Text style={styles.avatar}>{AVATAR_EMOJI[childProfile?.avatarId ?? ''] ?? '🙂'}</Text>
-            <Pressable onPress={() => navigation.navigate('ManageExpectedGigs')} hitSlop={12}>
-              <Text style={styles.settingsIcon}>⚙️</Text>
-            </Pressable>
-          </View>
-        </View>
+        <AppHeader />
 
-        {!goal ? (
-          <Pressable style={styles.emptyGoalCard} onPress={() => navigation.navigate('Goal')}>
-            <Text style={styles.emptyGoalText}>Pick a goal to start earning!</Text>
-          </Pressable>
-        ) : (
-          <View style={styles.goalCard}>
-            <Text style={styles.goalName}>{goal.name}</Text>
-            <View style={styles.progressBarTrack}>
-              <View style={[styles.progressBarFill, { width: `${Math.min(goalProgressPercentage(goal.id), 100)}%` }]} />
+        <View style={styles.goalCardWrapper}>
+          {!goal ? (
+            <Pressable style={styles.emptyGoalCard} onPress={() => navigation.navigate('Goal')}>
+              <Text style={styles.emptyGoalText}>Pick a goal to start earning!</Text>
+            </Pressable>
+          ) : (
+            <View style={styles.goalCard}>
+              <Text style={styles.goalName}>{goal.name}</Text>
+              <View style={styles.progressBarTrack}>
+                <View style={[styles.progressBarFill, { width: `${Math.min(goalProgressPercentage(goal.id), 100)}%` }]} />
+              </View>
+              <Text style={styles.goalProgressText}>{goalProgressPercentage(goal.id)}% there</Text>
             </View>
-            <Text style={styles.goalProgressText}>{goalProgressPercentage(goal.id)}% there</Text>
-          </View>
-        )}
+          )}
+        </View>
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
@@ -174,21 +157,14 @@ export function ChildHomeScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   fixedHeader: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 4,
+    paddingBottom: 12,
     backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
+  goalCardWrapper: { paddingHorizontal: 20 },
   scroll: { flex: 1 },
   content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  wordmark: { fontSize: 22, fontWeight: '800', color: colors.text },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  avatar: { fontSize: 28 },
-  settingsIcon: { fontSize: 22 },
   emptyGoalCard: {
     backgroundColor: colors.surface,
     borderRadius: 14,

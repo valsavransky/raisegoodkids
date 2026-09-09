@@ -5,6 +5,7 @@ import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useAppData } from '../../context/AppDataContext';
 import { BADGE_CATALOG } from '../../data/badgeCatalog';
+import { AppHeader } from '../../components/AppHeader';
 import { colors } from '../../theme/colors';
 
 export function BadgesShelfScreen() {
@@ -13,29 +14,32 @@ export function BadgesShelfScreen() {
   const remaining = BADGE_CATALOG.length - earnedCount;
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Your badges</Text>
-      <Text style={styles.subtitle}>
-        {earnedCount} earned, {remaining} to go
-      </Text>
+    <View style={styles.screen}>
+      <AppHeader />
+      <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.title}>Your badges</Text>
+        <Text style={styles.subtitle}>
+          {earnedCount} earned, {remaining} to go
+        </Text>
 
-      <View style={styles.grid}>
-        {BADGE_CATALOG.map((entry) => {
-          const earned = badges.find((b) => b.catalogId === entry.catalogId);
-          return (
-            <View key={entry.catalogId} style={styles.tile}>
-              <View style={[styles.iconCircle, earned ? { borderColor: entry.color, backgroundColor: colors.surface } : styles.iconCircleLocked]}>
-                <Text style={[styles.icon, !earned && styles.iconLocked]}>{earned ? entry.icon : '🔒'}</Text>
+        <View style={styles.grid}>
+          {BADGE_CATALOG.map((entry) => {
+            const earned = badges.find((b) => b.catalogId === entry.catalogId);
+            return (
+              <View key={entry.catalogId} style={styles.tile}>
+                <View style={[styles.iconCircle, earned ? { borderColor: entry.color, backgroundColor: colors.surface } : styles.iconCircleLocked]}>
+                  <Text style={[styles.icon, !earned && styles.iconLocked]}>{earned ? entry.icon : '🔒'}</Text>
+                </View>
+                <Text style={[styles.tileTitle, !earned && styles.tileTitleLocked]}>{entry.title}</Text>
+                <Text style={styles.tileDate}>
+                  {earned ? new Date(earned.earnedAt).toLocaleDateString() : 'Locked'}
+                </Text>
               </View>
-              <Text style={[styles.tileTitle, !earned && styles.tileTitleLocked]}>{entry.title}</Text>
-              <Text style={styles.tileDate}>
-                {earned ? new Date(earned.earnedAt).toLocaleDateString() : 'Locked'}
-              </Text>
-            </View>
-          );
-        })}
-      </View>
-    </ScrollView>
+            );
+          })}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 

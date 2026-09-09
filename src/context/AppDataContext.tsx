@@ -19,7 +19,7 @@ import { makeId } from '../utils/id';
 import { todayString } from '../utils/date';
 import { computeExpectedStreak } from '../utils/streak';
 import { computeGigPercentage, EFFORT_TIER_DOLLAR_VALUES } from '../utils/gigValue';
-import { STREAK_THRESHOLDS, GIG_MILESTONE_THRESHOLDS, getBadgeCatalogEntry } from '../data/badgeCatalog';
+import { STREAK_THRESHOLDS, GIG_MILESTONE_THRESHOLDS, FUTURE_FUND_THRESHOLDS, getBadgeCatalogEntry } from '../data/badgeCatalog';
 
 const DEFAULT_FUTURE_FUND_PERCENTAGE = 10;
 
@@ -389,6 +389,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     if (gig.effortTier === 'big_job' && !hasBadge('big_job_done')) {
       awardBadge('big_job_done', { relatedGigId: gig.id });
       if (!achievedGoal) newBadgeCatalogId = newBadgeCatalogId ?? 'big_job_done';
+    }
+    const newFutureFundBalance = futureFund.balance + skimAmount;
+    const futureFundMilestone = FUTURE_FUND_THRESHOLDS.find(
+      (t) => futureFund.balance < t.amount && newFutureFundBalance >= t.amount
+    );
+    if (futureFundMilestone && !hasBadge(futureFundMilestone.catalogId)) {
+      awardBadge(futureFundMilestone.catalogId);
+      if (!achievedGoal) newBadgeCatalogId = newBadgeCatalogId ?? futureFundMilestone.catalogId;
     }
     const approvedCount = updatedCompletions.filter((c) => c.status === 'approved').length;
     const gigMilestone = GIG_MILESTONE_THRESHOLDS.find((t) => t.count === approvedCount);

@@ -7,15 +7,8 @@ import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { useSetup } from '../../context/SetupContext';
 import { GRADE_OPTIONS } from '../../data/contentLibrary';
+import { AVATAR_OPTIONS } from '../../data/avatars';
 import { colors } from '../../theme/colors';
-
-const AVATAR_OPTIONS = [
-  { id: 'avatar-1', emoji: '🦊' },
-  { id: 'avatar-2', emoji: '🐱' },
-  { id: 'avatar-3', emoji: '🐼' },
-  { id: 'avatar-4', emoji: '🐸' },
-  { id: 'avatar-5', emoji: '🦁' },
-];
 
 function eightYearsAgo(): Date {
   const d = new Date();

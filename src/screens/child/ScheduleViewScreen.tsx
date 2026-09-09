@@ -18,6 +18,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppData } from '../../context/AppDataContext';
 import { ScheduleEvent, ScheduleEventCategory } from '../../types/models';
 import { MainTabParamList, RootStackParamList } from '../../navigation/types';
+import { AppHeader } from '../../components/AppHeader';
 import { colors } from '../../theme/colors';
 
 type ScheduleNavigationProp = CompositeNavigationProp<
@@ -160,6 +161,7 @@ export function ScheduleViewScreen() {
 
   return (
     <View style={styles.screen}>
+      <AppHeader />
       <Text style={styles.title}>Schedule</Text>
 
       <SectionList
@@ -293,8 +295,8 @@ export function ScheduleViewScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background, paddingTop: 20 },
-  title: { fontSize: 22, fontWeight: '700', color: colors.text, paddingHorizontal: 20, marginBottom: 8 },
+  screen: { flex: 1, backgroundColor: colors.background },
+  title: { fontSize: 22, fontWeight: '700', color: colors.text, paddingHorizontal: 20, marginTop: 4, marginBottom: 8 },
   listContent: { paddingHorizontal: 20, paddingBottom: 8 },
   emptyText: { fontSize: 14, color: colors.textMuted, textAlign: 'center', marginTop: 24 },
   sectionHeader: { fontSize: 14, fontWeight: '700', color: colors.textMuted, marginTop: 16, marginBottom: 8 },

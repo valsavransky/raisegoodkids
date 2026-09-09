@@ -153,7 +153,13 @@ export interface FutureFund {
   lastMilestoneNotifiedAt?: string;
 }
 
-export type BadgeType = 'streak' | 'gig_milestone' | 'big_job_done' | 'goal_achieved' | 'character_grit';
+export type BadgeType =
+  | 'streak'
+  | 'gig_milestone'
+  | 'big_job_done'
+  | 'goal_achieved'
+  | 'character_grit'
+  | 'future_fund_milestone';
 
 /**
  * Streak length and goal-progress percentage are deliberately NOT stored as
