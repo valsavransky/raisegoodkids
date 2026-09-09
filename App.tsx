@@ -5,9 +5,11 @@ import { SetupProvider } from './src/context/SetupContext';
 import { AppDataProvider, useAppData } from './src/context/AppDataContext';
 import { SetupNavigator } from './src/navigation/SetupNavigator';
 import { RootStackNavigator } from './src/navigation/RootStackNavigator';
+import { LoadingScreen } from './src/screens/LoadingScreen';
 
 function RootNavigator() {
-  const { childProfile } = useAppData();
+  const { childProfile, isHydrated } = useAppData();
+  if (!isHydrated) return <LoadingScreen />;
   return childProfile ? <RootStackNavigator /> : <SetupNavigator />;
 }
 

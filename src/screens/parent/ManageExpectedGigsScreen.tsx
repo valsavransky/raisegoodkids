@@ -31,6 +31,7 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
     addGig,
     updateGig,
     deleteGig,
+    resetAllData,
   } = useAppData();
 
   const [modalMode, setModalMode] = useState<ModalMode>(null);
@@ -94,6 +95,17 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
     ]);
   };
 
+  const confirmResetAllData = () => {
+    Alert.alert(
+      'Reset all data',
+      'This deletes everything — the child profile, schedule, Expected items, gigs, goals, badges, and Future Fund balance. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Reset', style: 'destructive', onPress: () => resetAllData() },
+      ]
+    );
+  };
+
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
@@ -152,6 +164,13 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
         <Pressable style={styles.addLink} onPress={openAddGig}>
           <Text style={styles.addLinkText}>+ Add gig</Text>
         </Pressable>
+
+        <View style={styles.dangerZone}>
+          <Text style={styles.dangerZoneLabel}>Testing</Text>
+          <Pressable style={styles.resetButton} onPress={confirmResetAllData}>
+            <Text style={styles.resetButtonText}>Reset all data</Text>
+          </Pressable>
+        </View>
       </ScrollView>
 
       <Modal visible={modalMode !== null} animationType="slide" transparent onRequestClose={() => setModalMode(null)}>
@@ -234,6 +253,16 @@ const styles = StyleSheet.create({
   linkActionDanger: { color: colors.danger, fontSize: 13, fontWeight: '700' },
   addLink: { paddingVertical: 10 },
   addLinkText: { color: colors.expected, fontSize: 14, fontWeight: '600' },
+  dangerZone: { marginTop: 36, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border },
+  dangerZoneLabel: { fontSize: 12, color: colors.textMuted, fontWeight: '700', textTransform: 'uppercase', marginBottom: 10 },
+  resetButton: {
+    borderWidth: 1,
+    borderColor: colors.danger,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  resetButtonText: { color: colors.danger, fontSize: 14, fontWeight: '700' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalCard: { backgroundColor: colors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
   modalTitle: { fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 16 },

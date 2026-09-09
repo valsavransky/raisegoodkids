@@ -1,8 +1,12 @@
 // Runtime data for the "live" app, as opposed to SetupContext's in-progress
-// wizard draft. Seeded once from that draft when setup finishes. Nothing
-// here is persisted yet — it resets if the app reloads. No backend, no
-// storage layer (that's still ahead of us).
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+// wizard draft. Seeded once from that draft when setup finishes. Persisted
+// to on-device storage (AsyncStorage) as a single JSON blob — no backend,
+// no per-child sync, just enough to survive an app restart. The setup
+// wizard's own draft (SetupContext) is NOT persisted: losing a half-filled
+// wizard on restart is a minor inconvenience, unlike losing days of
+// accumulated progress.
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   ChildProfile,
   ScheduleEvent,
@@ -22,6 +26,19 @@ import { computeGigPercentage, EFFORT_TIER_DOLLAR_VALUES } from '../utils/gigVal
 import { STREAK_THRESHOLDS, GIG_MILESTONE_THRESHOLDS, FUTURE_FUND_THRESHOLDS, getBadgeCatalogEntry } from '../data/badgeCatalog';
 
 const DEFAULT_FUTURE_FUND_PERCENTAGE = 10;
+const STORAGE_KEY = '@merit/appData/v1';
+
+interface PersistedAppData {
+  childProfile: ChildProfile | null;
+  scheduleEvents: ScheduleEvent[];
+  expectedItems: ExpectedItem[];
+  expectedCompletions: ExpectedCompletion[];
+  gigs: Gig[];
+  gigCompletions: GigCompletion[];
+  goals: Goal[];
+  futureFund: FutureFund | null;
+  badges: Badge[];
+}
 
 export interface MarkGigDoneResult {
   achievedGoal: boolean;
@@ -44,6 +61,11 @@ export interface MarkExpectedDoneResult {
 }
 
 interface AppDataContextValue {
+  /** False until persisted data (if any) has been loaded from storage —
+   * callers should show a loading state rather than the setup wizard,
+   * since a null childProfile before hydration doesn't yet mean "new
+   * user," just "haven't checked storage yet." */
+  isHydrated: boolean;
   childProfile: ChildProfile | null;
   scheduleEvents: ScheduleEvent[];
   expectedItems: ExpectedItem[];
@@ -105,11 +127,16 @@ interface AppDataContextValue {
   addGig: (gig: { name: string; effortTier: Gig['effortTier'] }) => void;
   updateGig: (id: string, fields: { name: string; effortTier: Gig['effortTier'] }) => void;
   deleteGig: (id: string) => void;
+
+  /** Clears persisted storage and all in-memory state — a testing
+   * convenience now that data survives restarts. */
+  resetAllData: () => Promise<void>;
 }
 
 const AppDataContext = createContext<AppDataContextValue | undefined>(undefined);
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
+  const [isHydrated, setIsHydrated] = useState(false);
   const [childProfile, setChildProfile] = useState<ChildProfile | null>(null);
   const [scheduleEvents, setScheduleEvents] = useState<ScheduleEvent[]>([]);
   const [expectedItems, setExpectedItems] = useState<ExpectedItem[]>([]);
@@ -119,6 +146,52 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [futureFund, setFutureFund] = useState<FutureFund | null>(null);
   const [badges, setBadges] = useState<Badge[]>([]);
+
+  // Load once on mount. Until this resolves, isHydrated stays false so
+  // callers don't mistake "haven't checked storage yet" for "new user."
+  useEffect(() => {
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const data: PersistedAppData = JSON.parse(raw);
+          setChildProfile(data.childProfile);
+          setScheduleEvents(data.scheduleEvents);
+          setExpectedItems(data.expectedItems);
+          setExpectedCompletions(data.expectedCompletions);
+          setGigs(data.gigs);
+          setGigCompletions(data.gigCompletions);
+          setGoals(data.goals);
+          setFutureFund(data.futureFund);
+          setBadges(data.badges);
+        }
+      } catch (e) {
+        console.warn('Failed to load persisted app data', e);
+      } finally {
+        setIsHydrated(true);
+      }
+    })();
+  }, []);
+
+  // Persist on every change, once hydrated. Skipped pre-hydration so the
+  // initial empty defaults don't overwrite whatever was just loaded.
+  useEffect(() => {
+    if (!isHydrated) return;
+    const data: PersistedAppData = {
+      childProfile,
+      scheduleEvents,
+      expectedItems,
+      expectedCompletions,
+      gigs,
+      gigCompletions,
+      goals,
+      futureFund,
+      badges,
+    };
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data)).catch((e) =>
+      console.warn('Failed to persist app data', e)
+    );
+  }, [isHydrated, childProfile, scheduleEvents, expectedItems, expectedCompletions, gigs, gigCompletions, goals, futureFund, badges]);
 
   const completeSetup: AppDataContextValue['completeSetup'] = (draft) => {
     const childId = makeId('child');
@@ -454,9 +527,25 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setGigs((prev) => prev.filter((g) => g.id !== id));
   };
 
+  /** Clears persisted storage and all in-memory state — back to a fresh
+   * install. Mainly a testing convenience now that data survives restarts. */
+  const resetAllData = async () => {
+    await AsyncStorage.removeItem(STORAGE_KEY);
+    setChildProfile(null);
+    setScheduleEvents([]);
+    setExpectedItems([]);
+    setExpectedCompletions([]);
+    setGigs([]);
+    setGigCompletions([]);
+    setGoals([]);
+    setFutureFund(null);
+    setBadges([]);
+  };
+
   return (
     <AppDataContext.Provider
       value={{
+        isHydrated,
         childProfile,
         scheduleEvents,
         expectedItems,
@@ -496,6 +585,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         addGig,
         updateGig,
         deleteGig,
+        resetAllData,
       }}
     >
       {children}
