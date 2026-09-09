@@ -1,0 +1,17 @@
+{
+  "name": "badge (Expo)",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "postCreateCommand": "npm install",
+  "forwardPorts": [8081],
+  "portsAttributes": {
+    "8081": {
+      "label": "Metro Bundler",
+      "onAutoForward": "notify"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["expo.vscode-expo-tools"]
+    }
+  }
+}
