@@ -1,7 +1,10 @@
-// Screen 13: parent — fulfill goal prompt. "Mark as fulfilled" is the gate:
-// the next queued goal doesn't activate until the parent explicitly
-// confirms fulfillment (docs/screens-and-flows.md). Parent-facing voice is
-// calm and efficient — no exclamation points.
+// Screen 13: parent — fulfill goal prompt. Marking a goal fulfilled is just
+// a real-world record ("I actually delivered this") — it no longer gates
+// the next queued goal, which activates automatically the moment this one
+// is achieved (see AppDataContext.markGigDone). A parent shouldn't have to
+// complete a real-world purchase or trip before their kid can keep earning
+// toward the next thing. Parent-facing voice is calm and efficient — no
+// exclamation points.
 //
 // "I'll do this later" leaves the goal in 'achieved' status rather than
 // forcing fulfillment on the spot — a real trip or purchase often can't
@@ -44,9 +47,7 @@ export function FulfillGoalScreen({ route, navigation }: Props) {
           Reached in {daysTaken} day{daysTaken === 1 ? '' : 's'}
         </Text>
       )}
-      <Text style={styles.instruction}>
-        Mark it fulfilled once you've handled it in real life. This is what starts the next goal in the queue.
-      </Text>
+      <Text style={styles.instruction}>Mark it fulfilled once you've handled it in real life.</Text>
       <Pressable style={styles.fulfilledButton} onPress={handleFulfilled}>
         <Text style={styles.fulfilledButtonText}>Mark as fulfilled</Text>
       </Pressable>

@@ -13,9 +13,12 @@ type Props = NativeStackScreenProps<RootStackParamList, 'GoalAchieved'>;
 
 export function GoalAchievedScreen({ route, navigation }: Props) {
   const { goalId } = route.params;
-  const { getGoal, queuedGoals } = useAppData();
+  const { getGoal, activeGoal } = useAppData();
   const goal = getGoal(goalId);
-  const nextUp = queuedGoals()[0];
+  // The next queued goal auto-activates the moment this one is achieved
+  // (see AppDataContext.markGigDone), so by the time this screen renders
+  // it's already the active goal, not still sitting in the queue.
+  const nextUp = activeGoal();
 
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const trophyScale = useRef(new Animated.Value(0)).current;

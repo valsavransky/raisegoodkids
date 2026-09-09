@@ -8,6 +8,7 @@ import { MainNavigator } from './MainNavigator';
 import { GoalAchievedScreen } from '../screens/child/GoalAchievedScreen';
 import { FulfillGoalScreen } from '../screens/parent/FulfillGoalScreen';
 import { BadgeUnlockScreen } from '../screens/child/BadgeUnlockScreen';
+import { AllExpectedDoneScreen } from '../screens/child/AllExpectedDoneScreen';
 import { ImportGoogleCalendarScreen } from '../screens/child/ImportGoogleCalendarScreen';
 import { ImportGoogleCalendarEventsScreen } from '../screens/child/ImportGoogleCalendarEventsScreen';
 import { ManageExpectedGigsScreen } from '../screens/parent/ManageExpectedGigsScreen';
@@ -22,6 +23,7 @@ export function RootStackNavigator() {
         <Stack.Screen name="GoalAchieved" component={GoalAchievedScreen} />
         <Stack.Screen name="FulfillGoal" component={FulfillGoalScreen} />
         <Stack.Screen name="BadgeUnlock" component={BadgeUnlockScreen} />
+        <Stack.Screen name="AllExpectedDone" component={AllExpectedDoneScreen} />
       </Stack.Group>
       <Stack.Group screenOptions={{ presentation: 'modal' }}>
         <Stack.Screen name="ImportGoogleCalendar" component={ImportGoogleCalendarScreen} />

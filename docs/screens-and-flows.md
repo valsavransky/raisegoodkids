@@ -173,13 +173,13 @@ Both converge on a payoff step: redeem the goal (parent fulfills it in real life
 - A preview of the next queued goal automatically becoming active ("Up next: New bike"), so the loop continues without a dead stop
 
 ### 13. Parent: fulfill goal prompt
-**Purpose:** the parent-facing counterpart to screen 12 — a reminder to actually make the real-world purchase/trip happen, and a control to advance the queue once they have.
+**Purpose:** the parent-facing counterpart to screen 12 — a reminder to actually make the real-world purchase/trip happen, and a record of having done so.
 **Key elements:**
 - Trophy icon, child's name, goal name, and how long it took ("reached in 23 days") — a nice small recap moment for the parent
-- Short instruction: mark it fulfilled once handled, which is what actually starts the next queued goal
-- "Mark as fulfilled" button
+- Short instruction: mark it fulfilled once handled, for the parent's own record
+- "Mark as fulfilled" button, plus "I'll do this later" for when real-world delivery (a future trip, say) can't happen right away
 
-**Decided:** "Mark as fulfilled" is the gate — the next queued goal does not activate until the parent explicitly confirms fulfillment. The child's home screen has no active goal in the interim, which is accepted as intended (it mirrors real life: you don't start saving for the next thing until the last one is actually delivered).
+**Revised:** "Mark as fulfilled" no longer gates the next queued goal — it activates automatically the moment the current one is achieved (100% reached), not when the parent confirms real-world delivery. Originally decided the other way ("you don't start saving for the next thing until the last one is actually delivered"), but that forced an immediate parent action before a child could keep earning, which doesn't hold up for a goal like a future trip that can't be delivered on the spot. Fulfillment is now just a record, tracked separately via the goal's `fulfilledAt` field and surfaced on the Goal tab, with "Finish up" as the way back to this screen for an achieved-but-not-yet-fulfilled goal.
 
 ---
 

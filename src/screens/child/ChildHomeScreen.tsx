@@ -101,8 +101,10 @@ export function ChildHomeScreen() {
           name={item.name}
           isDone={isExpectedDoneToday(item.id)}
           onPress={() => {
-            const newBadgeCatalogId = markExpectedDone(item.id);
-            if (newBadgeCatalogId) {
+            const { newBadgeCatalogId, allDoneToday } = markExpectedDone(item.id);
+            if (allDoneToday) {
+              navigation.navigate('AllExpectedDone', { badgeCatalogId: newBadgeCatalogId ?? undefined });
+            } else if (newBadgeCatalogId) {
               navigation.navigate('BadgeUnlock', { catalogId: newBadgeCatalogId });
             }
           }}

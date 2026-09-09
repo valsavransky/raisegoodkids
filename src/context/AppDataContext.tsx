@@ -32,6 +32,17 @@ export interface MarkGigDoneResult {
   newBadgeCatalogId: string | null;
 }
 
+export interface MarkExpectedDoneResult {
+  /** A newly-earned streak badge's catalogId, if any. Since a streak day
+   * only counts when every Expected item was done that day, this can only
+   * ever be set alongside allDoneToday === true. */
+  newBadgeCatalogId: string | null;
+  /** True exactly once per day — on the tap that completes the last
+   * remaining Expected item — so callers can show the "all done today"
+   * celebration. */
+  allDoneToday: boolean;
+}
+
 interface AppDataContextValue {
   childProfile: ChildProfile | null;
   scheduleEvents: ScheduleEvent[];
@@ -51,8 +62,7 @@ interface AppDataContextValue {
   }) => void;
 
   isExpectedDoneToday: (expectedItemId: string) => boolean;
-  /** Returns a newly-earned streak badge's catalogId, if any. */
-  markExpectedDone: (expectedItemId: string) => string | null;
+  markExpectedDone: (expectedItemId: string) => MarkExpectedDoneResult;
   allExpectedDoneToday: () => boolean;
   expectedDoneCountToday: () => { done: number; total: number };
   expectedStreak: () => number;
@@ -69,9 +79,11 @@ interface AppDataContextValue {
   updateGoal: (goalId: string, fields: { name: string; realWorldCost: number }) => void;
   deleteGoal: (goalId: string) => void;
   goalProgressPercentage: (goalId: string) => number;
-  /** Advances a fulfilled goal's status and activates the next queued goal —
-   * the gate screen 13 describes ("Mark as fulfilled" is what starts the
-   * next goal, not reaching 100% on its own). */
+  /** Records real-world delivery of an achieved goal. Does NOT gate the next
+   * queued goal — that activates automatically the moment this one is
+   * achieved (see markGigDone), since a parent might not get to the real-
+   * world purchase/trip right away (a future vacation, say) and shouldn't
+   * have to before the child can keep earning toward the next thing. */
   markGoalFulfilled: (goalId: string) => void;
 
   gigPreviewPercentage: (gig: Gig) => number | null;
@@ -159,7 +171,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       childProfileId: childId,
       percentage: DEFAULT_FUTURE_FUND_PERCENTAGE,
       balance: 0,
-      milestoneThreshold: 100,
+      // Lowered from the vision doc's $100 example to $50 so the milestone
+      // is reachable in testing without needing dozens of gigs.
+      milestoneThreshold: 50,
     });
   };
 
@@ -186,8 +200,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setBadges((prev) => [...prev, badge]);
   };
 
-  const markExpectedDone = (expectedItemId: string): string | null => {
-    if (isExpectedDoneToday(expectedItemId)) return null;
+  const markExpectedDone = (expectedItemId: string): MarkExpectedDoneResult => {
+    const noOp: MarkExpectedDoneResult = { newBadgeCatalogId: null, allDoneToday: false };
+    if (isExpectedDoneToday(expectedItemId)) return noOp;
     const completion: ExpectedCompletion = {
       id: makeId('expectedCompletion'),
       expectedItemId,
@@ -199,14 +214,21 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setExpectedCompletions((prev) => [...prev, completion]);
 
     // expectedCompletions state hasn't updated yet in this closure — include
-    // the pending completion directly so the streak reflects today's tap.
-    const newStreak = computeExpectedStreak(expectedItems, [...expectedCompletions, completion], todayString());
+    // the pending completion directly so today's picture reflects this tap.
+    const today = todayString();
+    const updatedCompletions = [...expectedCompletions, completion];
+    const allDoneToday =
+      expectedItems.length > 0 &&
+      expectedItems.every((item) => updatedCompletions.some((c) => c.expectedItemId === item.id && c.date === today));
+
+    const newStreak = computeExpectedStreak(expectedItems, updatedCompletions, today);
     const threshold = STREAK_THRESHOLDS.find((t) => t.days === newStreak);
+    let newBadgeCatalogId: string | null = null;
     if (threshold && !hasBadge(threshold.catalogId)) {
       awardBadge(threshold.catalogId, { streakCount: newStreak });
-      return threshold.catalogId;
+      newBadgeCatalogId = threshold.catalogId;
     }
-    return null;
+    return { newBadgeCatalogId, allDoneToday };
   };
 
   const allExpectedDoneToday = (): boolean => {
@@ -283,16 +305,21 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setGoals((prev) => prev.filter((g) => g.id !== goalId));
   };
 
+  /** Promotes the next queued goal (lowest queuePosition) to active, if
+   * there is one. Used both when a goal is achieved (immediately opens the
+   * slot for the next one) and — defensively — nowhere else, since that's
+   * the only place a slot opens up. */
+  const activateNextQueuedGoal = (list: Goal[]): Goal[] => {
+    const queued = list.filter((g) => g.status === 'queued').sort((a, b) => a.queuePosition - b.queuePosition);
+    const nextUp = queued[0];
+    if (!nextUp) return list;
+    return list.map((g) => (g.id === nextUp.id ? { ...g, status: 'active' as const } : g));
+  };
+
   const markGoalFulfilled = (goalId: string) => {
-    setGoals((prev) => {
-      const next = prev.map((g) =>
-        g.id === goalId ? { ...g, status: 'fulfilled' as const, fulfilledAt: new Date().toISOString() } : g
-      );
-      const queued = next.filter((g) => g.status === 'queued').sort((a, b) => a.queuePosition - b.queuePosition);
-      const nextUp = queued[0];
-      if (!nextUp) return next;
-      return next.map((g) => (g.id === nextUp.id ? { ...g, status: 'active' as const } : g));
-    });
+    setGoals((prev) =>
+      prev.map((g) => (g.id === goalId ? { ...g, status: 'fulfilled' as const, fulfilledAt: new Date().toISOString() } : g))
+    );
   };
 
   const gigPreviewPercentage = (gig: Gig): number | null => {
@@ -342,9 +369,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const priorProgress = goalProgressPercentage(goal.id);
     const achievedGoal = priorProgress + percentageAwarded >= 100;
     if (achievedGoal) {
-      setGoals((prev) =>
-        prev.map((g) => (g.id === goal.id ? { ...g, status: 'achieved' as const, achievedAt: new Date().toISOString() } : g))
-      );
+      setGoals((prev) => {
+        const withAchieved = prev.map((g) =>
+          g.id === goal.id ? { ...g, status: 'achieved' as const, achievedAt: new Date().toISOString() } : g
+        );
+        // The next queued goal activates immediately, not gated behind the
+        // parent later confirming fulfillment — see markGoalFulfilled.
+        return activateNextQueuedGoal(withAchieved);
+      });
     }
 
     // All qualifying badges get recorded, but only one popup ever surfaces
