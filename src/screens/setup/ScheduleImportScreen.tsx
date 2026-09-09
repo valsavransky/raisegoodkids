@@ -1,11 +1,11 @@
 // Screen 5: parent setup, step 2 of 3 — schedule import.
 //
-// Google Calendar connection isn't wired up yet (needs OAuth + a backend,
-// neither of which exist in this build) — "Connect Google Calendar" says so
-// rather than pretending to import anything. "Skip and add manually" is the
-// only functional path into schedule review for now.
+// "Connect Google Calendar" leads into a STUBBED picker/import flow (mock
+// calendars and events from src/data/mockGoogleCalendar.ts) rather than a
+// real Google sign-in — real OAuth needs a Google Cloud project and moving
+// off plain Expo Go to a custom dev build, deferred until that's set up.
 import React from 'react';
-import { View, Text, Pressable, Alert, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -25,15 +25,7 @@ export function ScheduleImportScreen({ navigation }: Props) {
           Expected items and Gigs.
         </Text>
 
-        <Pressable
-          style={styles.primaryButton}
-          onPress={() =>
-            Alert.alert(
-              'Coming soon',
-              'Google Calendar connection isn’t available yet. Continue with "Skip and add manually" for now.'
-            )
-          }
-        >
+        <Pressable style={styles.primaryButton} onPress={() => navigation.navigate('GoogleCalendarPicker')}>
           <Text style={styles.primaryButtonText}>Connect Google Calendar</Text>
         </Pressable>
 

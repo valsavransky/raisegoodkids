@@ -1,6 +1,8 @@
 export type SetupStackParamList = {
   ChildProfile: undefined;
   ScheduleImport: undefined;
+  GoogleCalendarPicker: undefined;
+  GoogleCalendarEvents: { calendarId: string };
   ScheduleReview: undefined;
   ExpectedGigsSetup: undefined;
 };
