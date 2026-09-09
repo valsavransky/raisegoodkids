@@ -1,7 +1,7 @@
 // Screen 4: parent setup, step 1 of 3 — child profile.
 import React, { useMemo, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, Modal, Platform, StyleSheet } from 'react-native';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -45,11 +45,9 @@ export function ChildProfileScreen({ navigation }: Props) {
     setShowPicker(true);
   };
 
-  const handleAndroidChange = (event: DateTimePickerEvent, selectedDate?: Date) => {
+  const handleAndroidChange = (_event: DateTimePickerChangeEvent, selectedDate: Date) => {
     setShowPicker(false);
-    if (event.type === 'set' && selectedDate) {
-      setChildProfile({ birthday: selectedDate.toISOString().slice(0, 10) });
-    }
+    setChildProfile({ birthday: selectedDate.toISOString().slice(0, 10) });
   };
 
   const confirmIOSDate = () => {
@@ -98,7 +96,8 @@ export function ChildProfileScreen({ navigation }: Props) {
           mode="date"
           display="default"
           maximumDate={new Date()}
-          onChange={handleAndroidChange}
+          onValueChange={handleAndroidChange}
+          onDismiss={() => setShowPicker(false)}
         />
       )}
 
@@ -111,7 +110,7 @@ export function ChildProfileScreen({ navigation }: Props) {
                 mode="date"
                 display="spinner"
                 maximumDate={new Date()}
-                onChange={(_, date) => date && setTempDate(date)}
+                onValueChange={(_, date) => setTempDate(date)}
               />
               <Pressable style={styles.modalDoneButton} onPress={confirmIOSDate}>
                 <Text style={styles.modalDoneButtonText}>Done</Text>

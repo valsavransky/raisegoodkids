@@ -48,6 +48,7 @@ interface AppDataContextValue {
   queuedGoals: () => Goal[];
   getGoal: (goalId: string) => Goal | undefined;
   addGoal: (name: string, realWorldCost: number) => void;
+  setActiveGoal: (goalId: string) => void;
   goalProgressPercentage: (goalId: string) => number;
   /** Advances a fulfilled goal's status and activates the next queued goal —
    * the gate screen 13 describes ("Mark as fulfilled" is what starts the
@@ -177,6 +178,20 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setGoals((prev) => [...prev, goal]);
   };
 
+  /** Promotes a queued goal to active, demoting the current active goal (if
+   * any) back to queued. Progress isn't affected either way — each goal's
+   * progress is derived from GigCompletions tied to its own id, independent
+   * of which goal currently holds 'active' status. */
+  const setActiveGoal = (goalId: string) => {
+    setGoals((prev) =>
+      prev.map((g) => {
+        if (g.id === goalId) return { ...g, status: 'active' as const };
+        if (g.status === 'active') return { ...g, status: 'queued' as const };
+        return g;
+      })
+    );
+  };
+
   const goalProgressPercentage = (goalId: string): number => {
     return gigCompletions
       .filter((c) => c.goalId === goalId && c.status === 'approved')
@@ -263,6 +278,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         queuedGoals,
         getGoal,
         addGoal,
+        setActiveGoal,
         goalProgressPercentage,
         markGoalFulfilled,
         gigPreviewPercentage,

@@ -5,13 +5,14 @@
 // toward goal progress immediately — no separate approval queue, since
 // there's only one user type (parent) and they're present for the session.
 import React from 'react';
-import { View, Text, Pressable, FlatList, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppData } from '../../context/AppDataContext';
 import { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { ExpectedItemRow } from '../../components/ExpectedItemRow';
+import { GigItemRow } from '../../components/GigItemRow';
 import { colors } from '../../theme/colors';
 
 type ChildHomeNavigationProp = CompositeNavigationProp<
@@ -51,7 +52,7 @@ export function ChildHomeScreen() {
   const streak = expectedStreak();
 
   return (
-    <View style={styles.screen}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <View style={styles.header}>
         <Text style={styles.wordmark}>badge</Text>
         <Text style={styles.avatar}>{AVATAR_EMOJI[childProfile?.avatarId ?? ''] ?? '🙂'}</Text>
@@ -77,18 +78,14 @@ export function ChildHomeScreen() {
         <Text style={styles.streakText}>{streak}-day streak</Text>
       </View>
 
-      <FlatList
-        data={expectedItems}
-        keyExtractor={(item) => item.id}
-        scrollEnabled={false}
-        renderItem={({ item }) => (
-          <ExpectedItemRow
-            name={item.name}
-            isDone={isExpectedDoneToday(item.id)}
-            onPress={() => markExpectedDone(item.id)}
-          />
-        )}
-      />
+      {expectedItems.map((item) => (
+        <ExpectedItemRow
+          key={item.id}
+          name={item.name}
+          isDone={isExpectedDoneToday(item.id)}
+          onPress={() => markExpectedDone(item.id)}
+        />
+      ))}
 
       {goal && (
         <>
@@ -106,41 +103,34 @@ export function ChildHomeScreen() {
               </Text>
             </View>
           ) : (
-            <FlatList
-              data={gigs}
-              keyExtractor={(gig) => gig.id}
-              scrollEnabled={false}
-              renderItem={({ item: gig }) => {
-                const status = gigCompletionStatusToday(gig.id);
-                const percentage = gigPreviewPercentage(gig);
-                return (
-                  <Pressable
-                    style={styles.gigRow}
-                    disabled={status !== null}
-                    onPress={() => {
-                      const achievedGoalId = goal?.id;
-                      const achieved = markGigDone(gig.id);
-                      if (achieved && achievedGoalId) {
-                        navigation.navigate('GoalAchieved', { goalId: achievedGoalId });
-                      }
-                    }}
-                  >
-                    <Text style={styles.gigCoin}>🪙</Text>
-                    <Text style={[styles.gigName, status !== null && styles.gigNameDone]}>{gig.name}</Text>
-                    <Text style={styles.gigPercentage}>{status === 'approved' ? 'Done ✓' : `+${percentage}%`}</Text>
-                  </Pressable>
-                );
-              }}
-            />
+            gigs.map((gig) => {
+              const status = gigCompletionStatusToday(gig.id);
+              return (
+                <GigItemRow
+                  key={gig.id}
+                  name={gig.name}
+                  percentage={gigPreviewPercentage(gig)}
+                  isDone={status === 'approved'}
+                  onPress={() => {
+                    const achievedGoalId = goal.id;
+                    const achieved = markGigDone(gig.id);
+                    if (achieved) {
+                      navigation.navigate('GoalAchieved', { goalId: achievedGoalId });
+                    }
+                  }}
+                />
+              );
+            })
           )}
         </>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 20, paddingTop: 20 },
+  screen: { flex: 1, backgroundColor: colors.background },
+  content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 40 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   wordmark: { fontSize: 22, fontWeight: '800', color: colors.text },
   avatar: { fontSize: 28 },
@@ -165,9 +155,4 @@ const styles = StyleSheet.create({
   lockIcon: { fontSize: 28, marginBottom: 8 },
   lockedText: { fontSize: 15, fontWeight: '700', color: colors.text, textAlign: 'center' },
   lockedProgress: { fontSize: 13, color: colors.textMuted, marginTop: 6 },
-  gigRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
-  gigCoin: { fontSize: 18 },
-  gigName: { fontSize: 15, color: colors.text, flex: 1 },
-  gigNameDone: { color: colors.textMuted },
-  gigPercentage: { fontSize: 13, fontWeight: '700', color: colors.gigs },
 });

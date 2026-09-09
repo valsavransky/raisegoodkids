@@ -1,19 +1,46 @@
 // Screen 3: goal picker — also the entry point when no goal is active yet.
 // Goals are queued, not concurrent: one active goal at a time, a wishlist
 // waits behind it in order (docs/screens-and-flows.md, screen 3).
+//
+// Shows every goal, not just active/queued — achieved and fulfilled goals
+// used to disappear from this list entirely once they left 'active', which
+// made it look like nothing had happened. A queued goal can also be
+// switched to active directly: since progress is derived per-goal from its
+// own GigCompletions (see AppDataContext.goalProgressPercentage), swapping
+// which goal is active never loses anything already earned toward any goal.
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, FlatList, Modal, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, SectionList, Modal, StyleSheet } from 'react-native';
+import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppData } from '../../context/AppDataContext';
+import { Goal } from '../../types/models';
+import { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { colors } from '../../theme/colors';
 
+type GoalPickerNavigationProp = CompositeNavigationProp<
+  BottomTabNavigationProp<MainTabParamList, 'Goal'>,
+  NativeStackNavigationProp<RootStackParamList>
+>;
+
 export function GoalPickerScreen() {
-  const { goals, activeGoal, queuedGoals, addGoal, goalProgressPercentage, futureFund } = useAppData();
+  const navigation = useNavigation<GoalPickerNavigationProp>();
+  const { goals, activeGoal, queuedGoals, addGoal, setActiveGoal, goalProgressPercentage, futureFund } = useAppData();
   const [modalVisible, setModalVisible] = useState(false);
   const [draftName, setDraftName] = useState('');
   const [draftCost, setDraftCost] = useState('');
 
   const active = activeGoal();
   const queued = queuedGoals();
+  const completed = goals
+    .filter((g) => g.status === 'achieved' || g.status === 'fulfilled')
+    .sort((a, b) => (b.achievedAt ?? '').localeCompare(a.achievedAt ?? ''));
+
+  const sections = [
+    ...(active ? [{ title: 'Active goal', data: [active] }] : []),
+    ...(queued.length > 0 ? [{ title: 'Up next', data: queued }] : []),
+    ...(completed.length > 0 ? [{ title: 'Completed', data: completed }] : []),
+  ];
 
   const confirmAdd = () => {
     const cost = parseFloat(draftCost);
@@ -24,41 +51,75 @@ export function GoalPickerScreen() {
     setDraftCost('');
   };
 
+  const renderGoalRow = (item: Goal) => {
+    if (item.status === 'active') {
+      const progress = goalProgressPercentage(item.id);
+      return (
+        <View style={[styles.goalRow, styles.goalRowActive]}>
+          <View style={styles.goalRowTop}>
+            <Text style={styles.goalName}>{item.name}</Text>
+            <View style={styles.activeBadge}>
+              <Text style={styles.activeBadgeText}>{'✓'} Active goal</Text>
+            </View>
+          </View>
+          <View style={styles.progressBarTrack}>
+            <View style={[styles.progressBarFill, { width: `${Math.min(progress, 100)}%` }]} />
+          </View>
+        </View>
+      );
+    }
+
+    if (item.status === 'queued') {
+      return (
+        <View style={styles.goalRow}>
+          <View style={styles.goalRowTop}>
+            <Text style={styles.goalName}>{item.name}</Text>
+          </View>
+          <Pressable style={styles.makeActiveButton} onPress={() => setActiveGoal(item.id)}>
+            <Text style={styles.makeActiveButtonText}>Make active</Text>
+          </Pressable>
+        </View>
+      );
+    }
+
+    if (item.status === 'achieved') {
+      return (
+        <View style={[styles.goalRow, styles.goalRowAchieved]}>
+          <View style={styles.goalRowTop}>
+            <Text style={styles.goalName}>{item.name}</Text>
+            <Text style={styles.achievedLabel}>🏆 Achieved</Text>
+          </View>
+          <Pressable style={styles.makeActiveButton} onPress={() => navigation.navigate('FulfillGoal', { goalId: item.id })}>
+            <Text style={styles.makeActiveButtonText}>Finish up</Text>
+          </Pressable>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.goalRow}>
+        <View style={styles.goalRowTop}>
+          <Text style={styles.goalName}>{item.name}</Text>
+          <Text style={styles.fulfilledLabel}>✓ Fulfilled</Text>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
         <Text style={styles.title}>{goals.length === 0 ? 'Pick a goal to start earning' : 'Your goals'}</Text>
       </View>
 
-      <FlatList
+      <SectionList
         style={styles.list}
         contentContainerStyle={styles.listContent}
-        data={active ? [active, ...queued] : queued}
+        sections={sections}
         keyExtractor={(goal) => goal.id}
         ListEmptyComponent={<Text style={styles.emptyText}>No goals yet — add your first one below.</Text>}
-        renderItem={({ item, index }) => {
-          const isActive = item.status === 'active';
-          const progress = isActive ? goalProgressPercentage(item.id) : 0;
-          return (
-            <View style={[styles.goalRow, isActive && styles.goalRowActive]}>
-              <View style={styles.goalRowTop}>
-                <Text style={styles.goalName}>{item.name}</Text>
-                {isActive ? (
-                  <View style={styles.activeBadge}>
-                    <Text style={styles.activeBadgeText}>{'✓'} Active goal</Text>
-                  </View>
-                ) : (
-                  <Text style={styles.queuedLabel}>{index === (active ? 1 : 0) ? 'Up next' : 'Waiting in line'}</Text>
-                )}
-              </View>
-              {isActive && (
-                <View style={styles.progressBarTrack}>
-                  <View style={[styles.progressBarFill, { width: `${Math.min(progress, 100)}%` }]} />
-                </View>
-              )}
-            </View>
-          );
-        }}
+        renderSectionHeader={({ section }) => <Text style={styles.sectionHeader}>{section.title}</Text>}
+        renderItem={({ item }) => renderGoalRow(item)}
       />
 
       <Pressable style={styles.addButton} onPress={() => setModalVisible(true)}>
@@ -106,6 +167,7 @@ const styles = StyleSheet.create({
   list: { flex: 1 },
   listContent: { paddingHorizontal: 20, paddingTop: 8 },
   emptyText: { fontSize: 14, color: colors.textMuted, textAlign: 'center', marginTop: 24 },
+  sectionHeader: { fontSize: 13, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', marginTop: 12, marginBottom: 8 },
   goalRow: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -115,13 +177,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   goalRowActive: { borderColor: colors.gigs, borderWidth: 2 },
+  goalRowAchieved: { borderColor: colors.gigs, borderStyle: 'dashed' },
   goalRowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   goalName: { fontSize: 16, fontWeight: '600', color: colors.text, flexShrink: 1 },
   activeBadge: { backgroundColor: colors.gigs, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
   activeBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  queuedLabel: { fontSize: 12, color: colors.textMuted, fontWeight: '600' },
+  achievedLabel: { fontSize: 12, color: colors.gigs, fontWeight: '700' },
+  fulfilledLabel: { fontSize: 12, color: colors.success, fontWeight: '700' },
   progressBarTrack: { height: 8, borderRadius: 4, backgroundColor: colors.border, marginTop: 12, overflow: 'hidden' },
   progressBarFill: { height: 8, borderRadius: 4, backgroundColor: colors.gigs },
+  makeActiveButton: { marginTop: 10, alignSelf: 'flex-start' },
+  makeActiveButtonText: { color: colors.expected, fontSize: 13, fontWeight: '700' },
   addButton: { marginHorizontal: 20, paddingVertical: 12, alignItems: 'center' },
   addButtonText: { color: colors.expected, fontSize: 15, fontWeight: '600' },
   futureFundRow: {
