@@ -9,6 +9,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { useSetup, DraftExpectedItem, DraftGig, makeLocalId } from '../../context/SetupContext';
+import { useAppData } from '../../context/AppDataContext';
 import { getContentLibraryForGrade } from '../../data/contentLibrary';
 import { GigEffortTier } from '../../types/models';
 import { colors } from '../../theme/colors';
@@ -22,7 +23,9 @@ const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
 type Props = NativeStackScreenProps<SetupStackParamList, 'ExpectedGigsSetup'>;
 
 export function ExpectedGigsSetupScreen({ navigation }: Props) {
-  const { childProfile, expectedItems, setExpectedItems, gigs, setGigs } = useSetup();
+  const setup = useSetup();
+  const { childProfile, expectedItems, setExpectedItems, gigs, setGigs } = setup;
+  const { completeSetup } = useAppData();
   const [addModalMode, setAddModalMode] = useState<'expected' | 'gig' | null>(null);
   const [draftName, setDraftName] = useState('');
   const [draftFrequency, setDraftFrequency] = useState<'daily' | 'weekly'>('daily');
@@ -159,7 +162,17 @@ export function ExpectedGigsSetupScreen({ navigation }: Props) {
         </Pressable>
       </ScrollView>
 
-      <Pressable style={styles.finishButton} onPress={() => navigation.navigate('SetupComplete')}>
+      <Pressable
+        style={styles.finishButton}
+        onPress={() =>
+          completeSetup({
+            childProfile: setup.childProfile,
+            scheduleEvents: setup.scheduleEvents,
+            expectedItems: setup.expectedItems,
+            gigs: setup.gigs,
+          })
+        }
+      >
         <Text style={styles.finishButtonText}>Finish setup</Text>
       </Pressable>
 

@@ -3,5 +3,10 @@ export type SetupStackParamList = {
   ScheduleImport: undefined;
   ScheduleReview: undefined;
   ExpectedGigsSetup: undefined;
-  SetupComplete: undefined;
+};
+
+export type MainTabParamList = {
+  Home: undefined;
+  Goal: undefined;
+  Badges: undefined;
 };
