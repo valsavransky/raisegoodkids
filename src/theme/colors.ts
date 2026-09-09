@@ -13,4 +13,9 @@ export const colors = {
   text: '#1C1E21',
   textMuted: '#6B7280',
   danger: '#B3261E',
+
+  // Completion checkmark for self-marked Expected items — see the "Icon rule"
+  // revision in docs/screens-and-flows.md.
+  success: '#1E9E4B',
+  successBackground: '#E4F7EA',
 };

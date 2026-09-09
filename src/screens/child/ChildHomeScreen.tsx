@@ -10,6 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useAppData } from '../../context/AppDataContext';
 import { MainTabParamList } from '../../navigation/types';
+import { ExpectedItemRow } from '../../components/ExpectedItemRow';
 import { colors } from '../../theme/colors';
 
 const AVATAR_EMOJI: Record<string, string> = {
@@ -74,19 +75,13 @@ export function ChildHomeScreen() {
         data={expectedItems}
         keyExtractor={(item) => item.id}
         scrollEnabled={false}
-        renderItem={({ item }) => {
-          const isDone = isExpectedDoneToday(item.id);
-          return (
-            <Pressable
-              style={styles.expectedRow}
-              disabled={isDone}
-              onPress={() => markExpectedDone(item.id)}
-            >
-              <View style={[styles.circle, isDone && styles.circleDone]} />
-              <Text style={[styles.expectedName, isDone && styles.expectedNameDone]}>{item.name}</Text>
-            </Pressable>
-          );
-        }}
+        renderItem={({ item }) => (
+          <ExpectedItemRow
+            name={item.name}
+            isDone={isExpectedDoneToday(item.id)}
+            onPress={() => markExpectedDone(item.id)}
+          />
+        )}
       />
 
       {goal && (
@@ -154,11 +149,6 @@ const styles = StyleSheet.create({
   sectionIcon: { fontSize: 16 },
   sectionHeader: { fontSize: 17, fontWeight: '700', color: colors.text, flex: 1 },
   streakText: { fontSize: 13, color: colors.expected, fontWeight: '700' },
-  expectedRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
-  circle: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.border },
-  circleDone: { backgroundColor: colors.expected, borderColor: colors.expected },
-  expectedName: { fontSize: 15, color: colors.text, flexShrink: 1 },
-  expectedNameDone: { color: colors.textMuted },
   lockedCard: { backgroundColor: colors.surface, borderRadius: 14, padding: 20, alignItems: 'center' },
   lockIcon: { fontSize: 28, marginBottom: 8 },
   lockedText: { fontSize: 15, fontWeight: '700', color: colors.text, textAlign: 'center' },
