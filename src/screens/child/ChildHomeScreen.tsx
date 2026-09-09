@@ -4,8 +4,17 @@
 // Gigs are marked done directly by the parent during check-in and count
 // toward goal progress immediately — no separate approval queue, since
 // there's only one user type (parent) and they're present for the session.
+//
+// Gigs are no longer hard-locked behind finishing today's Expected items —
+// some Expected items are legitimately impossible on a given day (nothing
+// to set the table for, no dishes to put away), and a hard lock had no way
+// to tell the difference from actually skipped chores. Instead, incomplete
+// Expected items still show as a visible count, and starting a gig while
+// some are outstanding asks the parent to confirm — putting that judgment
+// call where it belongs (the present parent) rather than enforcing it
+// structurally. See conversation for the "cheap solution" reasoning.
 import React from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert, StyleSheet } from 'react-native';
 import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -94,34 +103,46 @@ export function ChildHomeScreen() {
             <Text style={styles.sectionHeader}>Gigs available</Text>
           </View>
 
-          {!gigsUnlocked ? (
-            <View style={styles.lockedCard}>
-              <Text style={styles.lockIcon}>🔒</Text>
-              <Text style={styles.lockedText}>Finish today's Expected to unlock gigs!</Text>
-              <Text style={styles.lockedProgress}>
-                {done} of {total} done
-              </Text>
-            </View>
-          ) : (
-            gigs.map((gig) => {
-              const status = gigCompletionStatusToday(gig.id);
-              return (
-                <GigItemRow
-                  key={gig.id}
-                  name={gig.name}
-                  percentage={gigPreviewPercentage(gig)}
-                  isDone={status === 'approved'}
-                  onPress={() => {
-                    const achievedGoalId = goal.id;
-                    const achieved = markGigDone(gig.id);
-                    if (achieved) {
-                      navigation.navigate('GoalAchieved', { goalId: achievedGoalId });
-                    }
-                  }}
-                />
-              );
-            })
+          {!gigsUnlocked && (
+            <Text style={styles.expectedRemainingNote}>
+              {total - done} Expected item{total - done === 1 ? '' : 's'} still to do today
+            </Text>
           )}
+
+          {gigs.map((gig) => {
+            const status = gigCompletionStatusToday(gig.id);
+            const startGig = () => {
+              const achievedGoalId = goal.id;
+              const achieved = markGigDone(gig.id);
+              if (achieved) {
+                navigation.navigate('GoalAchieved', { goalId: achievedGoalId });
+              }
+            };
+            return (
+              <GigItemRow
+                key={gig.id}
+                name={gig.name}
+                percentage={gigPreviewPercentage(gig)}
+                isDone={status === 'approved'}
+                onPress={() => {
+                  if (gigsUnlocked) {
+                    startGig();
+                    return;
+                  }
+                  Alert.alert(
+                    'Still some Expected left today',
+                    `${childProfile?.name ?? 'Your child'} still has ${total - done} Expected item${
+                      total - done === 1 ? '' : 's'
+                    } left today. Let them start a gig anyway?`,
+                    [
+                      { text: 'Not yet', style: 'cancel' },
+                      { text: 'Yes, let them', onPress: startGig },
+                    ]
+                  );
+                }}
+              />
+            );
+          })}
         </>
       )}
     </ScrollView>
@@ -151,8 +172,5 @@ const styles = StyleSheet.create({
   sectionIcon: { fontSize: 16 },
   sectionHeader: { fontSize: 17, fontWeight: '700', color: colors.text, flex: 1 },
   streakText: { fontSize: 13, color: colors.expected, fontWeight: '700' },
-  lockedCard: { backgroundColor: colors.surface, borderRadius: 14, padding: 20, alignItems: 'center' },
-  lockIcon: { fontSize: 28, marginBottom: 8 },
-  lockedText: { fontSize: 15, fontWeight: '700', color: colors.text, textAlign: 'center' },
-  lockedProgress: { fontSize: 13, color: colors.textMuted, marginTop: 6 },
+  expectedRemainingNote: { fontSize: 13, color: colors.textMuted, marginBottom: 8, fontWeight: '600' },
 });
