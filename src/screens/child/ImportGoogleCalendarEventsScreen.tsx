@@ -7,6 +7,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { useAppData } from '../../context/AppDataContext';
 import { getMockEventsForCalendar } from '../../data/mockGoogleCalendar';
+import { guessCategoryForTitle } from '../../data/practiceSuggestions';
 import { colors } from '../../theme/colors';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -28,7 +29,7 @@ export function ImportGoogleCalendarEventsScreen({ route, navigation }: Props) {
     selected.forEach((e) => {
       addScheduleEvent({
         title: e.title,
-        category: 'extracurricular',
+        category: guessCategoryForTitle(e.title),
         recurring: true,
         daysOfWeek: e.daysOfWeek,
         startTime: e.startTime,

@@ -3,7 +3,10 @@
 // schedule (so they show up in the Schedule tab) and directly as Expected
 // items — a recurring commitment like "Piano Lesson" is itself something
 // the child is expected to show up for, per the user's request to skip a
-// separate categorize-then-suggest step for calendar-sourced events.
+// separate categorize-then-suggest step for calendar-sourced events. The
+// category itself is now a rules-based best guess (see practiceSuggestions)
+// rather than hardcoded, so the review screen that follows shows something
+// worth correcting instead of everything landing as "Extracurricular".
 //
 // Scope note: ExpectedItem only has daily/weekly frequency, not specific
 // days — an imported "Tuesdays only" event becomes a 'weekly' Expected item
@@ -17,6 +20,7 @@ import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { useSetup, makeLocalId } from '../../context/SetupContext';
 import { getMockEventsForCalendar } from '../../data/mockGoogleCalendar';
+import { guessCategoryForTitle } from '../../data/practiceSuggestions';
 import { colors } from '../../theme/colors';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -41,7 +45,7 @@ export function GoogleCalendarEventsScreen({ route, navigation }: Props) {
       ...selected.map((e) => ({
         localId: makeLocalId('event'),
         title: e.title,
-        category: 'extracurricular' as const,
+        category: guessCategoryForTitle(e.title),
         recurring: true,
         daysOfWeek: e.daysOfWeek,
         startTime: e.startTime,

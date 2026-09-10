@@ -13,6 +13,10 @@ import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { useSetup, DraftScheduleEvent, makeLocalId } from '../../context/SetupContext';
 import { ScheduleEventCategory } from '../../types/models';
+import {
+  categoryTriggersSuggestion,
+  suggestExpectedItemForEvent,
+} from '../../data/practiceSuggestions';
 import { colors } from '../../theme/colors';
 
 const CATEGORIES: { value: ScheduleEventCategory; label: string }[] = [
@@ -35,8 +39,12 @@ function describeSchedule(event: DraftScheduleEvent): string {
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'ScheduleReview'>;
 
+type SuggestionStatus = 'pending' | 'added' | 'dismissed';
+
 export function ScheduleReviewScreen({ navigation }: Props) {
-  const { scheduleEvents, setScheduleEvents } = useSetup();
+  const { scheduleEvents, setScheduleEvents, expectedItems, setExpectedItems } = useSetup();
+  const [suggestionStatus, setSuggestionStatus] = useState<Record<string, SuggestionStatus>>({});
+  const [genericSuggestionDrafts, setGenericSuggestionDrafts] = useState<Record<string, string>>({});
   const [modalVisible, setModalVisible] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftCategory, setDraftCategory] = useState<ScheduleEventCategory>('school');
@@ -50,6 +58,22 @@ export function ScheduleReviewScreen({ navigation }: Props) {
     setScheduleEvents(
       scheduleEvents.map((event) => (event.localId === localId ? { ...event, category } : event))
     );
+  };
+
+  // Payoff mechanism from screen 6: the moment an event is tagged Practice
+  // or School, offer the related Expected item the lookup table suggests —
+  // right here, not a separate screen.
+  const acceptSuggestion = (name: string, localId: string) => {
+    if (!name.trim()) return;
+    setExpectedItems([
+      ...expectedItems,
+      { localId: makeLocalId('expected'), name: name.trim(), frequency: 'daily', active: true },
+    ]);
+    setSuggestionStatus((prev) => ({ ...prev, [localId]: 'added' }));
+  };
+
+  const dismissSuggestion = (localId: string) => {
+    setSuggestionStatus((prev) => ({ ...prev, [localId]: 'dismissed' }));
   };
 
   const openAddModal = () => {
@@ -97,30 +121,82 @@ export function ScheduleReviewScreen({ navigation }: Props) {
         data={scheduleEvents}
         keyExtractor={(event) => event.localId}
         ListEmptyComponent={<Text style={styles.emptyText}>No events yet — add anything worth knowing about.</Text>}
-        renderItem={({ item }) => (
-          <View style={styles.eventRow}>
-            <View style={styles.eventInfo}>
-              <Text style={styles.eventTitle}>{item.title}</Text>
-              <Text style={styles.eventRecurrence}>{describeSchedule(item)}</Text>
+        renderItem={({ item }) => {
+          const status = suggestionStatus[item.localId] ?? 'pending';
+          const showSuggestion = status === 'pending' && categoryTriggersSuggestion(item.category);
+          const suggestion = showSuggestion ? suggestExpectedItemForEvent(item.title) : null;
+
+          return (
+            <View style={styles.eventRow}>
+              <View style={styles.eventInfo}>
+                <Text style={styles.eventTitle}>{item.title}</Text>
+                <Text style={styles.eventRecurrence}>{describeSchedule(item)}</Text>
+              </View>
+              <View style={styles.categoryRow}>
+                {CATEGORIES.map((category) => {
+                  const selected = item.category === category.value;
+                  return (
+                    <Pressable
+                      key={category.value}
+                      onPress={() => updateCategory(item.localId, category.value)}
+                      style={[styles.categoryChip, selected && styles.categoryChipSelected]}
+                    >
+                      <Text style={[styles.categoryChipText, selected && styles.categoryChipTextSelected]}>
+                        {category.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {suggestion && !suggestion.isGeneric && (
+                <View style={styles.suggestionCard}>
+                  <Text style={styles.suggestionText}>
+                    Add <Text style={styles.suggestionName}>"{suggestion.name}"</Text> to Expected?
+                  </Text>
+                  <View style={styles.suggestionActions}>
+                    <Pressable onPress={() => dismissSuggestion(item.localId)} style={styles.suggestionDismiss}>
+                      <Text style={styles.suggestionDismissText}>No thanks</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => acceptSuggestion(suggestion.name, item.localId)}
+                      style={styles.suggestionAdd}
+                    >
+                      <Text style={styles.suggestionAddText}>Add</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              )}
+
+              {suggestion && suggestion.isGeneric && (
+                <View style={styles.suggestionCard}>
+                  <Text style={styles.suggestionText}>
+                    Add a related Expected item for "{item.title}"?
+                  </Text>
+                  <TextInput
+                    style={styles.suggestionInput}
+                    placeholder="e.g. Practice reading"
+                    value={genericSuggestionDrafts[item.localId] ?? ''}
+                    onChangeText={(text) =>
+                      setGenericSuggestionDrafts((prev) => ({ ...prev, [item.localId]: text }))
+                    }
+                  />
+                  <View style={styles.suggestionActions}>
+                    <Pressable onPress={() => dismissSuggestion(item.localId)} style={styles.suggestionDismiss}>
+                      <Text style={styles.suggestionDismissText}>No thanks</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => acceptSuggestion(genericSuggestionDrafts[item.localId] ?? '', item.localId)}
+                      style={styles.suggestionAdd}
+                    >
+                      <Text style={styles.suggestionAddText}>Add</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              )}
             </View>
-            <View style={styles.categoryRow}>
-              {CATEGORIES.map((category) => {
-                const selected = item.category === category.value;
-                return (
-                  <Pressable
-                    key={category.value}
-                    onPress={() => updateCategory(item.localId, category.value)}
-                    style={[styles.categoryChip, selected && styles.categoryChipSelected]}
-                  >
-                    <Text style={[styles.categoryChipText, selected && styles.categoryChipTextSelected]}>
-                      {category.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        )}
+          );
+        }}
       />
 
       <Pressable style={styles.addButton} onPress={openAddModal}>
@@ -244,6 +320,33 @@ const styles = StyleSheet.create({
   eventTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
   eventRecurrence: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
   categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
+  suggestionCard: {
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.expected,
+    padding: 12,
+    marginTop: -2,
+    marginBottom: 4,
+  },
+  suggestionText: { fontSize: 13, color: colors.text },
+  suggestionName: { fontWeight: '700' },
+  suggestionInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: colors.text,
+    backgroundColor: colors.surface,
+    marginTop: 8,
+  },
+  suggestionActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 8 },
+  suggestionDismiss: { paddingVertical: 6, paddingHorizontal: 4 },
+  suggestionDismissText: { color: colors.textMuted, fontSize: 13, fontWeight: '600' },
+  suggestionAdd: { backgroundColor: colors.expected, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 14 },
+  suggestionAddText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   categoryChip: {
     paddingHorizontal: 10,
     paddingVertical: 6,
