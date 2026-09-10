@@ -2,6 +2,7 @@
 // walks backward from today counting consecutive fully-completed days.
 import { ExpectedItem, ExpectedCompletion } from '../types/models';
 import { addDays } from './date';
+import { isExpectedItemSatisfied } from './expectedItemStatus';
 
 export function isDayFullyCompleted(
   dateStr: string,
@@ -10,9 +11,7 @@ export function isDayFullyCompleted(
 ): boolean {
   if (activeItems.length === 0) return false;
   return activeItems.every((item) =>
-    completions.some(
-      (c) => c.expectedItemId === item.id && c.date === dateStr && !c.correctedByParent
-    )
+    isExpectedItemSatisfied(item, completions, dateStr, { excludeCorrected: true })
   );
 }
 

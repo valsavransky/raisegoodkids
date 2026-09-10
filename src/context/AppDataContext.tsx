@@ -22,6 +22,7 @@ import { DraftChildProfile, DraftScheduleEvent, DraftExpectedItem, DraftGig } fr
 import { makeId } from '../utils/id';
 import { todayString } from '../utils/date';
 import { computeExpectedStreak } from '../utils/streak';
+import { isExpectedItemSatisfied } from '../utils/expectedItemStatus';
 import { computeGigPercentage, EFFORT_TIER_DOLLAR_VALUES } from '../utils/gigValue';
 import { STREAK_THRESHOLDS, GIG_MILESTONE_THRESHOLDS, FUTURE_FUND_THRESHOLDS, getBadgeCatalogEntry } from '../data/badgeCatalog';
 
@@ -251,8 +252,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   };
 
   const isExpectedDoneToday = (expectedItemId: string): boolean => {
-    const today = todayString();
-    return expectedCompletions.some((c) => c.expectedItemId === expectedItemId && c.date === today);
+    const item = expectedItems.find((i) => i.id === expectedItemId);
+    if (!item) return false;
+    return isExpectedItemSatisfied(item, expectedCompletions, todayString());
   };
 
   const hasBadge = (catalogId: string): boolean => badges.some((b) => b.catalogId === catalogId);
@@ -292,7 +294,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const updatedCompletions = [...expectedCompletions, completion];
     const allDoneToday =
       expectedItems.length > 0 &&
-      expectedItems.every((item) => updatedCompletions.some((c) => c.expectedItemId === item.id && c.date === today));
+      expectedItems.every((item) => isExpectedItemSatisfied(item, updatedCompletions, today));
 
     const newStreak = computeExpectedStreak(expectedItems, updatedCompletions, today);
     const threshold = STREAK_THRESHOLDS.find((t) => t.days === newStreak);
