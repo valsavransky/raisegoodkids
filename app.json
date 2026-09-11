@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "scheme": "merit",
+    "scheme": ["merit", "com.valsavransky.merit"],
     "ios": {
       "bundleIdentifier": "com.valsavransky.merit",
       "supportsTablet": true

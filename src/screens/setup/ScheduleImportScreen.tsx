@@ -11,22 +11,29 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { colors } from '../../theme/colors';
-import { isGoogleCalendarConfigured, useGoogleAuthRequest, exchangeCodeForTokens } from '../../services/googleAuth';
+import { isGoogleCalendarConfigured, useGoogleAuthRequest, storeTokensFromAuthResult } from '../../services/googleAuth';
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'ScheduleImport'>;
 
 export function ScheduleImportScreen({ navigation }: Props) {
   const [connecting, setConnecting] = useState(false);
   const configured = isGoogleCalendarConfigured();
-  const { request, response, promptAsync, clientId, redirectUri } = useGoogleAuthRequest();
+  const [request, response, promptAsync] = useGoogleAuthRequest();
 
   useEffect(() => {
     if (!response) return;
-    if (response.type === 'success' && request && clientId) {
-      exchangeCodeForTokens(response.params.code, request, clientId, redirectUri)
-        .then(() => {
+    if (response.type === 'success') {
+      storeTokensFromAuthResult(response)
+        .then((stored) => {
           setConnecting(false);
-          navigation.navigate('GoogleCalendarPicker');
+          if (stored) {
+            navigation.navigate('GoogleCalendarPicker');
+          } else {
+            Alert.alert(
+              'Connection failed',
+              'Google signed you in but did not return an access token. You can try again, or skip and add your schedule manually.'
+            );
+          }
         })
         .catch(() => {
           setConnecting(false);
