@@ -28,7 +28,14 @@ import { Platform } from 'react-native';
 import * as Google from 'expo-auth-session/providers/google';
 import * as SecureStore from 'expo-secure-store';
 import * as AuthSession from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
+
+// Required once, at module scope, so a pending browser auth session
+// resolves correctly when the redirect brings the app back to the
+// foreground — without this, promptAsync()'s promise can fail to settle
+// even though the redirect itself succeeded.
+WebBrowser.maybeCompleteAuthSession();
 
 // Narrowest scope that covers titles/times only — see the privacy note on
 // screen 5 of docs/screens-and-flows.md. Deliberately not calendar.readonly,
@@ -104,6 +111,16 @@ export async function storeTokensFromAuthResult(
   response: Extract<AuthSession.AuthSessionResult, { type: 'success' | 'error' }>
 ): Promise<boolean> {
   const auth = response.authentication;
+  console.log(
+    '[googleAuth] storeTokensFromAuthResult: response.type=',
+    response.type,
+    'has authentication=',
+    !!auth,
+    'has accessToken=',
+    !!auth?.accessToken,
+    'params=',
+    response.params
+  );
   if (!auth?.accessToken) return false;
   await storeTokens({
     accessToken: auth.accessToken,
@@ -132,6 +149,16 @@ export async function getValidAccessToken(): Promise<string | null> {
   ]);
 
   const expiresAt = expiresAtRaw ? Number(expiresAtRaw) : 0;
+  console.log(
+    '[googleAuth] getValidAccessToken: hasAccessToken=',
+    !!accessToken,
+    'hasRefreshToken=',
+    !!refreshToken,
+    'expiresAt=',
+    expiresAt,
+    'now=',
+    Date.now()
+  );
   if (accessToken && expiresAt > Date.now() + 60_000) return accessToken;
   if (!refreshToken) return null;
 

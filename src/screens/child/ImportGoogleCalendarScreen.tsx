@@ -32,14 +32,18 @@ export function ImportGoogleCalendarScreen({ navigation }: Props) {
   const loadRealCalendars = async () => {
     setPhase('loading');
     const token = await getValidAccessToken();
+    console.log('[ImportGoogleCalendarScreen] loadRealCalendars: token=', token ? `${token.slice(0, 12)}...` : null);
     if (!token) {
       setPhase('needsConnect');
       return;
     }
     try {
-      setCalendars(await fetchCalendarList(token));
+      const real = await fetchCalendarList(token);
+      console.log('[ImportGoogleCalendarScreen] fetchCalendarList succeeded, count=', real.length, real);
+      setCalendars(real);
       setError(null);
-    } catch {
+    } catch (e) {
+      console.log('[ImportGoogleCalendarScreen] fetchCalendarList threw:', e);
       setError('Could not load your calendars. Check your connection and try again.');
     }
     setPhase('ready');
@@ -58,6 +62,7 @@ export function ImportGoogleCalendarScreen({ navigation }: Props) {
   }, []);
 
   useEffect(() => {
+    console.log('[ImportGoogleCalendarScreen] response changed:', response);
     if (!response) return;
     if (response.type === 'success') {
       storeTokensFromAuthResult(response).then((stored) => {
