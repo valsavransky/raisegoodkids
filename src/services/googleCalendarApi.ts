@@ -18,6 +18,10 @@ export interface GoogleCalendarSummary {
 }
 
 export interface ImportedScheduleEvent {
+  /** The recurringEventId for a grouped recurring event, or the event's own
+   * id for a standalone one — stable enough to key a list and track
+   * selection with. */
+  id: string;
   title: string;
   category: ScheduleEventCategory;
   recurring: boolean;
@@ -119,7 +123,7 @@ export async function fetchImportableEvents(
 
   const results: ImportedScheduleEvent[] = [];
 
-  for (const occurrences of recurringGroups.values()) {
+  for (const [recurringEventId, occurrences] of recurringGroups) {
     const first = occurrences[0];
     const title = first.summary ?? 'Untitled event';
     const daysOfWeek = Array.from(
@@ -131,6 +135,7 @@ export async function fetchImportableEvents(
       )
     ).sort((a, b) => a - b);
     results.push({
+      id: recurringEventId,
       title,
       category: guessCategoryForTitle(title),
       recurring: true,
@@ -144,6 +149,7 @@ export async function fetchImportableEvents(
     const title = item.summary ?? 'Untitled event';
     const startDate = toLocalDate(item.start);
     results.push({
+      id: item.id,
       title,
       category: guessCategoryForTitle(title),
       recurring: false,

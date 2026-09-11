@@ -1,19 +1,58 @@
 // Screen 5: parent setup, step 2 of 3 — schedule import.
 //
-// "Connect Google Calendar" leads into a STUBBED picker/import flow (mock
-// calendars and events from src/data/mockGoogleCalendar.ts) rather than a
-// real Google sign-in — real OAuth needs a Google Cloud project and moving
-// off plain Expo Go to a custom dev build, deferred until that's set up.
-import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+// "Connect Google Calendar" triggers a real Google sign-in once a client ID
+// is configured for this platform (see app.json's extra.googleCalendar and
+// src/services/googleAuth.ts) — otherwise it falls back to the stubbed
+// picker/import flow (mock calendars from src/data/mockGoogleCalendar.ts),
+// so this screen still works on Expo Go / unconfigured platforms.
+import React, { useEffect, useState } from 'react';
+import { View, Text, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { colors } from '../../theme/colors';
+import { isGoogleCalendarConfigured, useGoogleAuthRequest, exchangeCodeForTokens } from '../../services/googleAuth';
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'ScheduleImport'>;
 
 export function ScheduleImportScreen({ navigation }: Props) {
+  const [connecting, setConnecting] = useState(false);
+  const configured = isGoogleCalendarConfigured();
+  const { request, response, promptAsync, clientId, redirectUri } = useGoogleAuthRequest();
+
+  useEffect(() => {
+    if (!response) return;
+    if (response.type === 'success' && request && clientId) {
+      exchangeCodeForTokens(response.params.code, request, clientId, redirectUri)
+        .then(() => {
+          setConnecting(false);
+          navigation.navigate('GoogleCalendarPicker');
+        })
+        .catch(() => {
+          setConnecting(false);
+          Alert.alert(
+            'Connection failed',
+            'Could not finish connecting to Google Calendar. You can try again, or skip and add your schedule manually.'
+          );
+        });
+    } else {
+      // 'cancel' / 'dismiss' / 'error' — just stop showing the spinner, no
+      // need to alert on a plain cancel.
+      setConnecting(false);
+    }
+  }, [response]);
+
+  const handleConnect = () => {
+    if (!configured || !request) {
+      // Not configured for this platform yet — same stubbed picker as
+      // before, using mock calendar data.
+      navigation.navigate('GoogleCalendarPicker');
+      return;
+    }
+    setConnecting(true);
+    promptAsync();
+  };
+
   return (
     <View style={styles.screen}>
       <ScreenHeader title="Set up schedule" step={2} totalSteps={3} onBack={() => navigation.goBack()} />
@@ -25,8 +64,12 @@ export function ScheduleImportScreen({ navigation }: Props) {
           Expected items and Gigs.
         </Text>
 
-        <Pressable style={styles.primaryButton} onPress={() => navigation.navigate('GoogleCalendarPicker')}>
-          <Text style={styles.primaryButtonText}>Connect Google Calendar</Text>
+        <Pressable style={styles.primaryButton} onPress={handleConnect} disabled={connecting}>
+          {connecting ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.primaryButtonText}>Connect Google Calendar</Text>
+          )}
         </Pressable>
 
         <Pressable style={styles.secondaryButton} onPress={() => navigation.navigate('ScheduleReview')}>
