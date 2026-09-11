@@ -32,31 +32,40 @@ export function ExpectedGigsSetupScreen({ navigation }: Props) {
   const [draftEffortTier, setDraftEffortTier] = useState<GigEffortTier>('quick');
 
   useEffect(() => {
-    // KNOWN ISSUE (deferred until real Google Calendar integration): if
-    // calendar import already seeded expectedItems (see
-    // GoogleCalendarEventsScreen), this bails out and content-library
-    // suggestions — both Expected items and Gigs — never get added, even
-    // though Gigs has nothing to do with calendar import. Fix by tracking
-    // "library already applied" separately from "list is non-empty".
-    if (expectedItems.length > 0 || gigs.length > 0) return;
+    // Merge content-library suggestions in alongside anything already
+    // present — calendar import (see GoogleCalendarEventsScreen) may have
+    // already seeded some Expected items before this screen is reached,
+    // and Gigs has nothing to do with calendar import either way. Dedup by
+    // name so re-mounting this screen (e.g. going back and forward through
+    // the wizard) doesn't double up what's already there.
     const library = getContentLibraryForGrade(childProfile.grade);
     if (!library) return;
-    setExpectedItems(
-      library.expectedItems.map((item) => ({
+
+    const existingExpectedNames = new Set(expectedItems.map((item) => item.name));
+    const newExpectedItems = library.expectedItems
+      .filter((item) => !existingExpectedNames.has(item.name))
+      .map((item) => ({
         localId: makeLocalId('expected'),
         name: item.name,
         frequency: item.frequency,
         active: true,
-      }))
-    );
-    setGigs(
-      library.gigs.map((gig) => ({
+      }));
+    if (newExpectedItems.length > 0) {
+      setExpectedItems([...expectedItems, ...newExpectedItems]);
+    }
+
+    const existingGigNames = new Set(gigs.map((gig) => gig.name));
+    const newGigs = library.gigs
+      .filter((gig) => !existingGigNames.has(gig.name))
+      .map((gig) => ({
         localId: makeLocalId('gig'),
         name: gig.name,
         effortTier: gig.effortTier,
         active: true,
-      }))
-    );
+      }));
+    if (newGigs.length > 0) {
+      setGigs([...gigs, ...newGigs]);
+    }
     // Only run once, on mount, to seed suggestions — not on every keystroke elsewhere in context.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
