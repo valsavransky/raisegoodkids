@@ -37,7 +37,7 @@ export function GoogleCalendarPickerScreen({ navigation }: Props) {
           // missing the calendar scope — either way, clear it so the next
           // attempt requires a fresh sign-in instead of retrying forever.
           await signOut();
-          if (!cancelled) setError('Your Google connection needs to be reconnected. Go back and reconnect.');
+          if (!cancelled) setError(`Reconnect needed (HTTP ${e.status}): ${e.body.slice(0, 300)}`);
         } else if (!cancelled) {
           setError('Could not load your calendars. Check your connection and try again.');
         }

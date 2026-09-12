@@ -52,7 +52,7 @@ export function ImportGoogleCalendarScreen({ navigation }: Props) {
         // either way, retrying with the same token forever won't help, so
         // clear it and prompt reconnection instead.
         await signOut();
-        setError('Your Google connection needs to be reconnected.');
+        setError(`Reconnect needed (HTTP ${e.status}): ${e.body.slice(0, 300)}`);
         setPhase('needsConnect');
         return;
       }

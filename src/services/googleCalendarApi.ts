@@ -36,9 +36,11 @@ export interface ImportedScheduleEvent {
  * from other failures (network issue, wrong scope, etc). */
 export class GoogleApiError extends Error {
   status: number;
-  constructor(status: number) {
+  body: string;
+  constructor(status: number, body: string) {
     super(`Google Calendar API request failed (${status})`);
     this.status = status;
+    this.body = body;
   }
 }
 
@@ -47,7 +49,7 @@ async function googleFetch<T>(url: string, accessToken: string): Promise<T> {
   if (!response.ok) {
     const body = await response.text().catch(() => '<could not read body>');
     console.log('[googleCalendarApi] request failed:', response.status, url, body);
-    throw new GoogleApiError(response.status);
+    throw new GoogleApiError(response.status, body);
   }
   return response.json();
 }
