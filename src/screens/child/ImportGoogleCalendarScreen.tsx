@@ -90,6 +90,7 @@ export function ImportGoogleCalendarScreen({ navigation }: Props) {
   }, [response]);
 
   const handleConnect = () => {
+    console.log('[ImportGoogleCalendarScreen] request.url about to open:', request?.url);
     setConnecting(true);
     promptAsync();
   };
