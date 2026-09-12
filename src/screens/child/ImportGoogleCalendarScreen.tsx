@@ -46,11 +46,13 @@ export function ImportGoogleCalendarScreen({ navigation }: Props) {
       setPhase('ready');
     } catch (e) {
       console.log('[ImportGoogleCalendarScreen] fetchCalendarList threw:', e);
-      if (e instanceof GoogleApiError && e.status === 401) {
-        // The stored token is dead (expired/revoked) — clear it and prompt
-        // reconnection instead of endlessly retrying a doomed token.
+      if (e instanceof GoogleApiError && (e.status === 401 || e.status === 403)) {
+        // 401 = dead token (expired/revoked); 403 here has consistently
+        // meant a token missing the calendar scope, not "API disabled" —
+        // either way, retrying with the same token forever won't help, so
+        // clear it and prompt reconnection instead.
         await signOut();
-        setError('Your Google connection expired. Please reconnect.');
+        setError('Your Google connection needs to be reconnected.');
         setPhase('needsConnect');
         return;
       }

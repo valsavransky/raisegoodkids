@@ -32,11 +32,12 @@ export function GoogleCalendarPickerScreen({ navigation }: Props) {
         const real = await fetchCalendarList(token);
         if (!cancelled) setCalendars(real);
       } catch (e) {
-        if (e instanceof GoogleApiError && e.status === 401) {
-          // Stored token is dead (expired/revoked) — clear it so the next
+        if (e instanceof GoogleApiError && (e.status === 401 || e.status === 403)) {
+          // 401 = dead token; 403 here has consistently meant a token
+          // missing the calendar scope — either way, clear it so the next
           // attempt requires a fresh sign-in instead of retrying forever.
           await signOut();
-          if (!cancelled) setError('Your Google connection expired. Go back and reconnect.');
+          if (!cancelled) setError('Your Google connection needs to be reconnected. Go back and reconnect.');
         } else if (!cancelled) {
           setError('Could not load your calendars. Check your connection and try again.');
         }
