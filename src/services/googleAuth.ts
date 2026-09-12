@@ -82,6 +82,11 @@ export function useGoogleAuthRequest() {
     iosClientId: iosClientId || undefined,
     androidClientId: androidClientId || undefined,
     scopes: [SCOPE],
+    // Forces Google to always show the consent screen and grant the full
+    // current scope set, rather than silently reusing whatever narrower
+    // consent it thinks was already granted from earlier testing (which is
+    // exactly how we ended up with a token missing the calendar scope).
+    extraParams: { prompt: 'consent' },
   });
 }
 
