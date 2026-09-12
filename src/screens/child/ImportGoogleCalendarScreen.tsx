@@ -6,7 +6,7 @@
 // calendar-picker step, since jumping straight to a picker full of mock
 // data isn't useful once real sign-in is configured.
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, Pressable, FlatList, ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { MOCK_CALENDARS } from '../../data/mockGoogleCalendar';
@@ -93,8 +93,19 @@ export function ImportGoogleCalendarScreen({ navigation }: Props) {
 
   const handleConnect = () => {
     console.log('[ImportGoogleCalendarScreen] request.url about to open:', request?.url);
-    setConnecting(true);
-    promptAsync();
+    // Shown on-screen rather than only logged — Metro's log stream over the
+    // tunnel has been unreliable, this can't be affected by that. Waits for
+    // the alert to be dismissed before opening the browser, so there's time
+    // to actually read/copy the URL.
+    Alert.alert('Debug: auth URL', request?.url ?? '(no request built yet — button should be disabled)', [
+      {
+        text: 'Continue to sign-in',
+        onPress: () => {
+          setConnecting(true);
+          promptAsync();
+        },
+      },
+    ]);
   };
 
   return (
