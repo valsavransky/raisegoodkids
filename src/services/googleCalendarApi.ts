@@ -31,12 +31,23 @@ export interface ImportedScheduleEvent {
   endTime?: string;
 }
 
+/** Thrown by googleFetch with the HTTP status attached, so callers can
+ * tell an expired/revoked token (401 — should prompt reconnection) apart
+ * from other failures (network issue, wrong scope, etc). */
+export class GoogleApiError extends Error {
+  status: number;
+  constructor(status: number) {
+    super(`Google Calendar API request failed (${status})`);
+    this.status = status;
+  }
+}
+
 async function googleFetch<T>(url: string, accessToken: string): Promise<T> {
   const response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!response.ok) {
     const body = await response.text().catch(() => '<could not read body>');
     console.log('[googleCalendarApi] request failed:', response.status, url, body);
-    throw new Error(`Google Calendar API request failed (${response.status})`);
+    throw new GoogleApiError(response.status);
   }
   return response.json();
 }

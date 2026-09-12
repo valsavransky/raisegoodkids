@@ -15,8 +15,9 @@ import {
   useGoogleAuthRequest,
   storeTokensFromAuthResult,
   getValidAccessToken,
+  signOut,
 } from '../../services/googleAuth';
-import { fetchCalendarList, GoogleCalendarSummary } from '../../services/googleCalendarApi';
+import { fetchCalendarList, GoogleCalendarSummary, GoogleApiError } from '../../services/googleCalendarApi';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ImportGoogleCalendar'>;
@@ -42,11 +43,20 @@ export function ImportGoogleCalendarScreen({ navigation }: Props) {
       console.log('[ImportGoogleCalendarScreen] fetchCalendarList succeeded, count=', real.length, real);
       setCalendars(real);
       setError(null);
+      setPhase('ready');
     } catch (e) {
       console.log('[ImportGoogleCalendarScreen] fetchCalendarList threw:', e);
+      if (e instanceof GoogleApiError && e.status === 401) {
+        // The stored token is dead (expired/revoked) — clear it and prompt
+        // reconnection instead of endlessly retrying a doomed token.
+        await signOut();
+        setError('Your Google connection expired. Please reconnect.');
+        setPhase('needsConnect');
+        return;
+      }
       setError('Could not load your calendars. Check your connection and try again.');
+      setPhase('ready');
     }
-    setPhase('ready');
   };
 
   useEffect(() => {

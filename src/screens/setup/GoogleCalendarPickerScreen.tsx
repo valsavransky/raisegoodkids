@@ -8,8 +8,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { MOCK_CALENDARS } from '../../data/mockGoogleCalendar';
-import { getValidAccessToken } from '../../services/googleAuth';
-import { fetchCalendarList, GoogleCalendarSummary } from '../../services/googleCalendarApi';
+import { getValidAccessToken, signOut } from '../../services/googleAuth';
+import { fetchCalendarList, GoogleCalendarSummary, GoogleApiError } from '../../services/googleCalendarApi';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'GoogleCalendarPicker'>;
@@ -31,8 +31,15 @@ export function GoogleCalendarPickerScreen({ navigation }: Props) {
       try {
         const real = await fetchCalendarList(token);
         if (!cancelled) setCalendars(real);
-      } catch {
-        if (!cancelled) setError('Could not load your calendars. Check your connection and try again.');
+      } catch (e) {
+        if (e instanceof GoogleApiError && e.status === 401) {
+          // Stored token is dead (expired/revoked) — clear it so the next
+          // attempt requires a fresh sign-in instead of retrying forever.
+          await signOut();
+          if (!cancelled) setError('Your Google connection expired. Go back and reconnect.');
+        } else if (!cancelled) {
+          setError('Could not load your calendars. Check your connection and try again.');
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
