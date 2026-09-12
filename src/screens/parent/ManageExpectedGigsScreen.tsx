@@ -9,6 +9,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { useAppData } from '../../context/AppDataContext';
 import { ExpectedItem, Gig, GigEffortTier } from '../../types/models';
+import { signOut as signOutOfGoogle } from '../../services/googleAuth';
 import { colors } from '../../theme/colors';
 
 const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
@@ -106,6 +107,17 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
     );
   };
 
+  const confirmDisconnectGoogle = () => {
+    Alert.alert(
+      'Disconnect Google Calendar',
+      'Clears the stored Google sign-in so the next calendar import prompts you to connect again. Does not touch schedule events already imported.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Disconnect', style: 'destructive', onPress: () => signOutOfGoogle() },
+      ]
+    );
+  };
+
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
@@ -167,7 +179,10 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
 
         <View style={styles.dangerZone}>
           <Text style={styles.dangerZoneLabel}>Testing</Text>
-          <Pressable style={styles.resetButton} onPress={confirmResetAllData}>
+          <Pressable style={styles.resetButton} onPress={confirmDisconnectGoogle}>
+            <Text style={styles.resetButtonText}>Disconnect Google Calendar</Text>
+          </Pressable>
+          <Pressable style={[styles.resetButton, styles.resetButtonSpaced]} onPress={confirmResetAllData}>
             <Text style={styles.resetButtonText}>Reset all data</Text>
           </Pressable>
         </View>
@@ -263,6 +278,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   resetButtonText: { color: colors.danger, fontSize: 14, fontWeight: '700' },
+  resetButtonSpaced: { marginTop: 10 },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalCard: { backgroundColor: colors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
   modalTitle: { fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 16 },
