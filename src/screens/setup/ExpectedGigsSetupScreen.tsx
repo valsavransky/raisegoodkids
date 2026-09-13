@@ -5,6 +5,7 @@
 // model and docs/screens-and-flows.md's v1 scope note on screen 7).
 import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, Modal, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -23,6 +24,7 @@ const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
 type Props = NativeStackScreenProps<SetupStackParamList, 'ExpectedGigsSetup'>;
 
 export function ExpectedGigsSetupScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const setup = useSetup();
   const { childProfile, expectedItems, setExpectedItems, gigs, setGigs } = setup;
   const { completeSetup } = useAppData();
@@ -130,14 +132,36 @@ export function ExpectedGigsSetupScreen({ navigation }: Props) {
           <Text style={[styles.sectionIcon, { color: colors.expected }]}>🔥</Text>
           <Text style={styles.sectionHeader}>Expected</Text>
         </View>
-        {expectedItems.map((item) => (
-          <Pressable key={item.localId} style={styles.expectedRow} onPress={() => toggleExpected(item.localId)}>
-            <View style={[styles.checkbox, item.active && styles.checkboxChecked]}>
-              {item.active && <Text style={styles.checkboxMark}>✓</Text>}
-            </View>
-            <Text style={[styles.itemName, !item.active && styles.itemNameInactive]}>{item.name}</Text>
-          </Pressable>
-        ))}
+        {expectedItems.filter((item) => item.frequency === 'daily').length > 0 && (
+          <>
+            <Text style={styles.subSectionHeader}>Daily</Text>
+            {expectedItems
+              .filter((item) => item.frequency === 'daily')
+              .map((item) => (
+                <Pressable key={item.localId} style={styles.expectedRow} onPress={() => toggleExpected(item.localId)}>
+                  <View style={[styles.checkbox, item.active && styles.checkboxChecked]}>
+                    {item.active && <Text style={styles.checkboxMark}>✓</Text>}
+                  </View>
+                  <Text style={[styles.itemName, !item.active && styles.itemNameInactive]}>{item.name}</Text>
+                </Pressable>
+              ))}
+          </>
+        )}
+        {expectedItems.filter((item) => item.frequency === 'weekly').length > 0 && (
+          <>
+            <Text style={styles.subSectionHeader}>Weekly</Text>
+            {expectedItems
+              .filter((item) => item.frequency === 'weekly')
+              .map((item) => (
+                <Pressable key={item.localId} style={styles.expectedRow} onPress={() => toggleExpected(item.localId)}>
+                  <View style={[styles.checkbox, item.active && styles.checkboxChecked]}>
+                    {item.active && <Text style={styles.checkboxMark}>✓</Text>}
+                  </View>
+                  <Text style={[styles.itemName, !item.active && styles.itemNameInactive]}>{item.name}</Text>
+                </Pressable>
+              ))}
+          </>
+        )}
         <Pressable style={styles.addLink} onPress={() => openAddModal('expected')}>
           <Text style={styles.addLinkText}>+ Add custom Expected item</Text>
         </Pressable>
@@ -178,7 +202,7 @@ export function ExpectedGigsSetupScreen({ navigation }: Props) {
       </ScrollView>
 
       <Pressable
-        style={styles.finishButton}
+        style={[styles.finishButton, { marginBottom: 20 + insets.bottom }]}
         onPress={() =>
           completeSetup({
             childProfile: setup.childProfile,
@@ -255,6 +279,15 @@ const styles = StyleSheet.create({
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', marginTop: 20, marginBottom: 10, gap: 8 },
   sectionIcon: { fontSize: 16 },
   sectionHeader: { fontSize: 17, fontWeight: '700', color: colors.text },
+  subSectionHeader: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: 6,
+    marginBottom: 2,
+  },
   expectedRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 12 },
   gigRow: { paddingVertical: 10, gap: 8 },
   gigCheckboxRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
@@ -287,7 +320,6 @@ const styles = StyleSheet.create({
   addLinkText: { color: colors.expected, fontSize: 14, fontWeight: '600' },
   finishButton: {
     marginHorizontal: 20,
-    marginBottom: 20,
     marginTop: 4,
     backgroundColor: colors.text,
     borderRadius: 12,

@@ -4,11 +4,13 @@
 // state. Falls back to the STUBBED mock events (adapted to the same
 // ImportedScheduleEvent shape) when not signed in.
 //
-// As in the setup wizard: only recurring commitments become a standing
-// weekly Expected item directly — a one-off event is added to the schedule
-// but isn't a recurring responsibility.
+// As in the setup wizard: selecting events here only adds them to the
+// schedule — a calendar commitment is the schedule of an activity, not a
+// standing Expected item on its own (the practice-suggestion engine is the
+// only path from a calendar event to an Expected item).
 import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { useAppData } from '../../context/AppDataContext';
@@ -45,8 +47,9 @@ function describeEvent(event: ImportedScheduleEvent): string {
 type Props = NativeStackScreenProps<RootStackParamList, 'ImportGoogleCalendarEvents'>;
 
 export function ImportGoogleCalendarEventsScreen({ route, navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const { calendarId } = route.params;
-  const { addScheduleEvent, addExpectedItem } = useAppData();
+  const { addScheduleEvent } = useAppData();
   const [events, setEvents] = useState<ImportedScheduleEvent[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,11 +100,6 @@ export function ImportGoogleCalendarEventsScreen({ route, navigation }: Props) {
         endTime: e.endTime,
         source: 'google_calendar',
       });
-      // Only recurring commitments become a standing Expected item directly
-      // — a one-off event isn't a recurring responsibility.
-      if (e.recurring) {
-        addExpectedItem({ name: e.title, frequency: 'weekly' });
-      }
     });
     navigation.popToTop();
   };
@@ -116,7 +114,7 @@ export function ImportGoogleCalendarEventsScreen({ route, navigation }: Props) {
         <View style={{ width: 44 }} />
       </View>
       <Text style={styles.helperText}>
-        Select the ones worth tracking — they'll be added to the schedule, and recurring ones to Expected too.
+        Select the ones worth tracking — they'll be added to your schedule.
       </Text>
       {error && <Text style={styles.errorText}>{error}</Text>}
       {loading ? (
@@ -145,7 +143,7 @@ export function ImportGoogleCalendarEventsScreen({ route, navigation }: Props) {
           }}
         />
       )}
-      <Pressable style={styles.confirmButton} onPress={confirmImport}>
+      <Pressable style={[styles.confirmButton, { marginBottom: 20 + insets.bottom }]} onPress={confirmImport}>
         <Text style={styles.confirmButtonText}>Add {selectedIds.length} event{selectedIds.length === 1 ? '' : 's'}</Text>
       </Pressable>
     </View>
@@ -196,7 +194,6 @@ const styles = StyleSheet.create({
   eventMeta: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
   confirmButton: {
     marginHorizontal: 20,
-    marginBottom: 20,
     marginTop: 4,
     backgroundColor: colors.expected,
     borderRadius: 12,

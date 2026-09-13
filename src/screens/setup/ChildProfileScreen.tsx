@@ -1,6 +1,7 @@
 // Screen 4: parent setup, step 1 of 3 — child profile.
 import React, { useMemo, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, Modal, Platform, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
@@ -19,6 +20,7 @@ function eightYearsAgo(): Date {
 type Props = NativeStackScreenProps<SetupStackParamList, 'ChildProfile'>;
 
 export function ChildProfileScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const { childProfile, setChildProfile } = useSetup();
   const [showPicker, setShowPicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(eightYearsAgo());
@@ -49,7 +51,10 @@ export function ChildProfileScreen({ navigation }: Props) {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}
+    >
       <ScreenHeader title="Add a child" step={1} totalSteps={3} />
 
       <Text style={styles.label}>Avatar</Text>

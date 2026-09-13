@@ -133,22 +133,50 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
           <Text style={[styles.sectionIcon, { color: colors.expected }]}>🔥</Text>
           <Text style={styles.sectionHeader}>Expected</Text>
         </View>
-        {expectedItems.map((item) => (
-          <View key={item.id} style={styles.row}>
-            <View style={styles.rowInfo}>
-              <Text style={styles.rowName}>{item.name}</Text>
-              <Text style={styles.rowMeta}>{item.frequency === 'daily' ? 'Daily' : 'Weekly'}</Text>
-            </View>
-            <View style={styles.rowActions}>
-              <Pressable onPress={() => openEditExpected(item)}>
-                <Text style={styles.linkAction}>Edit</Text>
-              </Pressable>
-              <Pressable onPress={() => confirmDeleteExpected(item)}>
-                <Text style={styles.linkActionDanger}>Remove</Text>
-              </Pressable>
-            </View>
-          </View>
-        ))}
+        {expectedItems.filter((item) => item.frequency === 'daily').length > 0 && (
+          <>
+            <Text style={styles.subSectionHeader}>Daily</Text>
+            {expectedItems
+              .filter((item) => item.frequency === 'daily')
+              .map((item) => (
+                <View key={item.id} style={styles.row}>
+                  <View style={styles.rowInfo}>
+                    <Text style={styles.rowName}>{item.name}</Text>
+                  </View>
+                  <View style={styles.rowActions}>
+                    <Pressable onPress={() => openEditExpected(item)}>
+                      <Text style={styles.linkAction}>Edit</Text>
+                    </Pressable>
+                    <Pressable onPress={() => confirmDeleteExpected(item)}>
+                      <Text style={styles.linkActionDanger}>Remove</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ))}
+          </>
+        )}
+        {expectedItems.filter((item) => item.frequency === 'weekly').length > 0 && (
+          <>
+            <Text style={styles.subSectionHeader}>Weekly</Text>
+            {expectedItems
+              .filter((item) => item.frequency === 'weekly')
+              .map((item) => (
+                <View key={item.id} style={styles.row}>
+                  <View style={styles.rowInfo}>
+                    <Text style={styles.rowName}>{item.name}</Text>
+                  </View>
+                  <View style={styles.rowActions}>
+                    <Pressable onPress={() => openEditExpected(item)}>
+                      <Text style={styles.linkAction}>Edit</Text>
+                    </Pressable>
+                    <Pressable onPress={() => confirmDeleteExpected(item)}>
+                      <Text style={styles.linkActionDanger}>Remove</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ))}
+          </>
+        )}
         <Pressable style={styles.addLink} onPress={openAddExpected}>
           <Text style={styles.addLinkText}>+ Add Expected item</Text>
         </Pressable>
@@ -249,6 +277,15 @@ const styles = StyleSheet.create({
   sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 20, marginBottom: 10 },
   sectionIcon: { fontSize: 16 },
   sectionHeader: { fontSize: 17, fontWeight: '700', color: colors.text },
+  subSectionHeader: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: 4,
+    marginBottom: 6,
+  },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',

@@ -52,6 +52,8 @@ export function ChildHomeScreen() {
   const { done, total } = expectedDoneCountToday();
   const gigsUnlocked = allExpectedDoneToday();
   const streak = expectedStreak();
+  const dailyItems = expectedItems.filter((item) => item.frequency === 'daily');
+  const weeklyItems = expectedItems.filter((item) => item.frequency === 'weekly');
 
   return (
     <View style={styles.screen}>
@@ -82,21 +84,47 @@ export function ChildHomeScreen() {
         <Text style={styles.streakText}>{streak}-day streak</Text>
       </View>
 
-      {expectedItems.map((item) => (
-        <ExpectedItemRow
-          key={item.id}
-          name={item.name}
-          isDone={isExpectedDoneToday(item.id)}
-          onPress={() => {
-            const { newBadgeCatalogId, allDoneToday } = markExpectedDone(item.id);
-            if (allDoneToday) {
-              navigation.navigate('AllExpectedDone', { badgeCatalogId: newBadgeCatalogId ?? undefined });
-            } else if (newBadgeCatalogId) {
-              navigation.navigate('BadgeUnlock', { catalogId: newBadgeCatalogId });
-            }
-          }}
-        />
-      ))}
+      {dailyItems.length > 0 && (
+        <>
+          <Text style={styles.subSectionHeader}>Daily</Text>
+          {dailyItems.map((item) => (
+            <ExpectedItemRow
+              key={item.id}
+              name={item.name}
+              isDone={isExpectedDoneToday(item.id)}
+              onPress={() => {
+                const { newBadgeCatalogId, allDoneToday } = markExpectedDone(item.id);
+                if (allDoneToday) {
+                  navigation.navigate('AllExpectedDone', { badgeCatalogId: newBadgeCatalogId ?? undefined });
+                } else if (newBadgeCatalogId) {
+                  navigation.navigate('BadgeUnlock', { catalogId: newBadgeCatalogId });
+                }
+              }}
+            />
+          ))}
+        </>
+      )}
+
+      {weeklyItems.length > 0 && (
+        <>
+          <Text style={styles.subSectionHeader}>Weekly</Text>
+          {weeklyItems.map((item) => (
+            <ExpectedItemRow
+              key={item.id}
+              name={item.name}
+              isDone={isExpectedDoneToday(item.id)}
+              onPress={() => {
+                const { newBadgeCatalogId, allDoneToday } = markExpectedDone(item.id);
+                if (allDoneToday) {
+                  navigation.navigate('AllExpectedDone', { badgeCatalogId: newBadgeCatalogId ?? undefined });
+                } else if (newBadgeCatalogId) {
+                  navigation.navigate('BadgeUnlock', { catalogId: newBadgeCatalogId });
+                }
+              }}
+            />
+          ))}
+        </>
+      )}
 
       {goal && (
         <>
@@ -182,5 +210,14 @@ const styles = StyleSheet.create({
   sectionIcon: { fontSize: 16 },
   sectionHeader: { fontSize: 17, fontWeight: '700', color: colors.text, flex: 1 },
   streakText: { fontSize: 13, color: colors.expected, fontWeight: '700' },
+  subSectionHeader: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: 6,
+    marginBottom: 6,
+  },
   expectedRemainingNote: { fontSize: 13, color: colors.textMuted, marginBottom: 8, fontWeight: '600' },
 });

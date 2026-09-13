@@ -4,20 +4,16 @@
 // configured/signed in, normalized to the same ImportedScheduleEvent shape
 // so the rest of this screen doesn't need to branch on the source.
 //
-// Selecting events here adds them both to the schedule (so they show up in
-// the Schedule tab) and — for recurring commitments only — directly as a
-// weekly Expected item, since a standing commitment like "Piano Lesson" is
-// itself something the child is expected to show up for. A one-off event
-// (e.g. a single dentist appointment) is added to the schedule but does NOT
-// become a standing Expected item — it isn't a recurring responsibility.
-//
-// Scope note: ExpectedItem only has daily/weekly frequency, not specific
-// days — an imported "Tuesdays only" event becomes a 'weekly' Expected item
-// like any other, not one that only appears on Tuesdays. Day-precise
-// Expected scheduling isn't built yet (today's home screen shows all active
-// Expected items every day regardless of frequency).
+// Selecting events here only adds them to the schedule (so they show up in
+// the Schedule tab) — a calendar commitment like "Piano Lesson" is the
+// schedule of an activity, not a daily/weekly responsibility the child
+// initiates at home, so it deliberately does NOT become an Expected item on
+// its own. The practice-suggestion engine (see ScheduleReviewScreen) is the
+// only path from a calendar event to an Expected item, since "Practice
+// piano" (unlike "Piano Lesson" itself) genuinely is something to do at home.
 import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -55,8 +51,9 @@ function describeEvent(event: ImportedScheduleEvent): string {
 type Props = NativeStackScreenProps<SetupStackParamList, 'GoogleCalendarEvents'>;
 
 export function GoogleCalendarEventsScreen({ route, navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const { calendarId } = route.params;
-  const { scheduleEvents, setScheduleEvents, expectedItems, setExpectedItems } = useSetup();
+  const { scheduleEvents, setScheduleEvents } = useSetup();
   const [events, setEvents] = useState<ImportedScheduleEvent[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,19 +108,6 @@ export function GoogleCalendarEventsScreen({ route, navigation }: Props) {
       })),
     ]);
 
-    // Only recurring commitments become a standing Expected item directly —
-    // a one-off event isn't a recurring responsibility.
-    const recurringSelected = selected.filter((e) => e.recurring);
-    setExpectedItems([
-      ...expectedItems,
-      ...recurringSelected.map((e) => ({
-        localId: makeLocalId('expected'),
-        name: e.title,
-        frequency: 'weekly' as const,
-        active: true,
-      })),
-    ]);
-
     navigation.navigate('ScheduleReview');
   };
 
@@ -131,7 +115,7 @@ export function GoogleCalendarEventsScreen({ route, navigation }: Props) {
     <View style={styles.screen}>
       <ScreenHeader title="Calendar events" step={2} totalSteps={3} onBack={() => navigation.goBack()} />
       <Text style={styles.helperText}>
-        Select the ones worth tracking — they'll be added to the schedule, and recurring ones to Expected too.
+        Select the ones worth tracking — they'll be added to your schedule.
       </Text>
       {error && <Text style={styles.errorText}>{error}</Text>}
       {loading ? (
@@ -160,7 +144,7 @@ export function GoogleCalendarEventsScreen({ route, navigation }: Props) {
           }}
         />
       )}
-      <Pressable style={styles.confirmButton} onPress={confirmImport}>
+      <Pressable style={[styles.confirmButton, { marginBottom: 20 + insets.bottom }]} onPress={confirmImport}>
         <Text style={styles.confirmButtonText}>Add {selectedIds.length} event{selectedIds.length === 1 ? '' : 's'}</Text>
       </Pressable>
     </View>
@@ -201,7 +185,6 @@ const styles = StyleSheet.create({
   eventMeta: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
   confirmButton: {
     marginHorizontal: 20,
-    marginBottom: 20,
     marginTop: 4,
     backgroundColor: colors.expected,
     borderRadius: 12,

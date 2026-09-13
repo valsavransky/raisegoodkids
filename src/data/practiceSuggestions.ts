@@ -58,17 +58,32 @@ export interface ExpectedItemSuggestion {
    * (the generic fallback — parent names it themselves). */
   name: string;
   isGeneric: boolean;
+  /** Starting point for the cadence picker the parent can adjust (e.g. "20
+   * min/day" for piano, "2 hrs/week" if they change it) — not used for the
+   * generic fallback, since there's no informed default to suggest. */
+  defaultFrequency: 'daily' | 'weekly';
+  defaultDurationMinutes: number;
 }
 
 export function suggestExpectedItemForEvent(title: string): ExpectedItemSuggestion {
   const lower = title.toLowerCase();
   const instrument = INSTRUMENT_KEYWORDS.find((i) => lower.includes(i.keyword));
   if (instrument) {
-    return { name: `Practice ${capitalize(instrument.instrument)}`, isGeneric: false };
+    return {
+      name: `Practice ${capitalize(instrument.instrument)}`,
+      isGeneric: false,
+      defaultFrequency: 'daily',
+      defaultDurationMinutes: 20,
+    };
   }
   const subject = SUBJECT_KEYWORDS.find((s) => lower.includes(s.keyword));
   if (subject) {
-    return { name: `Complete ${capitalize(subject.subject)} homework`, isGeneric: false };
+    return {
+      name: `Complete ${capitalize(subject.subject)} homework`,
+      isGeneric: false,
+      defaultFrequency: 'daily',
+      defaultDurationMinutes: 20,
+    };
   }
-  return { name: '', isGeneric: true };
+  return { name: '', isGeneric: true, defaultFrequency: 'daily', defaultDurationMinutes: 0 };
 }
