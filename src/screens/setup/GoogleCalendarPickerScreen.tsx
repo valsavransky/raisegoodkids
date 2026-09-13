@@ -3,7 +3,7 @@
 // src/data/mockGoogleCalendar.ts when not configured/signed in, so this
 // screen still works on Expo Go / unconfigured platforms.
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, FlatList, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { View, Text, Pressable, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -28,19 +28,6 @@ export function GoogleCalendarPickerScreen({ navigation }: Props) {
         if (!cancelled) setLoading(false);
         return;
       }
-      // Ground-truth check: ask Google directly what scopes this token was
-      // actually issued with, rather than inferring from consent-screen UI
-      // or Cloud Console config — those have all looked correct so far,
-      // yet the calendar API still rejects the token for insufficient
-      // scope, so something in between isn't matching reality.
-      try {
-        const tokenInfo = await fetch(
-          `https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${token}`
-        ).then((r) => r.json());
-        Alert.alert('Debug: token scopes', JSON.stringify(tokenInfo, null, 2));
-      } catch (e) {
-        Alert.alert('Debug: tokeninfo check failed', String(e));
-      }
       try {
         const real = await fetchCalendarList(token);
         if (!cancelled) setCalendars(real);
@@ -50,7 +37,7 @@ export function GoogleCalendarPickerScreen({ navigation }: Props) {
           // missing the calendar scope — either way, clear it so the next
           // attempt requires a fresh sign-in instead of retrying forever.
           await signOut();
-          if (!cancelled) setError(`Reconnect needed (HTTP ${e.status}): ${e.body.slice(0, 300)}`);
+          if (!cancelled) setError('Your Google connection needs to be reconnected. Go back and reconnect.');
         } else if (!cancelled) {
           setError('Could not load your calendars. Check your connection and try again.');
         }

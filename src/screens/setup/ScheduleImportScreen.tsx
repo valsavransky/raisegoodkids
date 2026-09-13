@@ -56,19 +56,8 @@ export function ScheduleImportScreen({ navigation }: Props) {
       navigation.navigate('GoogleCalendarPicker');
       return;
     }
-    // Shown on-screen rather than only logged — Metro's log stream over the
-    // tunnel has been unreliable, this can't be affected by that. Waits for
-    // the alert to be dismissed before opening the browser, so there's time
-    // to actually read/copy the URL.
-    Alert.alert('Debug: auth URL', request?.url ?? '(no request built yet — button should be disabled)', [
-      {
-        text: 'Continue to sign-in',
-        onPress: () => {
-          setConnecting(true);
-          promptAsync();
-        },
-      },
-    ]);
+    setConnecting(true);
+    promptAsync();
   };
 
   return (

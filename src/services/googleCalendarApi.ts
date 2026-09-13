@@ -47,7 +47,6 @@ async function googleFetch<T>(url: string, accessToken: string): Promise<T> {
   const response = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
   if (!response.ok) {
     const body = await response.text().catch(() => '<could not read body>');
-    console.log('[googleCalendarApi] request failed:', response.status, url, body);
     throw new GoogleApiError(response.status, body);
   }
   return response.json();

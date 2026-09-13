@@ -6,7 +6,7 @@
 // calendar-picker step, since jumping straight to a picker full of mock
 // data isn't useful once real sign-in is configured.
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, FlatList, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { View, Text, Pressable, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { MOCK_CALENDARS } from '../../data/mockGoogleCalendar';
@@ -33,26 +33,23 @@ export function ImportGoogleCalendarScreen({ navigation }: Props) {
   const loadRealCalendars = async () => {
     setPhase('loading');
     const token = await getValidAccessToken();
-    console.log('[ImportGoogleCalendarScreen] loadRealCalendars: token=', token ? `${token.slice(0, 12)}...` : null);
     if (!token) {
       setPhase('needsConnect');
       return;
     }
     try {
       const real = await fetchCalendarList(token);
-      console.log('[ImportGoogleCalendarScreen] fetchCalendarList succeeded, count=', real.length, real);
       setCalendars(real);
       setError(null);
       setPhase('ready');
     } catch (e) {
-      console.log('[ImportGoogleCalendarScreen] fetchCalendarList threw:', e);
       if (e instanceof GoogleApiError && (e.status === 401 || e.status === 403)) {
-        // 401 = dead token (expired/revoked); 403 here has consistently
-        // meant a token missing the calendar scope, not "API disabled" —
-        // either way, retrying with the same token forever won't help, so
-        // clear it and prompt reconnection instead.
+        // 401 = dead token (expired/revoked); 403 = token missing a scope
+        // it needs (e.g. a stale token from before a scope change) — either
+        // way, retrying with the same token forever won't help, so clear it
+        // and prompt reconnection instead.
         await signOut();
-        setError(`Reconnect needed (HTTP ${e.status}): ${e.body.slice(0, 300)}`);
+        setError('Your Google connection needs to be reconnected.');
         setPhase('needsConnect');
         return;
       }
@@ -74,7 +71,6 @@ export function ImportGoogleCalendarScreen({ navigation }: Props) {
   }, []);
 
   useEffect(() => {
-    console.log('[ImportGoogleCalendarScreen] response changed:', response);
     if (!response) return;
     if (response.type === 'success') {
       storeTokensFromAuthResult(response).then((stored) => {
@@ -92,20 +88,8 @@ export function ImportGoogleCalendarScreen({ navigation }: Props) {
   }, [response]);
 
   const handleConnect = () => {
-    console.log('[ImportGoogleCalendarScreen] request.url about to open:', request?.url);
-    // Shown on-screen rather than only logged — Metro's log stream over the
-    // tunnel has been unreliable, this can't be affected by that. Waits for
-    // the alert to be dismissed before opening the browser, so there's time
-    // to actually read/copy the URL.
-    Alert.alert('Debug: auth URL', request?.url ?? '(no request built yet — button should be disabled)', [
-      {
-        text: 'Continue to sign-in',
-        onPress: () => {
-          setConnecting(true);
-          promptAsync();
-        },
-      },
-    ]);
+    setConnecting(true);
+    promptAsync();
   };
 
   return (
