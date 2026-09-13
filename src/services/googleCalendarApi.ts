@@ -2,11 +2,10 @@
 // only requests event id/title/start/end — see the privacy note on screen 5
 // of docs/screens-and-flows.md ("only event titles and times are read,
 // nothing else stored"). No attendees, descriptions, locations, or
-// attachments are ever fetched or parsed.
-//
-// NOT YET VERIFIED end-to-end — see src/services/googleAuth.ts for why.
-// The Calendar API v3 shape itself is long-stable and unrelated to Expo's
-// SDK version, so this is on firmer ground than the auth module.
+// attachments are ever fetched or parsed. This is enforced by the
+// `fields` parameter on each request below, independent of which OAuth
+// scope is granted (see googleAuth.ts's SCOPE for why that's
+// calendar.readonly, not the narrower calendar.events.readonly).
 import { ScheduleEventCategory } from '../types/models';
 import { guessCategoryForTitle } from '../data/practiceSuggestions';
 

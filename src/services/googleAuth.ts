@@ -37,10 +37,19 @@ import Constants from 'expo-constants';
 // even though the redirect itself succeeded.
 WebBrowser.maybeCompleteAuthSession();
 
-// Narrowest scope that covers titles/times only — see the privacy note on
-// screen 5 of docs/screens-and-flows.md. Deliberately not calendar.readonly,
-// which also exposes attendees, descriptions, and locations.
-const SCOPE = 'https://www.googleapis.com/auth/calendar.events.readonly';
+// Started as calendar.events.readonly (the narrowest scope covering just
+// event data) per the privacy note on screen 5 of
+// docs/screens-and-flows.md — but that scope only covers the Events
+// resource, not CalendarList, so listing which calendars exist (screen 6's
+// first step) came back 403 insufficientPermissions even with a token
+// that correctly carried calendar.events.readonly (confirmed via Google's
+// own tokeninfo endpoint — this took a while to track down). calendar.readonly
+// is the scope that actually covers both listing calendars and reading
+// events. This doesn't weaken the privacy commitment in practice: the
+// scope only controls what Google *permits*, not what we *request* — our
+// own API calls (see googleCalendarApi.ts) still ask for just
+// id/title/start/end via the `fields` parameter regardless of scope.
+const SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
 
 const REFRESH_TOKEN_KEY = 'merit.google.refreshToken';
 const ACCESS_TOKEN_KEY = 'merit.google.accessToken';
