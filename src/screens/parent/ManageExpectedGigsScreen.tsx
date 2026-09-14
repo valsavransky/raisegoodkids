@@ -177,7 +177,7 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
   const confirmResetAllData = () => {
     Alert.alert(
       'Reset all data',
-      'This deletes everything — the child profile, schedule, Expected items, gigs, goals, badges, and Future Fund balance. This cannot be undone.',
+      'This deletes everything — the child profile, schedule, Expected items, gigs, goals, badges, and Future Fund balance — including your cloud backup, if this account is synced. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Reset', style: 'destructive', onPress: () => resetAllData() },

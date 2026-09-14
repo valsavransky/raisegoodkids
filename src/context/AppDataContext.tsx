@@ -624,7 +624,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   };
 
   /** Clears persisted storage and all in-memory state — back to a fresh
-   * install. Mainly a testing convenience now that data survives restarts. */
+   * install. Mainly a testing convenience now that data survives restarts.
+   * Also clears the server's copy (best-effort) if this account is synced
+   * — otherwise the ordinary per-change sync below would just push these
+   * same empty values up right after, but silently and without the same
+   * "this can't be undone" framing the confirmation dialog already gives
+   * local data. Explicit here instead. */
   const resetAllData = async () => {
     await AsyncStorage.removeItem(STORAGE_KEY);
     setChildProfile(null);
@@ -637,6 +642,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setFutureFund(null);
     setGigEffortValues(DEFAULT_GIG_EFFORT_VALUES);
     setBadges([]);
+    if (token) {
+      saveData(token, null).catch((e) => console.warn('Failed to clear server app data', e));
+    }
   };
 
   return (
