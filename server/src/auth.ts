@@ -68,3 +68,28 @@ authRouter.post('/login', async (req: Request, res: Response) => {
   }
   res.json({ token: signToken(user.id) });
 });
+
+// Lets an already-authenticated account (including one auto-created with a
+// throwaway random email/password on first app launch — see the client's
+// AuthContext) replace its credentials with a real email/password the
+// parent chose, so the same account can be logged into on a second device.
+authRouter.patch('/credentials', requireAuth, async (req: AuthedRequest, res: Response) => {
+  const { email, password } = req.body ?? {};
+  if (typeof email !== 'string' || typeof password !== 'string' || password.length < 8) {
+    res.status(400).json({ error: 'Email and a password of at least 8 characters are required' });
+    return;
+  }
+  const normalizedEmail = email.trim().toLowerCase();
+  const existing = await pool.query('SELECT id FROM users WHERE email = $1 AND id != $2', [normalizedEmail, req.userId]);
+  if (existing.rowCount) {
+    res.status(409).json({ error: 'An account with that email already exists' });
+    return;
+  }
+  const passwordHash = await bcrypt.hash(password, 10);
+  await pool.query('UPDATE users SET email = $1, password_hash = $2 WHERE id = $3', [
+    normalizedEmail,
+    passwordHash,
+    req.userId,
+  ]);
+  res.json({ ok: true });
+});

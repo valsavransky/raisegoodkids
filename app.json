@@ -25,6 +25,7 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
+      "apiUrl": "https://raisegoodkids-production.up.railway.app",
       "googleCalendar": {
         "iosClientId": "",
         "androidClientId": "614289001557-jrnecml6jvlrifrmaikiooi124t308os.apps.googleusercontent.com"

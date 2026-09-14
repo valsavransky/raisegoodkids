@@ -5,8 +5,10 @@
 // wizard's own draft (SetupContext) is NOT persisted: losing a half-filled
 // wizard on restart is a minor inconvenience, unlike losing days of
 // accumulated progress.
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from './AuthContext';
+import { fetchData, saveData } from '../services/api';
 import {
   ChildProfile,
   ScheduleEvent,
@@ -144,7 +146,15 @@ interface AppDataContextValue {
 const AppDataContext = createContext<AppDataContextValue | undefined>(undefined);
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
+  const { token, isReady: authIsReady } = useAuth();
   const [isHydrated, setIsHydrated] = useState(false);
+  // Set once the very first server reconcile (adopt server data on a fresh
+  // install, or push local data up otherwise) has run — the ordinary
+  // persist-on-change effect below holds off pushing to the server until
+  // then, so it can't race the reconcile and stomp real server data with
+  // an empty fresh-install blob.
+  const [hasReconciled, setHasReconciled] = useState(false);
+  const reconcileStartedRef = useRef(false);
   const [childProfile, setChildProfile] = useState<ChildProfile | null>(null);
   const [scheduleEvents, setScheduleEvents] = useState<ScheduleEvent[]>([]);
   const [expectedItems, setExpectedItems] = useState<ExpectedItem[]>([]);
@@ -183,8 +193,55 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
+  // Runs once, the first time both local storage has loaded and a server
+  // account is available. A fresh install with nothing local yet but real
+  // data already on the server (a reinstall, or a second device) adopts
+  // the server's copy; otherwise this device's local data is the one to
+  // keep, and gets pushed up so the server has a current copy too.
+  useEffect(() => {
+    if (!isHydrated || !authIsReady || !token || reconcileStartedRef.current) return;
+    reconcileStartedRef.current = true;
+    (async () => {
+      try {
+        const { data: serverData } = await fetchData(token);
+        if (serverData && !childProfile) {
+          const data = serverData as PersistedAppData;
+          setChildProfile(data.childProfile);
+          setScheduleEvents(data.scheduleEvents);
+          setExpectedItems(data.expectedItems);
+          setExpectedCompletions(data.expectedCompletions);
+          setGigs(data.gigs);
+          setGigCompletions(data.gigCompletions);
+          setGoals(data.goals);
+          setFutureFund(data.futureFund);
+          setGigEffortValues(data.gigEffortValues ?? DEFAULT_GIG_EFFORT_VALUES);
+          setBadges(data.badges);
+        } else if (childProfile) {
+          await saveData(token, {
+            childProfile,
+            scheduleEvents,
+            expectedItems,
+            expectedCompletions,
+            gigs,
+            gigCompletions,
+            goals,
+            futureFund,
+            gigEffortValues,
+            badges,
+          });
+        }
+      } catch (e) {
+        console.warn('Initial server sync failed, continuing offline', e);
+      } finally {
+        setHasReconciled(true);
+      }
+    })();
+  }, [isHydrated, authIsReady, token]);
+
   // Persist on every change, once hydrated. Skipped pre-hydration so the
   // initial empty defaults don't overwrite whatever was just loaded.
+  // Also pushes to the server once the initial reconcile (above) has run,
+  // so day-to-day changes keep backing up automatically.
   useEffect(() => {
     if (!isHydrated) return;
     const data: PersistedAppData = {
@@ -202,8 +259,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data)).catch((e) =>
       console.warn('Failed to persist app data', e)
     );
+    if (token && hasReconciled) {
+      saveData(token, data).catch((e) => console.warn('Failed to sync app data to server', e));
+    }
   }, [
     isHydrated,
+    token,
+    hasReconciled,
     childProfile,
     scheduleEvents,
     expectedItems,

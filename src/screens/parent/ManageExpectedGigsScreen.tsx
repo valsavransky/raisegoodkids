@@ -9,9 +9,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { useAppData } from '../../context/AppDataContext';
+import { useAuth } from '../../context/AuthContext';
 import { ExpectedItem, Gig, GigEffortTier, GigEffortValues } from '../../types/models';
 import { signOut as signOutOfGoogle } from '../../services/googleAuth';
 import { colors } from '../../theme/colors';
+
+const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
 
 const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
   { value: 'quick', label: 'Quick' },
@@ -22,9 +25,10 @@ const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
 type Props = NativeStackScreenProps<RootStackParamList, 'ManageExpectedGigs'>;
 
 type ModalMode = { kind: 'expected'; editingId: string | null } | { kind: 'gig'; editingId: string | null } | null;
-type TopTab = 'expected' | 'gigs';
+type TopTab = 'expected' | 'gigs' | 'account';
 type GigsSubTab = 'list' | 'values';
 type GigValuesStatus = 'idle' | 'saved' | 'invalid';
+type AccountStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export function ManageExpectedGigsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
@@ -41,9 +45,47 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
     updateGigEffortValues,
     resetAllData,
   } = useAppData();
+  const { isAutoAccount, accountEmail, claimAccount } = useAuth();
 
   const [topTab, setTopTab] = useState<TopTab>('expected');
   const [gigsSubTab, setGigsSubTab] = useState<GigsSubTab>('list');
+
+  const [accountEmailDraft, setAccountEmailDraft] = useState('');
+  const [accountPasswordDraft, setAccountPasswordDraft] = useState('');
+  const [accountPasswordConfirmDraft, setAccountPasswordConfirmDraft] = useState('');
+  const [accountStatus, setAccountStatus] = useState<AccountStatus>('idle');
+  const [accountError, setAccountError] = useState('');
+
+  const editAccountField = (setter: (v: string) => void) => (text: string) => {
+    setter(text);
+    setAccountStatus('idle');
+  };
+
+  const submitSecureAccount = async () => {
+    if (!EMAIL_PATTERN.test(accountEmailDraft.trim())) {
+      setAccountStatus('error');
+      setAccountError('Enter a valid email address.');
+      return;
+    }
+    if (accountPasswordDraft.length < 8) {
+      setAccountStatus('error');
+      setAccountError('Password must be at least 8 characters.');
+      return;
+    }
+    if (accountPasswordDraft !== accountPasswordConfirmDraft) {
+      setAccountStatus('error');
+      setAccountError('Passwords don’t match.');
+      return;
+    }
+    setAccountStatus('saving');
+    const result = await claimAccount(accountEmailDraft.trim(), accountPasswordDraft);
+    if (result.ok) {
+      setAccountStatus('saved');
+    } else {
+      setAccountStatus('error');
+      setAccountError(result.error);
+    }
+  };
 
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [draftName, setDraftName] = useState('');
@@ -174,6 +216,9 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
         <Pressable onPress={() => setTopTab('gigs')} style={[styles.tab, topTab === 'gigs' && styles.tabActive]}>
           <Text style={[styles.tabText, topTab === 'gigs' && styles.tabTextActive]}>🪙 Gigs</Text>
         </Pressable>
+        <Pressable onPress={() => setTopTab('account')} style={[styles.tab, topTab === 'account' && styles.tabActive]}>
+          <Text style={[styles.tabText, topTab === 'account' && styles.tabTextActive]}>🔐 Account</Text>
+        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -303,6 +348,59 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
             )}
           </>
         )}
+
+        {topTab === 'account' &&
+          (isAutoAccount ? (
+            <>
+              <Text style={styles.gigValuesHelper}>
+                Your data already backs up automatically. Set an email and password so you can also get to it from a
+                new phone if you ever need to.
+              </Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                value={accountEmailDraft}
+                onChangeText={editAccountField(setAccountEmailDraft)}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Password (8+ characters)"
+                secureTextEntry
+                value={accountPasswordDraft}
+                onChangeText={editAccountField(setAccountPasswordDraft)}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Confirm password"
+                secureTextEntry
+                value={accountPasswordConfirmDraft}
+                onChangeText={editAccountField(setAccountPasswordConfirmDraft)}
+              />
+              <Pressable
+                style={[styles.saveGigValuesButton, accountStatus === 'saved' && styles.saveGigValuesButtonSaved]}
+                onPress={submitSecureAccount}
+                disabled={accountStatus === 'saving'}
+              >
+                <Text
+                  style={[
+                    styles.saveGigValuesButtonText,
+                    accountStatus === 'saved' && styles.saveGigValuesButtonTextSaved,
+                  ]}
+                >
+                  {accountStatus === 'saving' ? 'Saving…' : accountStatus === 'saved' ? '✓ Secured' : 'Secure my account'}
+                </Text>
+              </Pressable>
+              {accountStatus === 'error' && <Text style={styles.gigValuesErrorText}>{accountError}</Text>}
+            </>
+          ) : (
+            <Text style={styles.gigValuesHelper}>
+              ✓ Account secured{accountEmail ? ` — ${accountEmail}` : ''}. You can log in with this email on another
+              phone if you ever need to.
+            </Text>
+          ))}
 
         <View style={styles.dangerZone}>
           <Text style={styles.dangerZoneLabel}>Testing</Text>
