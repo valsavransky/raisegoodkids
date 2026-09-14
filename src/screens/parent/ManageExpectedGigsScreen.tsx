@@ -22,6 +22,9 @@ const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
 type Props = NativeStackScreenProps<RootStackParamList, 'ManageExpectedGigs'>;
 
 type ModalMode = { kind: 'expected'; editingId: string | null } | { kind: 'gig'; editingId: string | null } | null;
+type TopTab = 'expected' | 'gigs';
+type GigsSubTab = 'list' | 'values';
+type GigValuesStatus = 'idle' | 'saved' | 'invalid';
 
 export function ManageExpectedGigsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
@@ -39,6 +42,9 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
     resetAllData,
   } = useAppData();
 
+  const [topTab, setTopTab] = useState<TopTab>('expected');
+  const [gigsSubTab, setGigsSubTab] = useState<GigsSubTab>('list');
+
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [draftName, setDraftName] = useState('');
   const [draftFrequency, setDraftFrequency] = useState<ExpectedItem['frequency']>('daily');
@@ -49,6 +55,12 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
     medium: String(gigEffortValues.medium),
     big_job: String(gigEffortValues.big_job),
   }));
+  const [gigValuesStatus, setGigValuesStatus] = useState<GigValuesStatus>('idle');
+
+  const editGigValueDraft = (tier: GigEffortTier, text: string) => {
+    setGigValueDrafts((prev) => ({ ...prev, [tier]: text.replace(/[^0-9.]/g, '') }));
+    setGigValuesStatus('idle');
+  };
 
   const saveGigValues = () => {
     const parsed: GigEffortValues = {
@@ -56,8 +68,12 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
       medium: parseFloat(gigValueDrafts.medium),
       big_job: parseFloat(gigValueDrafts.big_job),
     };
-    if (Object.values(parsed).some((v) => Number.isNaN(v) || v < 0)) return;
+    if (Object.values(parsed).some((v) => Number.isNaN(v) || v < 0)) {
+      setGigValuesStatus('invalid');
+      return;
+    }
     updateGigEffortValues(parsed);
+    setGigValuesStatus('saved');
   };
 
   const openAddExpected = () => {
@@ -148,109 +164,136 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
         <View style={{ width: 44 }} />
       </View>
 
+      <View style={styles.tabRow}>
+        <Pressable
+          onPress={() => setTopTab('expected')}
+          style={[styles.tab, topTab === 'expected' && styles.tabActive]}
+        >
+          <Text style={[styles.tabText, topTab === 'expected' && styles.tabTextActive]}>🔥 Expected</Text>
+        </Pressable>
+        <Pressable onPress={() => setTopTab('gigs')} style={[styles.tab, topTab === 'gigs' && styles.tabActive]}>
+          <Text style={[styles.tabText, topTab === 'gigs' && styles.tabTextActive]}>🪙 Gigs</Text>
+        </Pressable>
+      </View>
+
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionIcon, { color: colors.expected }]}>🔥</Text>
-          <Text style={styles.sectionHeader}>Expected</Text>
-        </View>
-        {expectedItems.filter((item) => item.frequency === 'daily').length > 0 && (
+        {topTab === 'expected' && (
           <>
-            <Text style={styles.subSectionHeader}>Daily</Text>
-            {expectedItems
-              .filter((item) => item.frequency === 'daily')
-              .map((item) => (
-                <View key={item.id} style={styles.row}>
-                  <View style={styles.rowInfo}>
-                    <Text style={styles.rowName}>{item.name}</Text>
-                  </View>
-                  <View style={styles.rowActions}>
-                    <Pressable onPress={() => openEditExpected(item)}>
-                      <Text style={styles.linkAction}>Edit</Text>
-                    </Pressable>
-                    <Pressable onPress={() => confirmDeleteExpected(item)}>
-                      <Text style={styles.linkActionDanger}>Remove</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              ))}
+            {expectedItems.filter((item) => item.frequency === 'daily').length > 0 && (
+              <>
+                <Text style={styles.subSectionHeader}>Daily</Text>
+                {expectedItems
+                  .filter((item) => item.frequency === 'daily')
+                  .map((item) => (
+                    <View key={item.id} style={styles.row}>
+                      <View style={styles.rowInfo}>
+                        <Text style={styles.rowName}>{item.name}</Text>
+                      </View>
+                      <View style={styles.rowActions}>
+                        <Pressable onPress={() => openEditExpected(item)}>
+                          <Text style={styles.linkAction}>Edit</Text>
+                        </Pressable>
+                        <Pressable onPress={() => confirmDeleteExpected(item)}>
+                          <Text style={styles.linkActionDanger}>Remove</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ))}
+              </>
+            )}
+            {expectedItems.filter((item) => item.frequency === 'weekly').length > 0 && (
+              <>
+                <Text style={styles.subSectionHeader}>Weekly</Text>
+                {expectedItems
+                  .filter((item) => item.frequency === 'weekly')
+                  .map((item) => (
+                    <View key={item.id} style={styles.row}>
+                      <View style={styles.rowInfo}>
+                        <Text style={styles.rowName}>{item.name}</Text>
+                      </View>
+                      <View style={styles.rowActions}>
+                        <Pressable onPress={() => openEditExpected(item)}>
+                          <Text style={styles.linkAction}>Edit</Text>
+                        </Pressable>
+                        <Pressable onPress={() => confirmDeleteExpected(item)}>
+                          <Text style={styles.linkActionDanger}>Remove</Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  ))}
+              </>
+            )}
+            <Pressable style={styles.addLink} onPress={openAddExpected}>
+              <Text style={styles.addLinkText}>+ Add Expected item</Text>
+            </Pressable>
           </>
         )}
-        {expectedItems.filter((item) => item.frequency === 'weekly').length > 0 && (
+
+        {topTab === 'gigs' && (
           <>
-            <Text style={styles.subSectionHeader}>Weekly</Text>
-            {expectedItems
-              .filter((item) => item.frequency === 'weekly')
-              .map((item) => (
-                <View key={item.id} style={styles.row}>
-                  <View style={styles.rowInfo}>
-                    <Text style={styles.rowName}>{item.name}</Text>
+            <View style={styles.subTabRow}>
+              <Pressable onPress={() => setGigsSubTab('list')} style={styles.subTab}>
+                <Text style={[styles.subTabText, gigsSubTab === 'list' && styles.subTabTextActive]}>Gigs</Text>
+              </Pressable>
+              <Pressable onPress={() => setGigsSubTab('values')} style={styles.subTab}>
+                <Text style={[styles.subTabText, gigsSubTab === 'values' && styles.subTabTextActive]}>
+                  Gig values
+                </Text>
+              </Pressable>
+            </View>
+
+            {gigsSubTab === 'list' ? (
+              <>
+                {gigs.map((gig) => (
+                  <View key={gig.id} style={styles.row}>
+                    <View style={styles.rowInfo}>
+                      <Text style={styles.rowName}>{gig.name}</Text>
+                      <Text style={styles.rowMeta}>{EFFORT_TIERS.find((t) => t.value === gig.effortTier)?.label}</Text>
+                    </View>
+                    <View style={styles.rowActions}>
+                      <Pressable onPress={() => openEditGig(gig)}>
+                        <Text style={styles.linkAction}>Edit</Text>
+                      </Pressable>
+                      <Pressable onPress={() => confirmDeleteGig(gig)}>
+                        <Text style={styles.linkActionDanger}>Remove</Text>
+                      </Pressable>
+                    </View>
                   </View>
-                  <View style={styles.rowActions}>
-                    <Pressable onPress={() => openEditExpected(item)}>
-                      <Text style={styles.linkAction}>Edit</Text>
-                    </Pressable>
-                    <Pressable onPress={() => confirmDeleteExpected(item)}>
-                      <Text style={styles.linkActionDanger}>Remove</Text>
-                    </Pressable>
+                ))}
+                <Pressable style={styles.addLink} onPress={openAddGig}>
+                  <Text style={styles.addLinkText}>+ Add gig</Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Text style={styles.gigValuesHelper}>
+                  How much each effort tier is worth — this determines how much goal progress a gig earns.
+                </Text>
+                {EFFORT_TIERS.map((tier) => (
+                  <View key={tier.value} style={styles.gigValueRow}>
+                    <Text style={styles.gigValueLabel}>{tier.label}</Text>
+                    <View style={styles.gigValueInputWrap}>
+                      <Text style={styles.gigValueDollarSign}>$</Text>
+                      <TextInput
+                        style={styles.gigValueInput}
+                        keyboardType="decimal-pad"
+                        value={gigValueDrafts[tier.value]}
+                        onChangeText={(text) => editGigValueDraft(tier.value, text)}
+                      />
+                    </View>
                   </View>
-                </View>
-              ))}
+                ))}
+                <Pressable style={styles.saveGigValuesButton} onPress={saveGigValues}>
+                  <Text style={styles.saveGigValuesButtonText}>Save gig values</Text>
+                </Pressable>
+                {gigValuesStatus === 'saved' && <Text style={styles.gigValuesSavedText}>✓ Saved</Text>}
+                {gigValuesStatus === 'invalid' && (
+                  <Text style={styles.gigValuesErrorText}>Enter valid, non-negative amounts.</Text>
+                )}
+              </>
+            )}
           </>
         )}
-        <Pressable style={styles.addLink} onPress={openAddExpected}>
-          <Text style={styles.addLinkText}>+ Add Expected item</Text>
-        </Pressable>
-
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionIcon, { color: colors.gigs }]}>🪙</Text>
-          <Text style={styles.sectionHeader}>Gigs</Text>
-        </View>
-        {gigs.map((gig) => (
-          <View key={gig.id} style={styles.row}>
-            <View style={styles.rowInfo}>
-              <Text style={styles.rowName}>{gig.name}</Text>
-              <Text style={styles.rowMeta}>{EFFORT_TIERS.find((t) => t.value === gig.effortTier)?.label}</Text>
-            </View>
-            <View style={styles.rowActions}>
-              <Pressable onPress={() => openEditGig(gig)}>
-                <Text style={styles.linkAction}>Edit</Text>
-              </Pressable>
-              <Pressable onPress={() => confirmDeleteGig(gig)}>
-                <Text style={styles.linkActionDanger}>Remove</Text>
-              </Pressable>
-            </View>
-          </View>
-        ))}
-        <Pressable style={styles.addLink} onPress={openAddGig}>
-          <Text style={styles.addLinkText}>+ Add gig</Text>
-        </Pressable>
-
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionIcon, { color: colors.gigs }]}>💵</Text>
-          <Text style={styles.sectionHeader}>Gig values</Text>
-        </View>
-        <Text style={styles.gigValuesHelper}>
-          How much each effort tier is worth — this determines how much goal progress a gig earns.
-        </Text>
-        {EFFORT_TIERS.map((tier) => (
-          <View key={tier.value} style={styles.gigValueRow}>
-            <Text style={styles.gigValueLabel}>{tier.label}</Text>
-            <View style={styles.gigValueInputWrap}>
-              <Text style={styles.gigValueDollarSign}>$</Text>
-              <TextInput
-                style={styles.gigValueInput}
-                keyboardType="decimal-pad"
-                value={gigValueDrafts[tier.value]}
-                onChangeText={(text) =>
-                  setGigValueDrafts((prev) => ({ ...prev, [tier.value]: text.replace(/[^0-9.]/g, '') }))
-                }
-              />
-            </View>
-          </View>
-        ))}
-        <Pressable style={styles.saveGigValuesButton} onPress={saveGigValues}>
-          <Text style={styles.saveGigValuesButtonText}>Save gig values</Text>
-        </Pressable>
 
         <View style={styles.dangerZone}>
           <Text style={styles.dangerZoneLabel}>Testing</Text>
@@ -320,10 +363,24 @@ const styles = StyleSheet.create({
   },
   closeButton: { fontSize: 15, color: colors.textMuted, width: 44 },
   title: { fontSize: 17, fontWeight: '700', color: colors.text },
-  content: { paddingHorizontal: 20, paddingBottom: 40 },
-  sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 20, marginBottom: 10 },
-  sectionIcon: { fontSize: 16 },
-  sectionHeader: { fontSize: 17, fontWeight: '700', color: colors.text },
+  content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 },
+  tabRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingBottom: 4 },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  tabActive: { backgroundColor: colors.text, borderColor: colors.text },
+  tabText: { fontSize: 14, fontWeight: '700', color: colors.text },
+  tabTextActive: { color: '#fff' },
+  subTabRow: { flexDirection: 'row', gap: 20, marginBottom: 14, borderBottomWidth: 1, borderBottomColor: colors.border },
+  subTab: { paddingBottom: 10 },
+  subTabText: { fontSize: 14, fontWeight: '600', color: colors.textMuted },
+  subTabTextActive: { color: colors.gigs, fontWeight: '700' },
   subSectionHeader: {
     fontSize: 12,
     fontWeight: '700',
@@ -380,6 +437,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveGigValuesButtonText: { color: colors.gigs, fontSize: 14, fontWeight: '700' },
+  gigValuesSavedText: { color: colors.success, fontSize: 13, fontWeight: '700', textAlign: 'center', marginTop: 10 },
+  gigValuesErrorText: { color: colors.danger, fontSize: 13, fontWeight: '600', textAlign: 'center', marginTop: 10 },
   dangerZone: { marginTop: 36, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border },
   dangerZoneLabel: { fontSize: 12, color: colors.textMuted, fontWeight: '700', textTransform: 'uppercase', marginBottom: 10 },
   resetButton: {
