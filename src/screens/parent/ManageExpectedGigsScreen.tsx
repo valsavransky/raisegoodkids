@@ -15,6 +15,18 @@ import { signOut as signOutOfGoogle } from '../../services/googleAuth';
 import { colors } from '../../theme/colors';
 
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
+const EMAIL_DOMAINS = ['gmail.com', 'yahoo.com', 'outlook.com', 'icloud.com', 'hotmail.com'];
+
+/** Suggests full-email completions once there's text after "@" — e.g.
+ * "val@g" -> ["val@gmail.com"]. Empty once the domain is already spelled
+ * out in full (no point suggesting what's already typed). */
+function emailDomainSuggestions(input: string): string[] {
+  const at = input.indexOf('@');
+  if (at <= 0) return [];
+  const local = input.slice(0, at);
+  const domainSoFar = input.slice(at + 1);
+  return EMAIL_DOMAINS.filter((d) => d !== domainSoFar && d.startsWith(domainSoFar)).map((d) => `${local}@${d}`);
+}
 
 const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
   { value: 'quick', label: 'Quick' },
@@ -55,6 +67,8 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
   const [accountPasswordConfirmDraft, setAccountPasswordConfirmDraft] = useState('');
   const [accountStatus, setAccountStatus] = useState<AccountStatus>('idle');
   const [accountError, setAccountError] = useState('');
+  const [showAccountPassword, setShowAccountPassword] = useState(false);
+  const [showAccountPasswordConfirm, setShowAccountPasswordConfirm] = useState(false);
 
   const editAccountField = (setter: (v: string) => void) => (text: string) => {
     setter(text);
@@ -362,23 +376,53 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
+                textContentType="emailAddress"
                 value={accountEmailDraft}
                 onChangeText={editAccountField(setAccountEmailDraft)}
               />
-              <TextInput
-                style={styles.input}
-                placeholder="Password (8+ characters)"
-                secureTextEntry
-                value={accountPasswordDraft}
-                onChangeText={editAccountField(setAccountPasswordDraft)}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Confirm password"
-                secureTextEntry
-                value={accountPasswordConfirmDraft}
-                onChangeText={editAccountField(setAccountPasswordConfirmDraft)}
-              />
+              {emailDomainSuggestions(accountEmailDraft).length > 0 && (
+                <View style={styles.suggestionRow}>
+                  {emailDomainSuggestions(accountEmailDraft).map((suggestion) => (
+                    <Pressable
+                      key={suggestion}
+                      style={styles.suggestionChip}
+                      onPress={() => editAccountField(setAccountEmailDraft)(suggestion)}
+                    >
+                      <Text style={styles.suggestionChipText}>{suggestion}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+              <View style={styles.passwordFieldWrap}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password (8+ characters)"
+                  secureTextEntry={!showAccountPassword}
+                  textContentType="newPassword"
+                  value={accountPasswordDraft}
+                  onChangeText={editAccountField(setAccountPasswordDraft)}
+                />
+                <Pressable style={styles.passwordToggle} onPress={() => setShowAccountPassword((v) => !v)} hitSlop={8}>
+                  <Text style={styles.linkAction}>{showAccountPassword ? 'Hide' : 'Show'}</Text>
+                </Pressable>
+              </View>
+              <View style={styles.passwordFieldWrap}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Confirm password"
+                  secureTextEntry={!showAccountPasswordConfirm}
+                  textContentType="newPassword"
+                  value={accountPasswordConfirmDraft}
+                  onChangeText={editAccountField(setAccountPasswordConfirmDraft)}
+                />
+                <Pressable
+                  style={styles.passwordToggle}
+                  onPress={() => setShowAccountPasswordConfirm((v) => !v)}
+                  hitSlop={8}
+                >
+                  <Text style={styles.linkAction}>{showAccountPasswordConfirm ? 'Hide' : 'Show'}</Text>
+                </Pressable>
+              </View>
               <Pressable
                 style={[styles.saveGigValuesButton, accountStatus === 'saved' && styles.saveGigValuesButtonSaved]}
                 onPress={submitSecureAccount}
@@ -547,6 +591,18 @@ const styles = StyleSheet.create({
   saveGigValuesButtonText: { color: colors.gigs, fontSize: 14, fontWeight: '700' },
   saveGigValuesButtonTextSaved: { color: '#fff' },
   gigValuesErrorText: { color: colors.danger, fontSize: 13, fontWeight: '600', textAlign: 'center', marginTop: 10 },
+  suggestionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: -6, marginBottom: 12 },
+  suggestionChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  suggestionChipText: { fontSize: 12, color: colors.textMuted },
+  passwordFieldWrap: { position: 'relative', justifyContent: 'center' },
+  passwordToggle: { position: 'absolute', right: 14 },
   dangerZone: { marginTop: 36, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border },
   dangerZoneLabel: { fontSize: 12, color: colors.textMuted, fontWeight: '700', textTransform: 'uppercase', marginBottom: 10 },
   resetButton: {
