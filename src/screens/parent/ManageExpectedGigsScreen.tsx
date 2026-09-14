@@ -283,10 +283,19 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
                     </View>
                   </View>
                 ))}
-                <Pressable style={styles.saveGigValuesButton} onPress={saveGigValues}>
-                  <Text style={styles.saveGigValuesButtonText}>Save gig values</Text>
+                <Pressable
+                  style={[styles.saveGigValuesButton, gigValuesStatus === 'saved' && styles.saveGigValuesButtonSaved]}
+                  onPress={saveGigValues}
+                >
+                  <Text
+                    style={[
+                      styles.saveGigValuesButtonText,
+                      gigValuesStatus === 'saved' && styles.saveGigValuesButtonTextSaved,
+                    ]}
+                  >
+                    {gigValuesStatus === 'saved' ? '✓ Saved' : 'Save gig values'}
+                  </Text>
                 </Pressable>
-                {gigValuesStatus === 'saved' && <Text style={styles.gigValuesSavedText}>✓ Saved</Text>}
                 {gigValuesStatus === 'invalid' && (
                   <Text style={styles.gigValuesErrorText}>Enter valid, non-negative amounts.</Text>
                 )}
@@ -436,8 +445,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
   },
+  saveGigValuesButtonSaved: { borderColor: colors.success, backgroundColor: colors.success },
   saveGigValuesButtonText: { color: colors.gigs, fontSize: 14, fontWeight: '700' },
-  gigValuesSavedText: { color: colors.success, fontSize: 13, fontWeight: '700', textAlign: 'center', marginTop: 10 },
+  saveGigValuesButtonTextSaved: { color: '#fff' },
   gigValuesErrorText: { color: colors.danger, fontSize: 13, fontWeight: '600', textAlign: 'center', marginTop: 10 },
   dangerZone: { marginTop: 36, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border },
   dangerZoneLabel: { fontSize: 12, color: colors.textMuted, fontWeight: '700', textTransform: 'uppercase', marginBottom: 10 },
