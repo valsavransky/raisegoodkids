@@ -6,7 +6,7 @@
 // `fields` parameter on each request below, independent of which OAuth
 // scope is granted (see googleAuth.ts's SCOPE for why that's
 // calendar.readonly, not the narrower calendar.events.readonly).
-import { ScheduleEventCategory } from '../types/models';
+import { ScheduleEventCategory, ScheduleEventCadence } from '../types/models';
 import { guessCategoryForTitle } from '../data/practiceSuggestions';
 
 const API_BASE = 'https://www.googleapis.com/calendar/v3';
@@ -25,6 +25,9 @@ export interface ImportedScheduleEvent {
   category: ScheduleEventCategory;
   recurring: boolean;
   daysOfWeek?: number[];
+  /** Only set when recurring — see fetchRecurrenceCadence for how this is
+   * derived from the event's actual Google Calendar recurrence rule. */
+  cadence?: ScheduleEventCadence;
   date?: string;
   startTime?: string;
   endTime?: string;
@@ -94,6 +97,53 @@ function toDateString(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/** Parses a Google Calendar RRULE (e.g. "RRULE:FREQ=WEEKLY;BYDAY=MO,WE" or
+ * "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=TU") into our simplified cadence
+ * buckets. Falls back to 'weekly' when there's no rule to read or it's in a
+ * shape we don't recognize (e.g. a complex custom RRULE) — the overwhelming
+ * majority of household recurring events (school, lessons, practice) repeat
+ * weekly, so that's a safer default than leaving the cadence unlabeled. */
+function parseCadence(recurrence: string[] | undefined): ScheduleEventCadence {
+  const rule = recurrence?.find((r) => r.startsWith('RRULE'));
+  if (!rule) return 'weekly';
+  const freq = rule.match(/FREQ=([A-Z]+)/)?.[1];
+  const interval = parseInt(rule.match(/INTERVAL=(\d+)/)?.[1] ?? '1', 10);
+  switch (freq) {
+    case 'DAILY':
+      return 'daily';
+    case 'WEEKLY':
+      return interval >= 2 ? 'biweekly' : 'weekly';
+    case 'MONTHLY':
+      return 'monthly';
+    case 'YEARLY':
+      return 'yearly';
+    default:
+      return 'weekly';
+  }
+}
+
+/** The expanded instances from the main events.list call don't carry the
+ * series' RRULE (only its master event does), so this fetches just that one
+ * field from the master event to find the real cadence. Best-effort: any
+ * failure (including a 404 if the master event fell outside what
+ * calendar.readonly can see) just falls back to 'weekly' rather than
+ * failing the whole import. */
+async function fetchRecurrenceCadence(
+  accessToken: string,
+  calendarId: string,
+  recurringEventId: string
+): Promise<ScheduleEventCadence> {
+  try {
+    const data = await googleFetch<{ recurrence?: string[] }>(
+      `${API_BASE}/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(recurringEventId)}?fields=recurrence`,
+      accessToken
+    );
+    return parseCadence(data.recurrence);
+  } catch {
+    return 'weekly';
+  }
+}
+
 /**
  * Fetches events for a calendar over the given window, using
  * singleEvents=true so Google expands recurring series into individual
@@ -136,27 +186,33 @@ export async function fetchImportableEvents(
 
   const results: ImportedScheduleEvent[] = [];
 
-  for (const [recurringEventId, occurrences] of recurringGroups) {
-    const first = occurrences[0];
-    const title = first.summary ?? 'Untitled event';
-    const daysOfWeek = Array.from(
-      new Set(
-        occurrences
-          .map((o) => toLocalDate(o.start))
-          .filter((d): d is Date => d !== undefined)
-          .map((d) => d.getDay())
-      )
-    ).sort((a, b) => a - b);
-    results.push({
-      id: recurringEventId,
-      title,
-      category: guessCategoryForTitle(title),
-      recurring: true,
-      daysOfWeek,
-      startTime: toHHMM(first.start),
-      endTime: toHHMM(first.end),
-    });
-  }
+  const recurringResults = await Promise.all(
+    Array.from(recurringGroups.entries()).map(async ([recurringEventId, occurrences]) => {
+      const first = occurrences[0];
+      const title = first.summary ?? 'Untitled event';
+      const daysOfWeek = Array.from(
+        new Set(
+          occurrences
+            .map((o) => toLocalDate(o.start))
+            .filter((d): d is Date => d !== undefined)
+            .map((d) => d.getDay())
+        )
+      ).sort((a, b) => a - b);
+      const cadence = await fetchRecurrenceCadence(accessToken, calendarId, recurringEventId);
+      const event: ImportedScheduleEvent = {
+        id: recurringEventId,
+        title,
+        category: guessCategoryForTitle(title),
+        recurring: true,
+        daysOfWeek,
+        cadence,
+        startTime: toHHMM(first.start),
+        endTime: toHHMM(first.end),
+      };
+      return event;
+    })
+  );
+  results.push(...recurringResults);
 
   for (const item of standalone) {
     const title = item.summary ?? 'Untitled event';

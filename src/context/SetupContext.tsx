@@ -3,7 +3,7 @@
 // no backend/storage layer in this build. On "Finish setup" a consumer can
 // read this state and assign real ids once persistence exists.
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { ScheduleEventCategory, GigEffortTier } from '../types/models';
+import { ScheduleEventCategory, ScheduleEventCadence, GigEffortTier } from '../types/models';
 
 let localIdCounter = 0;
 export function makeLocalId(prefix: string): string {
@@ -24,6 +24,7 @@ export interface DraftScheduleEvent {
   category: ScheduleEventCategory;
   recurring: boolean;
   daysOfWeek?: number[];
+  cadence?: ScheduleEventCadence;
   date?: string;
   startTime?: string;
   endTime?: string;

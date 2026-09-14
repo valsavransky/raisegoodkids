@@ -22,6 +22,7 @@ import { getMockEventsForCalendar } from '../../data/mockGoogleCalendar';
 import { guessCategoryForTitle } from '../../data/practiceSuggestions';
 import { getValidAccessToken } from '../../services/googleAuth';
 import { fetchImportableEvents, ImportedScheduleEvent } from '../../services/googleCalendarApi';
+import { CADENCE_LABELS } from '../../types/models';
 import { colors } from '../../theme/colors';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -34,6 +35,7 @@ function mockEventsAsImported(calendarId: string): ImportedScheduleEvent[] {
     category: guessCategoryForTitle(e.title),
     recurring: true,
     daysOfWeek: e.daysOfWeek,
+    cadence: 'weekly',
     startTime: e.startTime,
     endTime: e.endTime,
   }));
@@ -102,6 +104,7 @@ export function GoogleCalendarEventsScreen({ route, navigation }: Props) {
         category: e.category,
         recurring: e.recurring,
         daysOfWeek: e.daysOfWeek,
+        cadence: e.cadence,
         date: e.date,
         startTime: e.startTime,
         endTime: e.endTime,
@@ -137,7 +140,14 @@ export function GoogleCalendarEventsScreen({ route, navigation }: Props) {
                 </View>
                 <View style={styles.eventInfo}>
                   <Text style={styles.eventTitle}>{item.title}</Text>
-                  <Text style={styles.eventMeta}>{describeEvent(item)}</Text>
+                  <View style={styles.eventMetaRow}>
+                    {item.recurring && (
+                      <View style={styles.cadenceTag}>
+                        <Text style={styles.cadenceTagText}>{CADENCE_LABELS[item.cadence ?? 'weekly']}</Text>
+                      </View>
+                    )}
+                    <Text style={styles.eventMeta}>{describeEvent(item)}</Text>
+                  </View>
                 </View>
               </Pressable>
             );
@@ -182,7 +192,17 @@ const styles = StyleSheet.create({
   checkboxMark: { color: '#fff', fontSize: 13, fontWeight: '700' },
   eventInfo: { flexShrink: 1 },
   eventTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
-  eventMeta: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  eventMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' },
+  eventMeta: { fontSize: 12, color: colors.textMuted },
+  cadenceTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  cadenceTagText: { fontSize: 11, color: colors.expected, fontWeight: '700' },
   confirmButton: {
     marginHorizontal: 20,
     marginTop: 4,

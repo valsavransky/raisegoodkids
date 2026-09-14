@@ -22,6 +22,20 @@ export interface ChildProfile {
 export type ScheduleEventCategory = 'school' | 'extracurricular' | 'practice' | 'skip';
 export type ScheduleEventSource = 'google_calendar' | 'manual';
 
+/** How often a recurring event repeats. Google Calendar imports derive this
+ * from the event's RRULE (see googleCalendarApi.ts); manually-added events
+ * only offer 'weekly' through the UI today, since that covers the vast
+ * majority of household recurring commitments (school, lessons, practice). */
+export type ScheduleEventCadence = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
+
+export const CADENCE_LABELS: Record<ScheduleEventCadence, string> = {
+  daily: 'Daily',
+  weekly: 'Weekly',
+  biweekly: 'Every 2 weeks',
+  monthly: 'Monthly',
+  yearly: 'Yearly',
+};
+
 /** From calendar import/review (screens 5-6) — informs realistic Expected/Gig capacity,
  * and backs the schedule view. Structured rather than free-form, matching the
  * metadata a real calendar event carries (name, date/time, whether it repeats). */
@@ -33,6 +47,10 @@ export interface ScheduleEvent {
   recurring: boolean;
   /** 0=Sunday..6=Saturday. Only set when recurring. */
   daysOfWeek?: number[];
+  /** Only set when recurring; defaults to 'weekly' when absent (the only
+   * cadence the old manual-entry UI ever produced), so existing data reads
+   * the same as before this field existed. */
+  cadence?: ScheduleEventCadence;
   /** YYYY-MM-DD. Only set when NOT recurring (a one-off event). */
   date?: string;
   /** HH:MM, 24-hour. */

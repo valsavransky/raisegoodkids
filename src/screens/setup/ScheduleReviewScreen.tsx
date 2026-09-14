@@ -13,7 +13,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { useSetup, DraftScheduleEvent, makeLocalId } from '../../context/SetupContext';
-import { ScheduleEventCategory } from '../../types/models';
+import { ScheduleEventCategory, CADENCE_LABELS } from '../../types/models';
 import {
   categoryTriggersSuggestion,
   suggestExpectedItemForEvent,
@@ -118,6 +118,7 @@ export function ScheduleReviewScreen({ navigation }: Props) {
       category: draftCategory,
       recurring: draftRecurring,
       daysOfWeek: draftRecurring ? draftDaysOfWeek : undefined,
+      cadence: draftRecurring ? 'weekly' : undefined,
       date: draftRecurring ? undefined : draftDate.trim(),
       startTime: draftStartTime.trim() || undefined,
       endTime: draftEndTime.trim() || undefined,
@@ -147,7 +148,14 @@ export function ScheduleReviewScreen({ navigation }: Props) {
             <View style={styles.eventRow}>
               <View style={styles.eventInfo}>
                 <Text style={styles.eventTitle}>{item.title}</Text>
-                <Text style={styles.eventRecurrence}>{describeSchedule(item)}</Text>
+                <View style={styles.eventMetaRow}>
+                  {item.recurring && (
+                    <View style={styles.cadenceTag}>
+                      <Text style={styles.cadenceTagText}>{CADENCE_LABELS[item.cadence ?? 'weekly']}</Text>
+                    </View>
+                  )}
+                  <Text style={styles.eventRecurrence}>{describeSchedule(item)}</Text>
+                </View>
               </View>
               <View style={styles.categoryRow}>
                 {CATEGORIES.map((category) => {
@@ -369,7 +377,17 @@ const styles = StyleSheet.create({
   },
   eventInfo: { marginBottom: 10 },
   eventTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
-  eventRecurrence: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
+  eventMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' },
+  eventRecurrence: { fontSize: 13, color: colors.textMuted },
+  cadenceTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  cadenceTagText: { fontSize: 11, color: colors.expected, fontWeight: '700' },
   categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
   suggestionCard: {
     backgroundColor: colors.background,
