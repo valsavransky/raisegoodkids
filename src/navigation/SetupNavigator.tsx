@@ -6,7 +6,8 @@ import { ScheduleImportScreen } from '../screens/setup/ScheduleImportScreen';
 import { GoogleCalendarPickerScreen } from '../screens/setup/GoogleCalendarPickerScreen';
 import { GoogleCalendarEventsScreen } from '../screens/setup/GoogleCalendarEventsScreen';
 import { ScheduleReviewScreen } from '../screens/setup/ScheduleReviewScreen';
-import { ExpectedGigsSetupScreen } from '../screens/setup/ExpectedGigsSetupScreen';
+import { ExpectedSetupScreen } from '../screens/setup/ExpectedSetupScreen';
+import { GigsSetupScreen } from '../screens/setup/GigsSetupScreen';
 
 const Stack = createNativeStackNavigator<SetupStackParamList>();
 
@@ -18,7 +19,8 @@ export function SetupNavigator() {
       <Stack.Screen name="GoogleCalendarPicker" component={GoogleCalendarPickerScreen} />
       <Stack.Screen name="GoogleCalendarEvents" component={GoogleCalendarEventsScreen} />
       <Stack.Screen name="ScheduleReview" component={ScheduleReviewScreen} />
-      <Stack.Screen name="ExpectedGigsSetup" component={ExpectedGigsSetupScreen} />
+      <Stack.Screen name="ExpectedSetup" component={ExpectedSetupScreen} />
+      <Stack.Screen name="GigsSetup" component={GigsSetupScreen} />
     </Stack.Navigator>
   );
 }

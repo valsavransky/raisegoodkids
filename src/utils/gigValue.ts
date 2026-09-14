@@ -1,7 +1,9 @@
 // Translates a gig's effort tier into progress toward the active goal.
-import { Goal, GigEffortTier } from '../types/models';
+import { Goal, GigEffortTier, GigEffortValues } from '../types/models';
 
-export const EFFORT_TIER_DOLLAR_VALUES: Record<GigEffortTier, number> = {
+/** Starting point shown in setup and used until a parent changes them in
+ * Manage Expected & Gigs — see AppDataContext's gigEffortValues. */
+export const DEFAULT_GIG_EFFORT_VALUES: GigEffortValues = {
   quick: 5,
   medium: 10,
   big_job: 15,
@@ -14,10 +16,11 @@ export const EFFORT_TIER_DOLLAR_VALUES: Record<GigEffortTier, number> = {
 export function computeGigPercentage(
   effortTier: GigEffortTier,
   goal: Goal,
-  futureFundPercentage: number
+  futureFundPercentage: number,
+  effortValues: GigEffortValues
 ): number {
   if (goal.realWorldCost <= 0) return 0;
-  const grossValue = EFFORT_TIER_DOLLAR_VALUES[effortTier];
+  const grossValue = effortValues[effortTier];
   const netValue = grossValue * (1 - futureFundPercentage / 100);
   return Math.round((netValue / goal.realWorldCost) * 100);
 }

@@ -55,7 +55,7 @@ export function ChildProfileScreen({ navigation }: Props) {
       style={styles.screen}
       contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}
     >
-      <ScreenHeader title="Add a child" step={1} totalSteps={3} />
+      <ScreenHeader title="Add a child" step={1} totalSteps={4} />
 
       <Text style={styles.label}>Avatar</Text>
       <View style={styles.avatarRow}>
@@ -102,7 +102,7 @@ export function ChildProfileScreen({ navigation }: Props) {
       {Platform.OS === 'ios' && (
         <Modal visible={showPicker} animationType="slide" transparent onRequestClose={() => setShowPicker(false)}>
           <View style={styles.modalBackdrop}>
-            <View style={styles.modalCard}>
+            <View style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]}>
               <DateTimePicker
                 value={tempDate}
                 mode="date"
@@ -136,6 +136,83 @@ export function ChildProfileScreen({ navigation }: Props) {
           );
         })}
       </View>
+
+      <Text style={styles.label}>At home</Text>
+      <Text style={styles.helperText}>
+        A couple of household details help us suggest the right Expected items and gigs later (like
+        feeding a pet or raking leaves).
+      </Text>
+
+      <View style={styles.toggleRow}>
+        <Text style={styles.toggleLabel}>Yard</Text>
+        <View style={styles.chipRow}>
+          <Pressable
+            onPress={() => setChildProfile({ hasYard: true })}
+            style={[styles.chip, childProfile.hasYard === true && styles.chipSelected]}
+          >
+            <Text style={[styles.chipText, childProfile.hasYard === true && styles.chipTextSelected]}>Yes</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setChildProfile({ hasYard: false })}
+            style={[styles.chip, childProfile.hasYard === false && styles.chipSelected]}
+          >
+            <Text style={[styles.chipText, childProfile.hasYard === false && styles.chipTextSelected]}>No</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      <View style={styles.toggleRow}>
+        <Text style={styles.toggleLabel}>Car</Text>
+        <View style={styles.chipRow}>
+          <Pressable
+            onPress={() => setChildProfile({ hasCar: true })}
+            style={[styles.chip, childProfile.hasCar === true && styles.chipSelected]}
+          >
+            <Text style={[styles.chipText, childProfile.hasCar === true && styles.chipTextSelected]}>Yes</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setChildProfile({ hasCar: false })}
+            style={[styles.chip, childProfile.hasCar === false && styles.chipSelected]}
+          >
+            <Text style={[styles.chipText, childProfile.hasCar === false && styles.chipTextSelected]}>No</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      <View style={styles.toggleRow}>
+        <Text style={styles.toggleLabel}>Pet</Text>
+        <View style={styles.chipRow}>
+          <Pressable
+            onPress={() => setChildProfile({ hasPet: true })}
+            style={[styles.chip, childProfile.hasPet === true && styles.chipSelected]}
+          >
+            <Text style={[styles.chipText, childProfile.hasPet === true && styles.chipTextSelected]}>Yes</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setChildProfile({ hasPet: false, petType: undefined, petName: undefined })}
+            style={[styles.chip, childProfile.hasPet === false && styles.chipSelected]}
+          >
+            <Text style={[styles.chipText, childProfile.hasPet === false && styles.chipTextSelected]}>No</Text>
+          </Pressable>
+        </View>
+      </View>
+
+      {childProfile.hasPet && (
+        <View style={styles.petFieldsRow}>
+          <TextInput
+            style={[styles.input, styles.petInput]}
+            placeholder="Type (e.g. dog)"
+            value={childProfile.petType ?? ''}
+            onChangeText={(petType) => setChildProfile({ petType })}
+          />
+          <TextInput
+            style={[styles.input, styles.petInput]}
+            placeholder="Name (optional)"
+            value={childProfile.petName ?? ''}
+            onChangeText={(petName) => setChildProfile({ petName })}
+          />
+        </View>
+      )}
 
       <Pressable
         style={[styles.continueButton, !canContinue && styles.continueButtonDisabled]}
@@ -190,6 +267,10 @@ const styles = StyleSheet.create({
   chipSelected: { backgroundColor: colors.expected, borderColor: colors.expected },
   chipText: { fontSize: 14, color: colors.text },
   chipTextSelected: { color: '#fff', fontWeight: '600' },
+  toggleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 },
+  toggleLabel: { fontSize: 15, color: colors.text, fontWeight: '600' },
+  petFieldsRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
+  petInput: { flex: 1 },
   continueButton: {
     marginTop: 32,
     backgroundColor: colors.expected,

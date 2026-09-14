@@ -17,6 +17,7 @@
 // vision doc's "pay yourself first" framing.
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, SectionList, Modal, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -32,6 +33,7 @@ type GoalPickerNavigationProp = CompositeNavigationProp<
 >;
 
 export function GoalPickerScreen() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<GoalPickerNavigationProp>();
   const {
     goals,
@@ -262,7 +264,7 @@ export function GoalPickerScreen() {
 
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]}>
             <Text style={styles.modalTitle}>{editingGoalId ? 'Edit goal' : 'Add a goal'}</Text>
             <TextInput style={styles.input} placeholder="What are you saving for?" value={draftName} onChangeText={setDraftName} />
             <TextInput
@@ -291,7 +293,7 @@ export function GoalPickerScreen() {
         onRequestClose={() => setContributionModalVisible(false)}
       >
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]}>
             <Text style={styles.modalTitle}>Log a contribution</Text>
             <Text style={styles.futureFundSubtitle}>How much did you move to the real account?</Text>
             <TextInput

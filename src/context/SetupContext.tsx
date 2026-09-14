@@ -16,6 +16,11 @@ export interface DraftChildProfile {
   avatarId: string;
   birthday: string;
   grade?: string;
+  hasYard?: boolean;
+  hasCar?: boolean;
+  hasPet?: boolean;
+  petType?: string;
+  petName?: string;
 }
 
 export interface DraftScheduleEvent {

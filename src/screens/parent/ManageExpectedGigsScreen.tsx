@@ -5,10 +5,11 @@
 // uncluttered with management controls a child doesn't need to see.
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, Modal, Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { useAppData } from '../../context/AppDataContext';
-import { ExpectedItem, Gig, GigEffortTier } from '../../types/models';
+import { ExpectedItem, Gig, GigEffortTier, GigEffortValues } from '../../types/models';
 import { signOut as signOutOfGoogle } from '../../services/googleAuth';
 import { colors } from '../../theme/colors';
 
@@ -23,6 +24,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ManageExpectedGigs'>;
 type ModalMode = { kind: 'expected'; editingId: string | null } | { kind: 'gig'; editingId: string | null } | null;
 
 export function ManageExpectedGigsScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const {
     expectedItems,
     addExpectedItem,
@@ -32,6 +34,8 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
     addGig,
     updateGig,
     deleteGig,
+    gigEffortValues,
+    updateGigEffortValues,
     resetAllData,
   } = useAppData();
 
@@ -39,6 +43,22 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
   const [draftName, setDraftName] = useState('');
   const [draftFrequency, setDraftFrequency] = useState<ExpectedItem['frequency']>('daily');
   const [draftEffortTier, setDraftEffortTier] = useState<GigEffortTier>('quick');
+
+  const [gigValueDrafts, setGigValueDrafts] = useState(() => ({
+    quick: String(gigEffortValues.quick),
+    medium: String(gigEffortValues.medium),
+    big_job: String(gigEffortValues.big_job),
+  }));
+
+  const saveGigValues = () => {
+    const parsed: GigEffortValues = {
+      quick: parseFloat(gigValueDrafts.quick),
+      medium: parseFloat(gigValueDrafts.medium),
+      big_job: parseFloat(gigValueDrafts.big_job),
+    };
+    if (Object.values(parsed).some((v) => Number.isNaN(v) || v < 0)) return;
+    updateGigEffortValues(parsed);
+  };
 
   const openAddExpected = () => {
     setDraftName('');
@@ -205,6 +225,33 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
           <Text style={styles.addLinkText}>+ Add gig</Text>
         </Pressable>
 
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionIcon, { color: colors.gigs }]}>💵</Text>
+          <Text style={styles.sectionHeader}>Gig values</Text>
+        </View>
+        <Text style={styles.gigValuesHelper}>
+          How much each effort tier is worth — this determines how much goal progress a gig earns.
+        </Text>
+        {EFFORT_TIERS.map((tier) => (
+          <View key={tier.value} style={styles.gigValueRow}>
+            <Text style={styles.gigValueLabel}>{tier.label}</Text>
+            <View style={styles.gigValueInputWrap}>
+              <Text style={styles.gigValueDollarSign}>$</Text>
+              <TextInput
+                style={styles.gigValueInput}
+                keyboardType="decimal-pad"
+                value={gigValueDrafts[tier.value]}
+                onChangeText={(text) =>
+                  setGigValueDrafts((prev) => ({ ...prev, [tier.value]: text.replace(/[^0-9.]/g, '') }))
+                }
+              />
+            </View>
+          </View>
+        ))}
+        <Pressable style={styles.saveGigValuesButton} onPress={saveGigValues}>
+          <Text style={styles.saveGigValuesButtonText}>Save gig values</Text>
+        </Pressable>
+
         <View style={styles.dangerZone}>
           <Text style={styles.dangerZoneLabel}>Testing</Text>
           <Pressable style={styles.resetButton} onPress={confirmDisconnectGoogle}>
@@ -218,7 +265,7 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
 
       <Modal visible={modalMode !== null} animationType="slide" transparent onRequestClose={() => setModalMode(null)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]}>
             <Text style={styles.modalTitle}>
               {modalMode?.editingId ? 'Edit' : 'Add'} {modalMode?.kind === 'expected' ? 'Expected item' : 'gig'}
             </Text>
@@ -305,6 +352,34 @@ const styles = StyleSheet.create({
   linkActionDanger: { color: colors.danger, fontSize: 13, fontWeight: '700' },
   addLink: { paddingVertical: 10 },
   addLinkText: { color: colors.expected, fontSize: 14, fontWeight: '600' },
+  gigValuesHelper: { fontSize: 12, color: colors.textMuted, marginBottom: 10, lineHeight: 17 },
+  gigValueRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  gigValueLabel: { fontSize: 15, color: colors.text },
+  gigValueInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    backgroundColor: colors.surface,
+  },
+  gigValueDollarSign: { fontSize: 15, color: colors.textMuted, marginRight: 2 },
+  gigValueInput: { fontSize: 15, color: colors.text, paddingVertical: 8, width: 56, textAlign: 'right' },
+  saveGigValuesButton: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: colors.gigs,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  saveGigValuesButtonText: { color: colors.gigs, fontSize: 14, fontWeight: '700' },
   dangerZone: { marginTop: 36, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border },
   dangerZoneLabel: { fontSize: 12, color: colors.textMuted, fontWeight: '700', textTransform: 'uppercase', marginBottom: 10 },
   resetButton: {

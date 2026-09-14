@@ -62,7 +62,7 @@ export function ScheduleImportScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title="Set up schedule" step={2} totalSteps={3} onBack={() => navigation.goBack()} />
+      <ScreenHeader title="Set up schedule" step={2} totalSteps={4} onBack={() => navigation.goBack()} />
 
       <View style={styles.content}>
         <Text style={styles.icon}>📅</Text>

@@ -12,6 +12,7 @@
 // marked as not worth tracking during schedule review/import.
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, SectionList, ScrollView, Modal, Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -73,6 +74,7 @@ const BLANK_DRAFT: DraftState = {
 };
 
 export function ScheduleViewScreen() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<ScheduleNavigationProp>();
   const { scheduleEvents, addScheduleEvent, updateScheduleEvent, deleteScheduleEvent } = useAppData();
   const [modalVisible, setModalVisible] = useState(false);
@@ -208,7 +210,7 @@ export function ScheduleViewScreen() {
 
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
+          <View style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]}>
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={styles.modalTitle}>{editingId ? 'Edit event' : 'Add event'}</Text>
             <TextInput

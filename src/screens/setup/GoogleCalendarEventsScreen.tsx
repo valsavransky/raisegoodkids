@@ -11,7 +11,7 @@
 // its own. The practice-suggestion engine (see ScheduleReviewScreen) is the
 // only path from a calendar event to an Expected item, since "Practice
 // piano" (unlike "Piano Lesson" itself) genuinely is something to do at home.
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, Pressable, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -61,6 +61,16 @@ export function GoogleCalendarEventsScreen({ route, navigation }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Titles already sitting in the schedule (added on an earlier pass through
+  // this wizard, or via a prior calendar connection) — matched by title
+  // alone since that's the one stable, human-visible identity a re-fetch
+  // shares with what's already saved. Re-importing these as new selections
+  // would just duplicate the row.
+  const alreadyAddedTitles = useMemo(
+    () => new Set(scheduleEvents.map((e) => e.title.trim().toLowerCase())),
+    [scheduleEvents]
+  );
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -80,13 +90,19 @@ export function GoogleCalendarEventsScreen({ route, navigation }: Props) {
       }
       if (!cancelled) {
         setEvents(result);
-        setSelectedIds(result.map((e) => e.id));
+        setSelectedIds(
+          result.filter((e) => !alreadyAddedTitles.has(e.title.trim().toLowerCase())).map((e) => e.id)
+        );
         setLoading(false);
       }
     })();
     return () => {
       cancelled = true;
     };
+    // alreadyAddedTitles intentionally excluded — only used to seed the
+    // initial selection when this calendar's events load, not to re-run
+    // the fetch whenever the schedule changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [calendarId]);
 
   const toggle = (id: string) => {
@@ -116,7 +132,7 @@ export function GoogleCalendarEventsScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title="Calendar events" step={2} totalSteps={3} onBack={() => navigation.goBack()} />
+      <ScreenHeader title="Calendar events" step={2} totalSteps={4} onBack={() => navigation.goBack()} />
       <Text style={styles.helperText}>
         Select the ones worth tracking — they'll be added to your schedule.
       </Text>
@@ -132,19 +148,30 @@ export function GoogleCalendarEventsScreen({ route, navigation }: Props) {
           keyExtractor={(event) => event.id}
           ListEmptyComponent={<Text style={styles.emptyText}>No events found on this calendar.</Text>}
           renderItem={({ item }) => {
-            const selected = selectedIds.includes(item.id);
+            const alreadyAdded = alreadyAddedTitles.has(item.title.trim().toLowerCase());
+            const selected = !alreadyAdded && selectedIds.includes(item.id);
             return (
-              <Pressable style={styles.eventRow} onPress={() => toggle(item.id)}>
-                <View style={[styles.checkbox, selected && styles.checkboxChecked]}>
+              <Pressable
+                style={[styles.eventRow, alreadyAdded && styles.eventRowDisabled]}
+                onPress={() => !alreadyAdded && toggle(item.id)}
+                disabled={alreadyAdded}
+              >
+                <View style={[styles.checkbox, selected && styles.checkboxChecked, alreadyAdded && styles.checkboxDisabled]}>
                   {selected && <Text style={styles.checkboxMark}>✓</Text>}
                 </View>
                 <View style={styles.eventInfo}>
-                  <Text style={styles.eventTitle}>{item.title}</Text>
+                  <Text style={[styles.eventTitle, alreadyAdded && styles.eventTitleDisabled]}>{item.title}</Text>
                   <View style={styles.eventMetaRow}>
-                    {item.recurring && (
-                      <View style={styles.cadenceTag}>
-                        <Text style={styles.cadenceTagText}>{CADENCE_LABELS[item.cadence ?? 'weekly']}</Text>
+                    {alreadyAdded ? (
+                      <View style={styles.alreadyAddedTag}>
+                        <Text style={styles.alreadyAddedTagText}>Already added</Text>
                       </View>
+                    ) : (
+                      item.recurring && (
+                        <View style={styles.cadenceTag}>
+                          <Text style={styles.cadenceTagText}>{CADENCE_LABELS[item.cadence ?? 'weekly']}</Text>
+                        </View>
+                      )
                     )}
                     <Text style={styles.eventMeta}>{describeEvent(item)}</Text>
                   </View>
@@ -189,9 +216,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   checkboxChecked: { backgroundColor: colors.expected, borderColor: colors.expected },
+  checkboxDisabled: { borderColor: colors.border, opacity: 0.5 },
   checkboxMark: { color: '#fff', fontSize: 13, fontWeight: '700' },
   eventInfo: { flexShrink: 1 },
   eventTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
+  eventTitleDisabled: { color: colors.textMuted },
+  eventRowDisabled: { opacity: 0.5 },
+  alreadyAddedTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  alreadyAddedTagText: { fontSize: 11, color: colors.textMuted, fontWeight: '700' },
   eventMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' },
   eventMeta: { fontSize: 12, color: colors.textMuted },
   cadenceTag: {
