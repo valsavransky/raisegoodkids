@@ -11,7 +11,7 @@
 // 'skip' events are omitted from the list here — they were explicitly
 // marked as not worth tracking during schedule review/import.
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, SectionList, Modal, Alert, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, SectionList, ScrollView, Modal, Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -207,8 +207,9 @@ export function ScheduleViewScreen() {
       </View>
 
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={styles.modalTitle}>{editingId ? 'Edit event' : 'Add event'}</Text>
             <TextInput
               style={styles.input}
@@ -319,8 +320,9 @@ export function ScheduleViewScreen() {
                 </Pressable>
               </View>
             </View>
+          </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -362,7 +364,7 @@ const styles = StyleSheet.create({
   actionButton: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   actionButtonText: { fontSize: 13, fontWeight: '700', color: colors.expected, textAlign: 'center' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: colors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
+  modalCard: { backgroundColor: colors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '85%' },
   modalTitle: { fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 16 },
   input: {
     borderWidth: 1,

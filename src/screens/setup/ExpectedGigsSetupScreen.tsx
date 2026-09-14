@@ -4,7 +4,7 @@
 // single all-or-nothing daily excuse instead (see DailyExcuse in the data
 // model and docs/screens-and-flows.md's v1 scope note on screen 7).
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, Modal, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, Modal, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
@@ -216,7 +216,7 @@ export function ExpectedGigsSetupScreen({ navigation }: Props) {
       </Pressable>
 
       <Modal visible={addModalMode !== null} animationType="slide" transparent onRequestClose={() => setAddModalMode(null)}>
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>
               {addModalMode === 'expected' ? 'Add Expected item' : 'Add gig'}
@@ -266,7 +266,7 @@ export function ExpectedGigsSetupScreen({ navigation }: Props) {
               </Pressable>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

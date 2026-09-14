@@ -4,7 +4,7 @@
 // calm/efficient voice) rather than inline, so the kid-facing screen stays
 // uncluttered with management controls a child doesn't need to see.
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, Modal, Alert, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, Modal, Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { useAppData } from '../../context/AppDataContext';
@@ -217,7 +217,7 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
       </ScrollView>
 
       <Modal visible={modalMode !== null} animationType="slide" transparent onRequestClose={() => setModalMode(null)}>
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>
               {modalMode?.editingId ? 'Edit' : 'Add'} {modalMode?.kind === 'expected' ? 'Expected item' : 'gig'}
@@ -255,7 +255,7 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
               </Pressable>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

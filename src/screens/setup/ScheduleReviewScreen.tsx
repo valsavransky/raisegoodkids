@@ -7,7 +7,7 @@
 // whether it repeats) rather than a single free-form recurrence string, so
 // events can later be rendered as a real schedule view.
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, FlatList, Modal, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, FlatList, ScrollView, Modal, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
@@ -267,8 +267,9 @@ export function ScheduleReviewScreen({ navigation }: Props) {
       </Pressable>
 
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalBackdrop}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={styles.modalTitle}>Add event</Text>
             <TextInput
               style={styles.input}
@@ -354,8 +355,9 @@ export function ScheduleReviewScreen({ navigation }: Props) {
                 <Text style={styles.modalAddText}>Add</Text>
               </Pressable>
             </View>
+          </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -469,6 +471,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
+    maxHeight: '85%',
   },
   modalTitle: { fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 16 },
   input: {

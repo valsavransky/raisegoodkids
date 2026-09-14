@@ -212,6 +212,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         category: e.category,
         recurring: e.recurring,
         daysOfWeek: e.daysOfWeek,
+        cadence: e.cadence,
         date: e.date,
         startTime: e.startTime,
         endTime: e.endTime,
