@@ -1,16 +1,16 @@
-// Screen 7: parent setup, step 3 of 3 — Expected & Gigs setup.
-//
-// No per-item excusable/always-required toggle here — v1 scope ships a
-// single all-or-nothing daily excuse instead (see DailyExcuse in the data
-// model and docs/screens-and-flows.md's v1 scope note on screen 7).
+// Screen 7b: parent setup, step 4 of 4 — Gigs. Split out from what used to
+// be a single combined Expected+Gigs screen (see ExpectedSetupScreen for
+// why); this is also the wizard's final step, so it ends in "Finish setup"
+// rather than "Continue."
 import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, Modal, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, Modal, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
-import { useSetup, DraftExpectedItem, DraftGig, makeLocalId } from '../../context/SetupContext';
+import { useSetup, DraftGig, makeLocalId } from '../../context/SetupContext';
 import { useAppData } from '../../context/AppDataContext';
-import { getContentLibraryForGrade } from '../../data/contentLibrary';
+import { getContentLibraryForGrade, SuggestedGig } from '../../data/contentLibrary';
 import { GigEffortTier } from '../../types/models';
 import { colors } from '../../theme/colors';
 
@@ -20,54 +20,53 @@ const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
   { value: 'big_job', label: 'Big job' },
 ];
 
-type Props = NativeStackScreenProps<SetupStackParamList, 'ExpectedGigsSetup'>;
+type Props = NativeStackScreenProps<SetupStackParamList, 'GigsSetup'>;
 
-export function ExpectedGigsSetupScreen({ navigation }: Props) {
+export function GigsSetupScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const setup = useSetup();
-  const { childProfile, expectedItems, setExpectedItems, gigs, setGigs } = setup;
+  const { childProfile, gigs, setGigs } = setup;
   const { completeSetup } = useAppData();
-  const [addModalMode, setAddModalMode] = useState<'expected' | 'gig' | null>(null);
+  const [addModalVisible, setAddModalVisible] = useState(false);
   const [draftName, setDraftName] = useState('');
-  const [draftFrequency, setDraftFrequency] = useState<'daily' | 'weekly'>('daily');
   const [draftEffortTier, setDraftEffortTier] = useState<GigEffortTier>('quick');
 
   useEffect(() => {
-    // KNOWN ISSUE (deferred until real Google Calendar integration): if
-    // calendar import already seeded expectedItems (see
-    // GoogleCalendarEventsScreen), this bails out and content-library
-    // suggestions — both Expected items and Gigs — never get added, even
-    // though Gigs has nothing to do with calendar import. Fix by tracking
-    // "library already applied" separately from "list is non-empty".
-    if (expectedItems.length > 0 || gigs.length > 0) return;
+    // A yard/car gig only makes sense if the household actually has one —
+    // see ChildProfileScreen's household questions and contentLibrary.ts's
+    // ifApplicable field, which existed but went unused until now.
     const library = getContentLibraryForGrade(childProfile.grade);
-    if (!library) return;
-    setExpectedItems(
-      library.expectedItems.map((item) => ({
-        localId: makeLocalId('expected'),
-        name: item.name,
-        frequency: item.frequency,
-        active: true,
-      }))
-    );
-    setGigs(
-      library.gigs.map((gig) => ({
+    const householdAllows = (gig: SuggestedGig) => {
+      if (gig.ifApplicable === 'yard') return !!childProfile.hasYard;
+      if (gig.ifApplicable === 'car') return !!childProfile.hasCar;
+      return true;
+    };
+    const existingNames = new Set(gigs.map((gig) => gig.name));
+    const suggestions: SuggestedGig[] = [
+      ...(library?.gigs.filter(householdAllows) ?? []),
+      // Walking is the one pet-care task that's optional/paid rather than a
+      // standing daily responsibility (feeding is the Expected item — see
+      // ExpectedSetupScreen) — and only clearly applies to a dog.
+      ...(childProfile.hasPet && childProfile.petType?.trim().toLowerCase().includes('dog')
+        ? [{ name: `Walk ${childProfile.petName?.trim() || 'the dog'}`, effortTier: 'quick' as const }]
+        : []),
+    ];
+    const newGigs = suggestions
+      .filter((gig) => !existingNames.has(gig.name))
+      .map((gig) => ({
         localId: makeLocalId('gig'),
         name: gig.name,
         effortTier: gig.effortTier,
         active: true,
-      }))
-    );
+      }));
+    if (newGigs.length > 0) {
+      setGigs([...gigs, ...newGigs]);
+    }
     // Only run once, on mount, to seed suggestions — not on every keystroke elsewhere in context.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const library = getContentLibraryForGrade(childProfile.grade);
-
-  const toggleExpected = (localId: string) => {
-    setExpectedItems(
-      expectedItems.map((item) => (item.localId === localId ? { ...item, active: !item.active } : item))
-    );
-  };
 
   const toggleGig = (localId: string) => {
     setGigs(gigs.map((gig) => (gig.localId === localId ? { ...gig, active: !gig.active } : gig)));
@@ -77,38 +76,27 @@ export function ExpectedGigsSetupScreen({ navigation }: Props) {
     setGigs(gigs.map((gig) => (gig.localId === localId ? { ...gig, effortTier } : gig)));
   };
 
-  const openAddModal = (mode: 'expected' | 'gig') => {
+  const openAddModal = () => {
     setDraftName('');
-    setDraftFrequency('daily');
     setDraftEffortTier('quick');
-    setAddModalMode(mode);
+    setAddModalVisible(true);
   };
 
   const confirmAdd = () => {
     if (!draftName.trim()) return;
-    if (addModalMode === 'expected') {
-      const item: DraftExpectedItem = {
-        localId: makeLocalId('expected'),
-        name: draftName.trim(),
-        frequency: draftFrequency,
-        active: true,
-      };
-      setExpectedItems([...expectedItems, item]);
-    } else if (addModalMode === 'gig') {
-      const gig: DraftGig = {
-        localId: makeLocalId('gig'),
-        name: draftName.trim(),
-        effortTier: draftEffortTier,
-        active: true,
-      };
-      setGigs([...gigs, gig]);
-    }
-    setAddModalMode(null);
+    const gig: DraftGig = {
+      localId: makeLocalId('gig'),
+      name: draftName.trim(),
+      effortTier: draftEffortTier,
+      active: true,
+    };
+    setGigs([...gigs, gig]);
+    setAddModalVisible(false);
   };
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title="Expected and gigs" step={3} totalSteps={3} onBack={() => navigation.goBack()} />
+      <ScreenHeader title="Gigs" step={4} totalSteps={4} onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.helperText}>
@@ -117,26 +105,6 @@ export function ExpectedGigsSetupScreen({ navigation }: Props) {
             : "We don't have grade-specific suggestions yet — add items below."}
         </Text>
 
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionIcon, { color: colors.expected }]}>🔥</Text>
-          <Text style={styles.sectionHeader}>Expected</Text>
-        </View>
-        {expectedItems.map((item) => (
-          <Pressable key={item.localId} style={styles.expectedRow} onPress={() => toggleExpected(item.localId)}>
-            <View style={[styles.checkbox, item.active && styles.checkboxChecked]}>
-              {item.active && <Text style={styles.checkboxMark}>✓</Text>}
-            </View>
-            <Text style={[styles.itemName, !item.active && styles.itemNameInactive]}>{item.name}</Text>
-          </Pressable>
-        ))}
-        <Pressable style={styles.addLink} onPress={() => openAddModal('expected')}>
-          <Text style={styles.addLinkText}>+ Add custom Expected item</Text>
-        </Pressable>
-
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionIcon, { color: colors.gigs }]}>🪙</Text>
-          <Text style={styles.sectionHeader}>Gigs</Text>
-        </View>
         {gigs.map((gig) => (
           <View key={gig.localId} style={styles.gigRow}>
             <Pressable style={styles.gigCheckboxRow} onPress={() => toggleGig(gig.localId)}>
@@ -163,13 +131,13 @@ export function ExpectedGigsSetupScreen({ navigation }: Props) {
             </View>
           </View>
         ))}
-        <Pressable style={styles.addLink} onPress={() => openAddModal('gig')}>
+        <Pressable style={styles.addLink} onPress={openAddModal}>
           <Text style={styles.addLinkText}>+ Add custom gig</Text>
         </Pressable>
       </ScrollView>
 
       <Pressable
-        style={styles.finishButton}
+        style={[styles.finishButton, { marginBottom: 20 + insets.bottom }]}
         onPress={() =>
           completeSetup({
             childProfile: setup.childProfile,
@@ -182,50 +150,29 @@ export function ExpectedGigsSetupScreen({ navigation }: Props) {
         <Text style={styles.finishButtonText}>Finish setup</Text>
       </Pressable>
 
-      <Modal visible={addModalMode !== null} animationType="slide" transparent onRequestClose={() => setAddModalMode(null)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>
-              {addModalMode === 'expected' ? 'Add Expected item' : 'Add gig'}
-            </Text>
+      <Modal visible={addModalVisible} animationType="slide" transparent onRequestClose={() => setAddModalVisible(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]}>
+            <Text style={styles.modalTitle}>Add gig</Text>
             <TextInput style={styles.input} placeholder="Name" value={draftName} onChangeText={setDraftName} />
-            {addModalMode === 'expected' ? (
-              <View style={styles.effortRow}>
-                {(['daily', 'weekly'] as const).map((freq) => {
-                  const selected = draftFrequency === freq;
-                  return (
-                    <Pressable
-                      key={freq}
-                      onPress={() => setDraftFrequency(freq)}
-                      style={[styles.effortChip, selected && styles.effortChipSelected]}
-                    >
-                      <Text style={[styles.effortChipText, selected && styles.effortChipTextSelected]}>
-                        {freq === 'daily' ? 'Daily' : 'Weekly'}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ) : (
-              <View style={styles.effortRow}>
-                {EFFORT_TIERS.map((tier) => {
-                  const selected = draftEffortTier === tier.value;
-                  return (
-                    <Pressable
-                      key={tier.value}
-                      onPress={() => setDraftEffortTier(tier.value)}
-                      style={[styles.effortChip, selected && styles.effortChipSelected]}
-                    >
-                      <Text style={[styles.effortChipText, selected && styles.effortChipTextSelected]}>
-                        {tier.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            )}
+            <View style={styles.effortRow}>
+              {EFFORT_TIERS.map((tier) => {
+                const selected = draftEffortTier === tier.value;
+                return (
+                  <Pressable
+                    key={tier.value}
+                    onPress={() => setDraftEffortTier(tier.value)}
+                    style={[styles.effortChip, selected && styles.effortChipSelected]}
+                  >
+                    <Text style={[styles.effortChipText, selected && styles.effortChipTextSelected]}>
+                      {tier.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
             <View style={styles.modalActions}>
-              <Pressable style={styles.modalCancelButton} onPress={() => setAddModalMode(null)}>
+              <Pressable style={styles.modalCancelButton} onPress={() => setAddModalVisible(false)}>
                 <Text style={styles.modalCancelText}>Cancel</Text>
               </Pressable>
               <Pressable style={styles.modalAddButton} onPress={confirmAdd}>
@@ -233,7 +180,7 @@ export function ExpectedGigsSetupScreen({ navigation }: Props) {
               </Pressable>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -243,10 +190,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 20, paddingBottom: 12 },
   helperText: { fontSize: 13, color: colors.textMuted, marginBottom: 16, lineHeight: 19 },
-  sectionHeaderRow: { flexDirection: 'row', alignItems: 'center', marginTop: 20, marginBottom: 10, gap: 8 },
-  sectionIcon: { fontSize: 16 },
-  sectionHeader: { fontSize: 17, fontWeight: '700', color: colors.text },
-  expectedRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, gap: 12 },
   gigRow: { paddingVertical: 10, gap: 8 },
   gigCheckboxRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   checkbox: {
@@ -278,7 +221,6 @@ const styles = StyleSheet.create({
   addLinkText: { color: colors.expected, fontSize: 14, fontWeight: '600' },
   finishButton: {
     marginHorizontal: 20,
-    marginBottom: 20,
     marginTop: 4,
     backgroundColor: colors.text,
     borderRadius: 12,

@@ -4,7 +4,8 @@ export type SetupStackParamList = {
   GoogleCalendarPicker: undefined;
   GoogleCalendarEvents: { calendarId: string };
   ScheduleReview: undefined;
-  ExpectedGigsSetup: undefined;
+  ExpectedSetup: undefined;
+  GigsSetup: undefined;
 };
 
 export type MainTabParamList = {

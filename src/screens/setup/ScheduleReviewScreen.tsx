@@ -7,12 +7,17 @@
 // whether it repeats) rather than a single free-form recurrence string, so
 // events can later be rendered as a real schedule view.
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, FlatList, Modal, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, FlatList, ScrollView, Modal, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { useSetup, DraftScheduleEvent, makeLocalId } from '../../context/SetupContext';
-import { ScheduleEventCategory } from '../../types/models';
+import { ScheduleEventCategory, CADENCE_LABELS } from '../../types/models';
+import {
+  categoryTriggersSuggestion,
+  suggestExpectedItemForEvent,
+} from '../../data/practiceSuggestions';
 import { colors } from '../../theme/colors';
 
 const CATEGORIES: { value: ScheduleEventCategory; label: string }[] = [
@@ -35,8 +40,16 @@ function describeSchedule(event: DraftScheduleEvent): string {
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'ScheduleReview'>;
 
+type SuggestionStatus = 'pending' | 'added' | 'dismissed';
+
 export function ScheduleReviewScreen({ navigation }: Props) {
-  const { scheduleEvents, setScheduleEvents } = useSetup();
+  const insets = useSafeAreaInsets();
+  const { scheduleEvents, setScheduleEvents, expectedItems, setExpectedItems } = useSetup();
+  const [suggestionStatus, setSuggestionStatus] = useState<Record<string, SuggestionStatus>>({});
+  const [addedSuggestionNames, setAddedSuggestionNames] = useState<Record<string, string>>({});
+  const [genericSuggestionDrafts, setGenericSuggestionDrafts] = useState<Record<string, string>>({});
+  const [suggestionFrequency, setSuggestionFrequency] = useState<Record<string, 'daily' | 'weekly'>>({});
+  const [suggestionDuration, setSuggestionDuration] = useState<Record<string, string>>({});
   const [modalVisible, setModalVisible] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftCategory, setDraftCategory] = useState<ScheduleEventCategory>('school');
@@ -51,6 +64,66 @@ export function ScheduleReviewScreen({ navigation }: Props) {
       scheduleEvents.map((event) => (event.localId === localId ? { ...event, category } : event))
     );
   };
+
+  // Payoff mechanism from screen 6: the moment an event is tagged Practice
+  // or School, offer the related Expected item the lookup table suggests —
+  // right here, not a separate screen. The cadence (frequency + duration)
+  // is folded into the item's name for now (e.g. "Practice Piano (20
+  // min/day)") rather than a new ExpectedItem field, since it's just
+  // descriptive text the parent set, not something the app needs to act on
+  // structurally yet.
+  const acceptSuggestion = (
+    name: string,
+    localId: string,
+    frequency: 'daily' | 'weekly' = 'daily',
+    durationMinutes?: number
+  ) => {
+    if (!name.trim()) return;
+    const finalName =
+      durationMinutes && durationMinutes > 0
+        ? `${name.trim()} (${durationMinutes} min/${frequency === 'daily' ? 'day' : 'week'})`
+        : name.trim();
+    setExpectedItems([
+      ...expectedItems,
+      { localId: makeLocalId('expected'), name: finalName, frequency, active: true },
+    ]);
+    setSuggestionStatus((prev) => ({ ...prev, [localId]: 'added' }));
+    setAddedSuggestionNames((prev) => ({ ...prev, [localId]: finalName }));
+  };
+
+  const dismissSuggestion = (localId: string) => {
+    setSuggestionStatus((prev) => ({ ...prev, [localId]: 'dismissed' }));
+  };
+
+  // Shared by both the keyword-matched and generic suggestion cards — every
+  // suggestion gets the same daily/weekly + duration picker, since a school
+  // event's homework can be a daily habit or a once-a-week one just as much
+  // as a practice-keyword match can.
+  const renderCadenceRow = (localId: string, freq: 'daily' | 'weekly', duration: string) => (
+    <View style={styles.cadenceRow}>
+      <Pressable
+        onPress={() => setSuggestionFrequency((prev) => ({ ...prev, [localId]: 'daily' }))}
+        style={[styles.cadenceChip, freq === 'daily' && styles.cadenceChipSelected]}
+      >
+        <Text style={[styles.cadenceChipText, freq === 'daily' && styles.cadenceChipTextSelected]}>Daily</Text>
+      </Pressable>
+      <Pressable
+        onPress={() => setSuggestionFrequency((prev) => ({ ...prev, [localId]: 'weekly' }))}
+        style={[styles.cadenceChip, freq === 'weekly' && styles.cadenceChipSelected]}
+      >
+        <Text style={[styles.cadenceChipText, freq === 'weekly' && styles.cadenceChipTextSelected]}>Weekly</Text>
+      </Pressable>
+      <TextInput
+        style={styles.durationInput}
+        keyboardType="number-pad"
+        value={duration}
+        onChangeText={(text) =>
+          setSuggestionDuration((prev) => ({ ...prev, [localId]: text.replace(/[^0-9]/g, '') }))
+        }
+      />
+      <Text style={styles.cadenceUnit}>min/{freq === 'daily' ? 'day' : 'week'}</Text>
+    </View>
+  );
 
   const openAddModal = () => {
     setDraftTitle('');
@@ -77,6 +150,7 @@ export function ScheduleReviewScreen({ navigation }: Props) {
       category: draftCategory,
       recurring: draftRecurring,
       daysOfWeek: draftRecurring ? draftDaysOfWeek : undefined,
+      cadence: draftRecurring ? 'weekly' : undefined,
       date: draftRecurring ? undefined : draftDate.trim(),
       startTime: draftStartTime.trim() || undefined,
       endTime: draftEndTime.trim() || undefined,
@@ -87,7 +161,7 @@ export function ScheduleReviewScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title="Review schedule" step={2} totalSteps={3} onBack={() => navigation.goBack()} />
+      <ScreenHeader title="Review schedule" step={2} totalSteps={4} onBack={() => navigation.goBack()} />
 
       <Text style={styles.helperText}>Anything not tagged counts as free time for gigs.</Text>
 
@@ -97,43 +171,133 @@ export function ScheduleReviewScreen({ navigation }: Props) {
         data={scheduleEvents}
         keyExtractor={(event) => event.localId}
         ListEmptyComponent={<Text style={styles.emptyText}>No events yet — add anything worth knowing about.</Text>}
-        renderItem={({ item }) => (
-          <View style={styles.eventRow}>
-            <View style={styles.eventInfo}>
-              <Text style={styles.eventTitle}>{item.title}</Text>
-              <Text style={styles.eventRecurrence}>{describeSchedule(item)}</Text>
-            </View>
-            <View style={styles.categoryRow}>
-              {CATEGORIES.map((category) => {
-                const selected = item.category === category.value;
+        renderItem={({ item }) => {
+          const status = suggestionStatus[item.localId] ?? 'pending';
+          const showSuggestion = status === 'pending' && categoryTriggersSuggestion(item.category);
+          const suggestion = showSuggestion ? suggestExpectedItemForEvent(item.title) : null;
+
+          return (
+            <View style={styles.eventRow}>
+              <View style={styles.eventInfo}>
+                <Text style={styles.eventTitle}>{item.title}</Text>
+                <View style={styles.eventMetaRow}>
+                  {item.recurring && (
+                    <View style={styles.cadenceTag}>
+                      <Text style={styles.cadenceTagText}>{CADENCE_LABELS[item.cadence ?? 'weekly']}</Text>
+                    </View>
+                  )}
+                  <Text style={styles.eventRecurrence}>{describeSchedule(item)}</Text>
+                </View>
+              </View>
+              <View style={styles.categoryRow}>
+                {CATEGORIES.map((category) => {
+                  const selected = item.category === category.value;
+                  return (
+                    <Pressable
+                      key={category.value}
+                      onPress={() => updateCategory(item.localId, category.value)}
+                      style={[styles.categoryChip, selected && styles.categoryChipSelected]}
+                    >
+                      <Text style={[styles.categoryChipText, selected && styles.categoryChipTextSelected]}>
+                        {category.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {status === 'added' && (
+                <View style={styles.suggestionAddedCard}>
+                  <Text style={styles.suggestionAddedIcon}>✓</Text>
+                  <Text style={styles.suggestionAddedText}>
+                    Added <Text style={styles.suggestionName}>"{addedSuggestionNames[item.localId]}"</Text> to
+                    Expected
+                  </Text>
+                </View>
+              )}
+
+              {suggestion && !suggestion.isGeneric && (() => {
+                const freq = suggestionFrequency[item.localId] ?? suggestion.defaultFrequency;
+                const duration = suggestionDuration[item.localId] ?? String(suggestion.defaultDurationMinutes);
                 return (
-                  <Pressable
-                    key={category.value}
-                    onPress={() => updateCategory(item.localId, category.value)}
-                    style={[styles.categoryChip, selected && styles.categoryChipSelected]}
-                  >
-                    <Text style={[styles.categoryChipText, selected && styles.categoryChipTextSelected]}>
-                      {category.label}
+                  <View style={styles.suggestionCard}>
+                    <Text style={styles.suggestionText}>
+                      Add <Text style={styles.suggestionName}>"{suggestion.name}"</Text> to Expected?
                     </Text>
-                  </Pressable>
+                    {renderCadenceRow(item.localId, freq, duration)}
+                    <View style={styles.suggestionActions}>
+                      <Pressable onPress={() => dismissSuggestion(item.localId)} style={styles.suggestionDismiss}>
+                        <Text style={styles.suggestionDismissText}>No thanks</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => acceptSuggestion(suggestion.name, item.localId, freq, Number(duration) || 0)}
+                        style={styles.suggestionAdd}
+                      >
+                        <Text style={styles.suggestionAddText}>Add</Text>
+                      </Pressable>
+                    </View>
+                  </View>
                 );
-              })}
+              })()}
+
+              {suggestion && suggestion.isGeneric && (() => {
+                const freq = suggestionFrequency[item.localId] ?? 'daily';
+                const duration = suggestionDuration[item.localId] ?? '';
+                return (
+                  <View style={styles.suggestionCard}>
+                    <Text style={styles.suggestionText}>
+                      Add a related Expected item for "{item.title}"?
+                    </Text>
+                    <TextInput
+                      style={styles.suggestionInput}
+                      placeholder="e.g. Practice reading"
+                      value={genericSuggestionDrafts[item.localId] ?? ''}
+                      onChangeText={(text) =>
+                        setGenericSuggestionDrafts((prev) => ({ ...prev, [item.localId]: text }))
+                      }
+                    />
+                    {renderCadenceRow(item.localId, freq, duration)}
+                    <View style={styles.suggestionActions}>
+                      <Pressable onPress={() => dismissSuggestion(item.localId)} style={styles.suggestionDismiss}>
+                        <Text style={styles.suggestionDismissText}>No thanks</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() =>
+                          acceptSuggestion(
+                            genericSuggestionDrafts[item.localId] ?? '',
+                            item.localId,
+                            freq,
+                            Number(duration) || 0
+                          )
+                        }
+                        style={styles.suggestionAdd}
+                      >
+                        <Text style={styles.suggestionAddText}>Add</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                );
+              })()}
             </View>
-          </View>
-        )}
+          );
+        }}
       />
 
       <Pressable style={styles.addButton} onPress={openAddModal}>
         <Text style={styles.addButtonText}>+ Add event manually</Text>
       </Pressable>
 
-      <Pressable style={styles.continueButton} onPress={() => navigation.navigate('ExpectedGigsSetup')}>
+      <Pressable
+        style={[styles.continueButton, { marginBottom: 20 + insets.bottom }]}
+        onPress={() => navigation.navigate('ExpectedSetup')}
+      >
         <Text style={styles.continueButtonText}>Continue</Text>
       </Pressable>
 
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]}>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={styles.modalTitle}>Add event</Text>
             <TextInput
               style={styles.input}
@@ -219,8 +383,9 @@ export function ScheduleReviewScreen({ navigation }: Props) {
                 <Text style={styles.modalAddText}>Add</Text>
               </Pressable>
             </View>
+          </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -242,8 +407,84 @@ const styles = StyleSheet.create({
   },
   eventInfo: { marginBottom: 10 },
   eventTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
-  eventRecurrence: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
+  eventMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' },
+  eventRecurrence: { fontSize: 13, color: colors.textMuted },
+  cadenceTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  cadenceTagText: { fontSize: 11, color: colors.expected, fontWeight: '700' },
   categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
+  suggestionCard: {
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.expected,
+    padding: 12,
+    marginTop: -2,
+    marginBottom: 4,
+  },
+  suggestionText: { fontSize: 13, color: colors.text },
+  suggestionName: { fontWeight: '700' },
+  suggestionAddedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.expected,
+    padding: 12,
+    marginTop: -2,
+    marginBottom: 4,
+  },
+  suggestionAddedIcon: { fontSize: 14, color: colors.expected, fontWeight: '700' },
+  suggestionAddedText: { fontSize: 13, color: colors.text, flexShrink: 1 },
+  suggestionInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: colors.text,
+    backgroundColor: colors.surface,
+    marginTop: 8,
+  },
+  cadenceRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'wrap' },
+  cadenceChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  cadenceChipSelected: { backgroundColor: colors.expected, borderColor: colors.expected },
+  cadenceChipText: { fontSize: 12, color: colors.text },
+  cadenceChipTextSelected: { color: '#fff', fontWeight: '600' },
+  durationInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    fontSize: 12,
+    color: colors.text,
+    backgroundColor: colors.surface,
+    width: 48,
+    textAlign: 'center',
+  },
+  cadenceUnit: { fontSize: 12, color: colors.textMuted },
+  suggestionActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 8 },
+  suggestionDismiss: { paddingVertical: 6, paddingHorizontal: 4 },
+  suggestionDismissText: { color: colors.textMuted, fontSize: 13, fontWeight: '600' },
+  suggestionAdd: { backgroundColor: colors.expected, borderRadius: 8, paddingVertical: 6, paddingHorizontal: 14 },
+  suggestionAddText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   categoryChip: {
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -259,7 +500,6 @@ const styles = StyleSheet.create({
   addButtonText: { color: colors.expected, fontSize: 15, fontWeight: '600' },
   continueButton: {
     marginHorizontal: 20,
-    marginBottom: 20,
     marginTop: 4,
     backgroundColor: colors.expected,
     borderRadius: 12,
@@ -273,6 +513,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
+    maxHeight: '85%',
   },
   modalTitle: { fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 16 },
   input: {

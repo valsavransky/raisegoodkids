@@ -6,10 +6,13 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": ["merit", "com.valsavransky.merit"],
     "ios": {
+      "bundleIdentifier": "com.valsavransky.merit",
       "supportsTablet": true
     },
     "android": {
+      "package": "com.valsavransky.merit",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -21,6 +24,15 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "extra": {
+      "googleCalendar": {
+        "iosClientId": "",
+        "androidClientId": "614289001557-jrnecml6jvlrifrmaikiooi124t308os.apps.googleusercontent.com"
+      },
+      "eas": {
+        "projectId": "87dd2a7c-09dc-4e0e-b834-542420d21e3c"
+      }
+    },
     "plugins": [
       [
         "expo-splash-screen",
@@ -31,6 +43,7 @@
           "backgroundColor": "#ffffff"
         }
       ]
-    ]
+    ],
+    "owner": "vals-kitchen"
   }
 }

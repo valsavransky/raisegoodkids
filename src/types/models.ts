@@ -17,10 +17,35 @@ export interface ChildProfile {
   birthday: string;
   /** Feeds age/grade content library suggestions. */
   grade?: string;
+  /** Household facts, not really properties of the child — collected here
+   * since there's no separate household entity yet (one profile per
+   * account in v1). Feeds the content library's `ifApplicable` gig
+   * filtering and a couple of pet-based Expected/Gig suggestions. */
+  hasYard?: boolean;
+  hasCar?: boolean;
+  hasPet?: boolean;
+  /** Free text (e.g. "dog", "cat") — only meaningful when hasPet is true. */
+  petType?: string;
+  /** Only meaningful when hasPet is true; optional even then. */
+  petName?: string;
 }
 
 export type ScheduleEventCategory = 'school' | 'extracurricular' | 'practice' | 'skip';
 export type ScheduleEventSource = 'google_calendar' | 'manual';
+
+/** How often a recurring event repeats. Google Calendar imports derive this
+ * from the event's RRULE (see googleCalendarApi.ts); manually-added events
+ * only offer 'weekly' through the UI today, since that covers the vast
+ * majority of household recurring commitments (school, lessons, practice). */
+export type ScheduleEventCadence = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
+
+export const CADENCE_LABELS: Record<ScheduleEventCadence, string> = {
+  daily: 'Daily',
+  weekly: 'Weekly',
+  biweekly: 'Every 2 weeks',
+  monthly: 'Monthly',
+  yearly: 'Yearly',
+};
 
 /** From calendar import/review (screens 5-6) — informs realistic Expected/Gig capacity,
  * and backs the schedule view. Structured rather than free-form, matching the
@@ -33,6 +58,10 @@ export interface ScheduleEvent {
   recurring: boolean;
   /** 0=Sunday..6=Saturday. Only set when recurring. */
   daysOfWeek?: number[];
+  /** Only set when recurring; defaults to 'weekly' when absent (the only
+   * cadence the old manual-entry UI ever produced), so existing data reads
+   * the same as before this field existed. */
+  cadence?: ScheduleEventCadence;
   /** YYYY-MM-DD. Only set when NOT recurring (a one-off event). */
   date?: string;
   /** HH:MM, 24-hour. */
@@ -86,6 +115,12 @@ export interface DailyExcuse {
 }
 
 export type GigEffortTier = 'quick' | 'medium' | 'big_job';
+
+/** Parent-configurable dollar value per effort tier — what a completed gig
+ * at that tier is actually worth before the Future Fund skim (see
+ * src/utils/gigValue.ts). Never shown to the child; only used to compute
+ * goal-progress percentage on the parent side. */
+export type GigEffortValues = Record<GigEffortTier, number>;
 
 /** Optional, paid work. No dollar value shown to the child — see GigCompletion
  * for how a completion's value is expressed as goal-progress percentage. */

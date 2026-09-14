@@ -16,13 +16,15 @@ import {
   GigCompletion,
   Goal,
   FutureFund,
+  GigEffortValues,
   Badge,
 } from '../types/models';
 import { DraftChildProfile, DraftScheduleEvent, DraftExpectedItem, DraftGig } from './SetupContext';
 import { makeId } from '../utils/id';
 import { todayString } from '../utils/date';
 import { computeExpectedStreak } from '../utils/streak';
-import { computeGigPercentage, EFFORT_TIER_DOLLAR_VALUES } from '../utils/gigValue';
+import { isExpectedItemSatisfied } from '../utils/expectedItemStatus';
+import { computeGigPercentage, DEFAULT_GIG_EFFORT_VALUES } from '../utils/gigValue';
 import { STREAK_THRESHOLDS, GIG_MILESTONE_THRESHOLDS, FUTURE_FUND_THRESHOLDS, getBadgeCatalogEntry } from '../data/badgeCatalog';
 
 const DEFAULT_FUTURE_FUND_PERCENTAGE = 10;
@@ -37,6 +39,7 @@ interface PersistedAppData {
   gigCompletions: GigCompletion[];
   goals: Goal[];
   futureFund: FutureFund | null;
+  gigEffortValues: GigEffortValues;
   badges: Badge[];
 }
 
@@ -74,6 +77,7 @@ interface AppDataContextValue {
   gigCompletions: GigCompletion[];
   goals: Goal[];
   futureFund: FutureFund | null;
+  gigEffortValues: GigEffortValues;
   badges: Badge[];
 
   completeSetup: (draft: {
@@ -128,6 +132,10 @@ interface AppDataContextValue {
   updateGig: (id: string, fields: { name: string; effortTier: Gig['effortTier'] }) => void;
   deleteGig: (id: string) => void;
 
+  /** How much each effort tier is worth in dollars, before the Future Fund
+   * skim — parent-configurable in Manage Expected & Gigs. */
+  updateGigEffortValues: (values: GigEffortValues) => void;
+
   /** Clears persisted storage and all in-memory state — a testing
    * convenience now that data survives restarts. */
   resetAllData: () => Promise<void>;
@@ -145,6 +153,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [gigCompletions, setGigCompletions] = useState<GigCompletion[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [futureFund, setFutureFund] = useState<FutureFund | null>(null);
+  const [gigEffortValues, setGigEffortValues] = useState<GigEffortValues>(DEFAULT_GIG_EFFORT_VALUES);
   const [badges, setBadges] = useState<Badge[]>([]);
 
   // Load once on mount. Until this resolves, isHydrated stays false so
@@ -163,6 +172,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           setGigCompletions(data.gigCompletions);
           setGoals(data.goals);
           setFutureFund(data.futureFund);
+          setGigEffortValues(data.gigEffortValues ?? DEFAULT_GIG_EFFORT_VALUES);
           setBadges(data.badges);
         }
       } catch (e) {
@@ -186,12 +196,25 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       gigCompletions,
       goals,
       futureFund,
+      gigEffortValues,
       badges,
     };
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data)).catch((e) =>
       console.warn('Failed to persist app data', e)
     );
-  }, [isHydrated, childProfile, scheduleEvents, expectedItems, expectedCompletions, gigs, gigCompletions, goals, futureFund, badges]);
+  }, [
+    isHydrated,
+    childProfile,
+    scheduleEvents,
+    expectedItems,
+    expectedCompletions,
+    gigs,
+    gigCompletions,
+    goals,
+    futureFund,
+    gigEffortValues,
+    badges,
+  ]);
 
   const completeSetup: AppDataContextValue['completeSetup'] = (draft) => {
     const childId = makeId('child');
@@ -202,6 +225,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       avatarId: draft.childProfile.avatarId,
       birthday: draft.childProfile.birthday,
       grade: draft.childProfile.grade,
+      hasYard: draft.childProfile.hasYard,
+      hasCar: draft.childProfile.hasCar,
+      hasPet: draft.childProfile.hasPet,
+      petType: draft.childProfile.petType,
+      petName: draft.childProfile.petName,
     });
     setScheduleEvents(
       draft.scheduleEvents.map((e) => ({
@@ -211,6 +239,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         category: e.category,
         recurring: e.recurring,
         daysOfWeek: e.daysOfWeek,
+        cadence: e.cadence,
         date: e.date,
         startTime: e.startTime,
         endTime: e.endTime,
@@ -251,8 +280,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   };
 
   const isExpectedDoneToday = (expectedItemId: string): boolean => {
-    const today = todayString();
-    return expectedCompletions.some((c) => c.expectedItemId === expectedItemId && c.date === today);
+    const item = expectedItems.find((i) => i.id === expectedItemId);
+    if (!item) return false;
+    return isExpectedItemSatisfied(item, expectedCompletions, todayString());
   };
 
   const hasBadge = (catalogId: string): boolean => badges.some((b) => b.catalogId === catalogId);
@@ -292,7 +322,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const updatedCompletions = [...expectedCompletions, completion];
     const allDoneToday =
       expectedItems.length > 0 &&
-      expectedItems.every((item) => updatedCompletions.some((c) => c.expectedItemId === item.id && c.date === today));
+      expectedItems.every((item) => isExpectedItemSatisfied(item, updatedCompletions, today));
 
     const newStreak = computeExpectedStreak(expectedItems, updatedCompletions, today);
     const threshold = STREAK_THRESHOLDS.find((t) => t.days === newStreak);
@@ -398,7 +428,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const gigPreviewPercentage = (gig: Gig): number | null => {
     const goal = activeGoal();
     if (!goal || !futureFund) return null;
-    return computeGigPercentage(gig.effortTier, goal, futureFund.percentage);
+    return computeGigPercentage(gig.effortTier, goal, futureFund.percentage, gigEffortValues);
   };
 
   const gigCompletionStatusToday = (gigId: string): GigCompletion['status'] | null => {
@@ -417,8 +447,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const gig = gigs.find((g) => g.id === gigId);
     if (!gig) return noOp;
 
-    const percentageAwarded = computeGigPercentage(gig.effortTier, goal, futureFund.percentage);
-    const grossValue = EFFORT_TIER_DOLLAR_VALUES[gig.effortTier];
+    const percentageAwarded = computeGigPercentage(gig.effortTier, goal, futureFund.percentage, gigEffortValues);
+    const grossValue = gigEffortValues[gig.effortTier];
     const skimAmount = grossValue * (futureFund.percentage / 100);
 
     const completion: GigCompletion = {
@@ -527,6 +557,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setGigs((prev) => prev.filter((g) => g.id !== id));
   };
 
+  const updateGigEffortValues = (values: GigEffortValues) => {
+    setGigEffortValues(values);
+  };
+
   /** Clears persisted storage and all in-memory state — back to a fresh
    * install. Mainly a testing convenience now that data survives restarts. */
   const resetAllData = async () => {
@@ -539,6 +573,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setGigCompletions([]);
     setGoals([]);
     setFutureFund(null);
+    setGigEffortValues(DEFAULT_GIG_EFFORT_VALUES);
     setBadges([]);
   };
 
@@ -554,6 +589,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         gigCompletions,
         goals,
         futureFund,
+        gigEffortValues,
         badges,
         completeSetup,
         isExpectedDoneToday,
@@ -585,6 +621,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         addGig,
         updateGig,
         deleteGig,
+        updateGigEffortValues,
         resetAllData,
       }}
     >

@@ -11,12 +11,13 @@
 // 'skip' events are omitted from the list here — they were explicitly
 // marked as not worth tracking during schedule review/import.
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, SectionList, Modal, Alert, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, SectionList, ScrollView, Modal, Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppData } from '../../context/AppDataContext';
-import { ScheduleEvent, ScheduleEventCategory } from '../../types/models';
+import { ScheduleEvent, ScheduleEventCategory, ScheduleEventCadence, CADENCE_LABELS } from '../../types/models';
 import { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { AppHeader } from '../../components/AppHeader';
 import { colors } from '../../theme/colors';
@@ -43,6 +44,8 @@ const CATEGORY_LABELS: Record<ScheduleEventCategory, string> = {
   skip: 'Skip',
 };
 
+const CADENCE_OPTIONS: ScheduleEventCadence[] = ['daily', 'weekly', 'biweekly', 'monthly'];
+
 function formatTimeRange(event: ScheduleEvent): string | null {
   if (!event.startTime) return null;
   return event.endTime ? `${event.startTime}-${event.endTime}` : event.startTime;
@@ -53,6 +56,7 @@ interface DraftState {
   category: ScheduleEventCategory;
   recurring: boolean;
   daysOfWeek: number[];
+  cadence: ScheduleEventCadence;
   date: string;
   startTime: string;
   endTime: string;
@@ -63,12 +67,14 @@ const BLANK_DRAFT: DraftState = {
   category: 'school',
   recurring: true,
   daysOfWeek: [],
+  cadence: 'weekly',
   date: '',
   startTime: '',
   endTime: '',
 };
 
 export function ScheduleViewScreen() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<ScheduleNavigationProp>();
   const { scheduleEvents, addScheduleEvent, updateScheduleEvent, deleteScheduleEvent } = useAppData();
   const [modalVisible, setModalVisible] = useState(false);
@@ -106,6 +112,7 @@ export function ScheduleViewScreen() {
       category: event.category,
       recurring: event.recurring,
       daysOfWeek: event.daysOfWeek ?? [],
+      cadence: event.cadence ?? 'weekly',
       date: event.date ?? '',
       startTime: event.startTime ?? '',
       endTime: event.endTime ?? '',
@@ -130,6 +137,7 @@ export function ScheduleViewScreen() {
       category: draft.category,
       recurring: draft.recurring,
       daysOfWeek: draft.recurring ? draft.daysOfWeek : undefined,
+      cadence: draft.recurring ? draft.cadence : undefined,
       date: draft.recurring ? undefined : draft.date.trim(),
       startTime: draft.startTime.trim() || undefined,
       endTime: draft.endTime.trim() || undefined,
@@ -174,8 +182,15 @@ export function ScheduleViewScreen() {
           <Pressable style={styles.eventRow} onPress={() => openEditModal(item)}>
             <View style={styles.eventInfo}>
               <Text style={styles.eventTitle}>{item.title}</Text>
-              {item.date && !item.recurring && <Text style={styles.eventMeta}>{item.date}</Text>}
-              {formatTimeRange(item) && <Text style={styles.eventMeta}>{formatTimeRange(item)}</Text>}
+              <View style={styles.eventMetaRow}>
+                {item.recurring && (
+                  <View style={styles.cadenceTag}>
+                    <Text style={styles.cadenceTagText}>{CADENCE_LABELS[item.cadence ?? 'weekly']}</Text>
+                  </View>
+                )}
+                {item.date && !item.recurring && <Text style={styles.eventMeta}>{item.date}</Text>}
+                {formatTimeRange(item) && <Text style={styles.eventMeta}>{formatTimeRange(item)}</Text>}
+              </View>
             </View>
             <View style={styles.categoryTag}>
               <Text style={styles.categoryTagText}>{CATEGORY_LABELS[item.category]}</Text>
@@ -194,8 +209,9 @@ export function ScheduleViewScreen() {
       </View>
 
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
-        <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]}>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={styles.modalTitle}>{editingId ? 'Edit event' : 'Add event'}</Text>
             <TextInput
               style={styles.input}
@@ -220,7 +236,7 @@ export function ScheduleViewScreen() {
             </View>
 
             <View style={styles.repeatsRow}>
-              <Text style={styles.fieldLabel}>Repeats weekly</Text>
+              <Text style={styles.fieldLabel}>Repeats</Text>
               <View style={styles.chipRow}>
                 <Pressable
                   onPress={() => setDraft((prev) => ({ ...prev, recurring: true }))}
@@ -236,6 +252,25 @@ export function ScheduleViewScreen() {
                 </Pressable>
               </View>
             </View>
+
+            {draft.recurring && (
+              <View style={styles.chipRow}>
+                {CADENCE_OPTIONS.map((option) => {
+                  const selected = draft.cadence === option;
+                  return (
+                    <Pressable
+                      key={option}
+                      onPress={() => setDraft((prev) => ({ ...prev, cadence: option }))}
+                      style={[styles.chip, selected && styles.chipSelected]}
+                    >
+                      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                        {CADENCE_LABELS[option]}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
 
             {draft.recurring ? (
               <View style={styles.chipRow}>
@@ -287,8 +322,9 @@ export function ScheduleViewScreen() {
                 </Pressable>
               </View>
             </View>
+          </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -313,14 +349,24 @@ const styles = StyleSheet.create({
   },
   eventInfo: { flexShrink: 1 },
   eventTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
-  eventMeta: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  eventMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' },
+  eventMeta: { fontSize: 12, color: colors.textMuted },
+  cadenceTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  cadenceTagText: { fontSize: 11, color: colors.expected, fontWeight: '700' },
   categoryTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
   categoryTagText: { fontSize: 11, color: colors.textMuted, fontWeight: '600' },
   actionsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingVertical: 12 },
   actionButton: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   actionButtonText: { fontSize: 13, fontWeight: '700', color: colors.expected, textAlign: 'center' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  modalCard: { backgroundColor: colors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
+  modalCard: { backgroundColor: colors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '85%' },
   modalTitle: { fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 16 },
   input: {
     borderWidth: 1,
