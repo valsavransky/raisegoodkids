@@ -9,9 +9,24 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { useAppData } from '../../context/AppDataContext';
+import { useAuth } from '../../context/AuthContext';
 import { ExpectedItem, Gig, GigEffortTier, GigEffortValues } from '../../types/models';
 import { signOut as signOutOfGoogle } from '../../services/googleAuth';
 import { colors } from '../../theme/colors';
+
+const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
+const EMAIL_DOMAINS = ['gmail.com', 'yahoo.com', 'outlook.com', 'icloud.com', 'hotmail.com'];
+
+/** Suggests full-email completions once there's text after "@" — e.g.
+ * "val@g" -> ["val@gmail.com"]. Empty once the domain is already spelled
+ * out in full (no point suggesting what's already typed). */
+function emailDomainSuggestions(input: string): string[] {
+  const at = input.indexOf('@');
+  if (at <= 0) return [];
+  const local = input.slice(0, at);
+  const domainSoFar = input.slice(at + 1);
+  return EMAIL_DOMAINS.filter((d) => d !== domainSoFar && d.startsWith(domainSoFar)).map((d) => `${local}@${d}`);
+}
 
 const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
   { value: 'quick', label: 'Quick' },
@@ -22,9 +37,10 @@ const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
 type Props = NativeStackScreenProps<RootStackParamList, 'ManageExpectedGigs'>;
 
 type ModalMode = { kind: 'expected'; editingId: string | null } | { kind: 'gig'; editingId: string | null } | null;
-type TopTab = 'expected' | 'gigs';
+type TopTab = 'expected' | 'gigs' | 'account';
 type GigsSubTab = 'list' | 'values';
 type GigValuesStatus = 'idle' | 'saved' | 'invalid';
+type AccountStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export function ManageExpectedGigsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
@@ -41,9 +57,49 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
     updateGigEffortValues,
     resetAllData,
   } = useAppData();
+  const { isAutoAccount, accountEmail, claimAccount } = useAuth();
 
   const [topTab, setTopTab] = useState<TopTab>('expected');
   const [gigsSubTab, setGigsSubTab] = useState<GigsSubTab>('list');
+
+  const [accountEmailDraft, setAccountEmailDraft] = useState('');
+  const [accountPasswordDraft, setAccountPasswordDraft] = useState('');
+  const [accountPasswordConfirmDraft, setAccountPasswordConfirmDraft] = useState('');
+  const [accountStatus, setAccountStatus] = useState<AccountStatus>('idle');
+  const [accountError, setAccountError] = useState('');
+  const [showAccountPassword, setShowAccountPassword] = useState(false);
+  const [showAccountPasswordConfirm, setShowAccountPasswordConfirm] = useState(false);
+
+  const editAccountField = (setter: (v: string) => void) => (text: string) => {
+    setter(text);
+    setAccountStatus('idle');
+  };
+
+  const submitSecureAccount = async () => {
+    if (!EMAIL_PATTERN.test(accountEmailDraft.trim())) {
+      setAccountStatus('error');
+      setAccountError('Enter a valid email address.');
+      return;
+    }
+    if (accountPasswordDraft.length < 8) {
+      setAccountStatus('error');
+      setAccountError('Password must be at least 8 characters.');
+      return;
+    }
+    if (accountPasswordDraft !== accountPasswordConfirmDraft) {
+      setAccountStatus('error');
+      setAccountError('Passwords don’t match.');
+      return;
+    }
+    setAccountStatus('saving');
+    const result = await claimAccount(accountEmailDraft.trim(), accountPasswordDraft);
+    if (result.ok) {
+      setAccountStatus('saved');
+    } else {
+      setAccountStatus('error');
+      setAccountError(result.error);
+    }
+  };
 
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [draftName, setDraftName] = useState('');
@@ -135,7 +191,7 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
   const confirmResetAllData = () => {
     Alert.alert(
       'Reset all data',
-      'This deletes everything — the child profile, schedule, Expected items, gigs, goals, badges, and Future Fund balance. This cannot be undone.',
+      'This deletes everything — the child profile, schedule, Expected items, gigs, goals, badges, and Future Fund balance — including your cloud backup, if this account is synced. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Reset', style: 'destructive', onPress: () => resetAllData() },
@@ -173,6 +229,9 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
         </Pressable>
         <Pressable onPress={() => setTopTab('gigs')} style={[styles.tab, topTab === 'gigs' && styles.tabActive]}>
           <Text style={[styles.tabText, topTab === 'gigs' && styles.tabTextActive]}>🪙 Gigs</Text>
+        </Pressable>
+        <Pressable onPress={() => setTopTab('account')} style={[styles.tab, topTab === 'account' && styles.tabActive]}>
+          <Text style={[styles.tabText, topTab === 'account' && styles.tabTextActive]}>🔐 Account</Text>
         </Pressable>
       </View>
 
@@ -303,6 +362,89 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
             )}
           </>
         )}
+
+        {topTab === 'account' &&
+          (isAutoAccount ? (
+            <>
+              <Text style={styles.gigValuesHelper}>
+                Your data already backs up automatically. Set an email and password so you can also get to it from a
+                new phone if you ever need to.
+              </Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Email"
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+                textContentType="emailAddress"
+                value={accountEmailDraft}
+                onChangeText={editAccountField(setAccountEmailDraft)}
+              />
+              {emailDomainSuggestions(accountEmailDraft).length > 0 && (
+                <View style={styles.suggestionRow}>
+                  {emailDomainSuggestions(accountEmailDraft).map((suggestion) => (
+                    <Pressable
+                      key={suggestion}
+                      style={styles.suggestionChip}
+                      onPress={() => editAccountField(setAccountEmailDraft)(suggestion)}
+                    >
+                      <Text style={styles.suggestionChipText}>{suggestion}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+              <View style={styles.passwordFieldWrap}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Password (8+ characters)"
+                  secureTextEntry={!showAccountPassword}
+                  textContentType="newPassword"
+                  value={accountPasswordDraft}
+                  onChangeText={editAccountField(setAccountPasswordDraft)}
+                />
+                <Pressable style={styles.passwordToggle} onPress={() => setShowAccountPassword((v) => !v)} hitSlop={8}>
+                  <Text style={styles.linkAction}>{showAccountPassword ? 'Hide' : 'Show'}</Text>
+                </Pressable>
+              </View>
+              <View style={styles.passwordFieldWrap}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Confirm password"
+                  secureTextEntry={!showAccountPasswordConfirm}
+                  textContentType="newPassword"
+                  value={accountPasswordConfirmDraft}
+                  onChangeText={editAccountField(setAccountPasswordConfirmDraft)}
+                />
+                <Pressable
+                  style={styles.passwordToggle}
+                  onPress={() => setShowAccountPasswordConfirm((v) => !v)}
+                  hitSlop={8}
+                >
+                  <Text style={styles.linkAction}>{showAccountPasswordConfirm ? 'Hide' : 'Show'}</Text>
+                </Pressable>
+              </View>
+              <Pressable
+                style={[styles.saveGigValuesButton, accountStatus === 'saved' && styles.saveGigValuesButtonSaved]}
+                onPress={submitSecureAccount}
+                disabled={accountStatus === 'saving'}
+              >
+                <Text
+                  style={[
+                    styles.saveGigValuesButtonText,
+                    accountStatus === 'saved' && styles.saveGigValuesButtonTextSaved,
+                  ]}
+                >
+                  {accountStatus === 'saving' ? 'Saving…' : accountStatus === 'saved' ? '✓ Secured' : 'Secure my account'}
+                </Text>
+              </Pressable>
+              {accountStatus === 'error' && <Text style={styles.gigValuesErrorText}>{accountError}</Text>}
+            </>
+          ) : (
+            <Text style={styles.gigValuesHelper}>
+              ✓ Account secured{accountEmail ? ` — ${accountEmail}` : ''}. You can log in with this email on another
+              phone if you ever need to.
+            </Text>
+          ))}
 
         <View style={styles.dangerZone}>
           <Text style={styles.dangerZoneLabel}>Testing</Text>
@@ -449,6 +591,18 @@ const styles = StyleSheet.create({
   saveGigValuesButtonText: { color: colors.gigs, fontSize: 14, fontWeight: '700' },
   saveGigValuesButtonTextSaved: { color: '#fff' },
   gigValuesErrorText: { color: colors.danger, fontSize: 13, fontWeight: '600', textAlign: 'center', marginTop: 10 },
+  suggestionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: -6, marginBottom: 12 },
+  suggestionChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  suggestionChipText: { fontSize: 12, color: colors.textMuted },
+  passwordFieldWrap: { position: 'relative', justifyContent: 'center' },
+  passwordToggle: { position: 'absolute', right: 14 },
   dangerZone: { marginTop: 36, paddingTop: 16, borderTopWidth: 1, borderTopColor: colors.border },
   dangerZoneLabel: { fontSize: 12, color: colors.textMuted, fontWeight: '700', textTransform: 'uppercase', marginBottom: 10 },
   resetButton: {

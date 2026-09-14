@@ -56,6 +56,9 @@ export function ChildProfileScreen({ navigation }: Props) {
       contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}
     >
       <ScreenHeader title="Add a child" step={1} totalSteps={4} />
+      <Pressable onPress={() => navigation.navigate('Login')} style={styles.loginLink}>
+        <Text style={styles.loginLinkText}>Already set up Merit before? Log in</Text>
+      </Pressable>
 
       <Text style={styles.label}>Avatar</Text>
       <View style={styles.avatarRow}>
@@ -228,6 +231,8 @@ export function ChildProfileScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 20, paddingBottom: 40 },
+  loginLink: { alignSelf: 'flex-start', marginTop: 4, marginBottom: 4 },
+  loginLinkText: { fontSize: 13, color: colors.expected, fontWeight: '600' },
   label: { fontSize: 15, fontWeight: '600', color: colors.text, marginTop: 20, marginBottom: 8 },
   helperText: { fontSize: 13, color: colors.textMuted, marginBottom: 12 },
   input: {

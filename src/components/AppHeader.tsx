@@ -6,6 +6,7 @@ import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppData } from '../context/AppDataContext';
+import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../navigation/types';
 import { AVATAR_EMOJI } from '../data/avatars';
 import { Logo } from './Logo';
@@ -14,6 +15,7 @@ import { colors } from '../theme/colors';
 export function AppHeader() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { childProfile } = useAppData();
+  const { isAutoAccount } = useAuth();
 
   return (
     <View style={styles.header}>
@@ -23,8 +25,12 @@ export function AppHeader() {
       </View>
       <View style={styles.headerRight}>
         <Text style={styles.avatar}>{AVATAR_EMOJI[childProfile?.avatarId ?? ''] ?? '🙂'}</Text>
-        <Pressable onPress={() => navigation.navigate('ManageExpectedGigs')} hitSlop={12}>
+        <Pressable onPress={() => navigation.navigate('ManageExpectedGigs')} hitSlop={12} style={styles.settingsWrap}>
           <Text style={styles.settingsIcon}>⚙️</Text>
+          {/* Nudges the parent toward the Account tab's "Secure your
+           * account" flow — the account exists and is already backing up
+           * data invisibly, so nothing else surfaces this on its own. */}
+          {isAutoAccount && <View style={styles.settingsDot} />}
         </Pressable>
       </View>
     </View>
@@ -44,5 +50,17 @@ const styles = StyleSheet.create({
   wordmark: { fontSize: 22, fontWeight: '800', color: colors.text },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   avatar: { fontSize: 28 },
+  settingsWrap: { position: 'relative' },
   settingsIcon: { fontSize: 22 },
+  settingsDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: colors.gigs,
+    borderWidth: 1.5,
+    borderColor: colors.background,
+  },
 });
