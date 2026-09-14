@@ -2,6 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SetupStackParamList } from './types';
 import { ChildProfileScreen } from '../screens/setup/ChildProfileScreen';
+import { LoginScreen } from '../screens/setup/LoginScreen';
 import { ScheduleImportScreen } from '../screens/setup/ScheduleImportScreen';
 import { GoogleCalendarPickerScreen } from '../screens/setup/GoogleCalendarPickerScreen';
 import { GoogleCalendarEventsScreen } from '../screens/setup/GoogleCalendarEventsScreen';
@@ -15,6 +16,7 @@ export function SetupNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ChildProfile" component={ChildProfileScreen} />
+      <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="ScheduleImport" component={ScheduleImportScreen} />
       <Stack.Screen name="GoogleCalendarPicker" component={GoogleCalendarPickerScreen} />
       <Stack.Screen name="GoogleCalendarEvents" component={GoogleCalendarEventsScreen} />

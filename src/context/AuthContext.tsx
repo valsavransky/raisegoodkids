@@ -8,7 +8,7 @@
 // later, which is why it's offered rather than forced.
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { signup, setCredentials, ApiError } from '../services/api';
+import { signup, login as apiLogin, setCredentials, ApiError } from '../services/api';
 import { randomToken } from '../utils/randomToken';
 
 const TOKEN_KEY = 'merit_auth_token';
@@ -26,6 +26,12 @@ interface AuthContextValue {
   isAutoAccount: boolean;
   accountEmail: string | null;
   claimAccount: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  /** Logs into an existing (already-secured) account instead of the
+   * device's own auto-created one — replaces the stored token, which
+   * AppDataContext picks up and reconciles against (adopting that
+   * account's server data, since this is only ever offered before a
+   * local child profile exists — see LoginScreen). */
+  login: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -82,8 +88,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const login: AuthContextValue['login'] = async (email, password) => {
+    try {
+      const { token: newToken } = await apiLogin(email, password);
+      await SecureStore.setItemAsync(TOKEN_KEY, newToken);
+      await SecureStore.setItemAsync(IS_AUTO_KEY, 'false');
+      await SecureStore.setItemAsync(EMAIL_KEY, email);
+      setToken(newToken);
+      setIsAutoAccount(false);
+      setAccountEmail(email);
+      return { ok: true };
+    } catch (e) {
+      const message =
+        e instanceof ApiError ? e.message : 'Something went wrong — check your internet connection and try again.';
+      return { ok: false, error: message };
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ isReady, token, isAutoAccount, accountEmail, claimAccount }}>
+    <AuthContext.Provider value={{ isReady, token, isAutoAccount, accountEmail, claimAccount, login }}>
       {children}
     </AuthContext.Provider>
   );

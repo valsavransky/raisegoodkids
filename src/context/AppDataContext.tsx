@@ -154,7 +154,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   // then, so it can't race the reconcile and stomp real server data with
   // an empty fresh-install blob.
   const [hasReconciled, setHasReconciled] = useState(false);
-  const reconcileStartedRef = useRef(false);
+  // Tracks which token was last reconciled (rather than a plain "has this
+  // run" boolean) so logging into a different account later — see
+  // AuthContext.login, only ever offered before a local profile exists —
+  // triggers a fresh reconcile against the new token instead of being
+  // silently skipped.
+  const reconciledTokenRef = useRef<string | null>(null);
   const [childProfile, setChildProfile] = useState<ChildProfile | null>(null);
   const [scheduleEvents, setScheduleEvents] = useState<ScheduleEvent[]>([]);
   const [expectedItems, setExpectedItems] = useState<ExpectedItem[]>([]);
@@ -199,8 +204,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   // the server's copy; otherwise this device's local data is the one to
   // keep, and gets pushed up so the server has a current copy too.
   useEffect(() => {
-    if (!isHydrated || !authIsReady || !token || reconcileStartedRef.current) return;
-    reconcileStartedRef.current = true;
+    if (!isHydrated || !authIsReady || !token || reconciledTokenRef.current === token) return;
+    reconciledTokenRef.current = token;
     (async () => {
       try {
         const { data: serverData } = await fetchData(token);
