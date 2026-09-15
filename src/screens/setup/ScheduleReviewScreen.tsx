@@ -17,6 +17,7 @@ import { ScheduleEventCategory, CADENCE_LABELS } from '../../types/models';
 import {
   categoryTriggersSuggestion,
   suggestExpectedItemForEvent,
+  placeholderForCategory,
 } from '../../data/practiceSuggestions';
 import { colors } from '../../theme/colors';
 
@@ -299,7 +300,7 @@ export function ScheduleReviewScreen({ navigation }: Props) {
                     </Text>
                     <TextInput
                       style={styles.suggestionInput}
-                      placeholder="e.g. Practice reading"
+                      placeholder={placeholderForCategory(item.category)}
                       value={genericSuggestionDrafts[item.localId] ?? ''}
                       onChangeText={(text) =>
                         setGenericSuggestionDrafts((prev) => ({ ...prev, [item.localId]: text }))

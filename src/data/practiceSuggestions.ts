@@ -47,8 +47,11 @@ const SPORTS_KEYWORDS: { keyword: string; sport: string }[] = [
   { keyword: 'gymnastics', sport: 'gymnastics' },
   { keyword: 'cheer', sport: 'cheerleading' },
   { keyword: 'dance', sport: 'dance' },
+  { keyword: 'ballet', sport: 'ballet' },
+  { keyword: 'tumbling', sport: 'tumbling' },
   { keyword: 'karate', sport: 'karate' },
   { keyword: 'taekwondo', sport: 'taekwondo' },
+  { keyword: 'martial arts', sport: 'martial arts' },
   { keyword: 'golf', sport: 'golf' },
 ];
 
@@ -162,4 +165,22 @@ export function suggestExpectedItemForEvent(
   // Extracurricular (class/theater/etc.) is too varied for a keyword list —
   // always the generic fallback, parent names it themselves.
   return GENERIC_SUGGESTION;
+}
+
+/** Placeholder text for the generic (no keyword match) suggestion input —
+ * category-specific so the example format actually matches what's being
+ * asked for (a cadence + duration for Sports/Music, no duration for
+ * School's daily/weekly homework habit). Only called for categories that
+ * reach the generic fallback in the first place (never 'other'). */
+export function placeholderForCategory(category: ScheduleEventCategory): string {
+  switch (category) {
+    case 'sports':
+      return 'e.g. Practice soccer, 30 min/day or 2 hrs/week';
+    case 'school':
+      return 'e.g. Complete homework, daily or weekly';
+    case 'music':
+      return 'e.g. Practice piano, 20 min/day or 2 hrs/week';
+    default:
+      return 'e.g. Practice lines for the play';
+  }
 }
