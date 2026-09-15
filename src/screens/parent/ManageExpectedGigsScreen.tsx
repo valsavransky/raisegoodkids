@@ -220,6 +220,10 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
         <View style={{ width: 44 }} />
       </View>
 
+      <Pressable onPress={() => navigation.navigate('EditProfile')} style={styles.editProfileLink}>
+        <Text style={styles.editProfileLinkText}>👤 Edit child & parent profile</Text>
+      </Pressable>
+
       <View style={styles.tabRow}>
         <Pressable
           onPress={() => setTopTab('expected')}
@@ -514,6 +518,8 @@ const styles = StyleSheet.create({
   },
   closeButton: { fontSize: 15, color: colors.textMuted, width: 44 },
   title: { fontSize: 17, fontWeight: '700', color: colors.text },
+  editProfileLink: { paddingHorizontal: 20, paddingBottom: 12 },
+  editProfileLinkText: { fontSize: 13, color: colors.expected, fontWeight: '600' },
   content: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40 },
   tabRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, paddingBottom: 4 },
   tab: {
