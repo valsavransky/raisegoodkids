@@ -103,6 +103,8 @@ export function GigsScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
         {subTab === 'list' ? (
           <>
+            <Text style={styles.helper}>Optional, paid work they choose that builds toward their goal.</Text>
+
             {gigs.map((gig) => (
               <View key={gig.id} style={styles.row}>
                 <View style={styles.rowInfo}>

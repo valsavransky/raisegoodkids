@@ -57,6 +57,10 @@ export function ExpectedItemsScreen({ navigation }: Props) {
       <SettingsSubHeader title="Expected Items" onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
+        <Text style={styles.helper}>
+          Unpaid, non-negotiable responsibilities that come with being part of the family.
+        </Text>
+
         {expectedItems.filter((item) => item.frequency === 'daily').length > 0 && (
           <>
             <Text style={styles.subSectionHeader}>Daily</Text>
@@ -147,6 +151,7 @@ export function ExpectedItemsScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 20, paddingTop: 8 },
+  helper: { fontSize: 12, color: colors.textMuted, marginBottom: 14, lineHeight: 17 },
   subSectionHeader: {
     fontSize: 12,
     fontWeight: '700',
