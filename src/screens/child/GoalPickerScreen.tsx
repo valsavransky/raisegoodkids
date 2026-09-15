@@ -263,8 +263,9 @@ export function GoalPickerScreen() {
       />
 
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setModalVisible(false)}>
+          <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
             <Text style={styles.modalTitle}>{editingGoalId ? 'Edit goal' : 'Add a goal'}</Text>
             <TextInput style={styles.input} placeholder="What are you saving for?" value={draftName} onChangeText={setDraftName} />
             <TextInput
@@ -282,7 +283,8 @@ export function GoalPickerScreen() {
                 <Text style={styles.modalAddText}>{editingGoalId ? 'Save' : 'Add'}</Text>
               </Pressable>
             </View>
-          </View>
+          </Pressable>
+          </Pressable>
         </KeyboardAvoidingView>
       </Modal>
 
@@ -292,8 +294,9 @@ export function GoalPickerScreen() {
         transparent
         onRequestClose={() => setContributionModalVisible(false)}
       >
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setContributionModalVisible(false)}>
+          <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
             <Text style={styles.modalTitle}>Log a contribution</Text>
             <Text style={styles.futureFundSubtitle}>How much did you move to the real account?</Text>
             <TextInput
@@ -311,7 +314,8 @@ export function GoalPickerScreen() {
                 <Text style={styles.modalAddText}>Log it</Text>
               </Pressable>
             </View>
-          </View>
+          </Pressable>
+          </Pressable>
         </KeyboardAvoidingView>
       </Modal>
     </View>

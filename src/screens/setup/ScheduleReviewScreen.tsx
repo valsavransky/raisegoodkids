@@ -336,8 +336,9 @@ export function ScheduleReviewScreen({ navigation }: Props) {
       </Pressable>
 
       <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setModalVisible(false)}>
+          <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={styles.modalTitle}>Add event</Text>
             <TextInput
@@ -425,7 +426,8 @@ export function ScheduleReviewScreen({ navigation }: Props) {
               </Pressable>
             </View>
           </ScrollView>
-          </View>
+          </Pressable>
+          </Pressable>
         </KeyboardAvoidingView>
       </Modal>
     </View>

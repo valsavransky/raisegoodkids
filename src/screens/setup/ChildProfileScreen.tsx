@@ -104,8 +104,8 @@ export function ChildProfileScreen({ navigation }: Props) {
 
       {Platform.OS === 'ios' && (
         <Modal visible={showPicker} animationType="slide" transparent onRequestClose={() => setShowPicker(false)}>
-          <View style={styles.modalBackdrop}>
-            <View style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setShowPicker(false)}>
+            <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
               <DateTimePicker
                 value={tempDate}
                 mode="date"
@@ -116,8 +116,8 @@ export function ChildProfileScreen({ navigation }: Props) {
               <Pressable style={styles.modalDoneButton} onPress={confirmIOSDate}>
                 <Text style={styles.modalDoneButtonText}>Done</Text>
               </Pressable>
-            </View>
-          </View>
+            </Pressable>
+          </Pressable>
         </Modal>
       )}
 
