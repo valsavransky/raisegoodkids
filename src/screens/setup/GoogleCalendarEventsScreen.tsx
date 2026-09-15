@@ -55,7 +55,7 @@ type Props = NativeStackScreenProps<SetupStackParamList, 'GoogleCalendarEvents'>
 export function GoogleCalendarEventsScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { calendarId } = route.params;
-  const { scheduleEvents, setScheduleEvents } = useSetup();
+  const { childProfile, scheduleEvents, setScheduleEvents } = useSetup();
   const [events, setEvents] = useState<ImportedScheduleEvent[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,7 +132,15 @@ export function GoogleCalendarEventsScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title="Calendar events" step={2} totalSteps={4} onBack={() => navigation.goBack()} />
+      <ScreenHeader
+        title="Calendar events"
+        step={2}
+        totalSteps={4}
+        onBack={() => navigation.goBack()}
+        childName={childProfile.name}
+        childAvatarId={childProfile.avatarId}
+        onPressProfile={() => navigation.navigate('ChildProfile')}
+      />
       <Text style={styles.helperText}>
         Select the ones worth tracking — they'll be added to your schedule.
       </Text>

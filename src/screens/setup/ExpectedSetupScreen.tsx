@@ -88,7 +88,15 @@ export function ExpectedSetupScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title="Expected" step={3} totalSteps={4} onBack={() => navigation.goBack()} />
+      <ScreenHeader
+        title="Expected"
+        step={3}
+        totalSteps={4}
+        onBack={() => navigation.goBack()}
+        childName={childProfile.name}
+        childAvatarId={childProfile.avatarId}
+        onPressProfile={() => navigation.navigate('ChildProfile')}
+      />
 
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.introText}>

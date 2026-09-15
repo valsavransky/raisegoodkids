@@ -45,7 +45,7 @@ type SuggestionStatus = 'pending' | 'added' | 'dismissed';
 
 export function ScheduleReviewScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { scheduleEvents, setScheduleEvents, expectedItems, setExpectedItems } = useSetup();
+  const { childProfile, scheduleEvents, setScheduleEvents, expectedItems, setExpectedItems } = useSetup();
   const [suggestionStatus, setSuggestionStatus] = useState<Record<string, SuggestionStatus>>({});
   const [addedSuggestionNames, setAddedSuggestionNames] = useState<Record<string, string>>({});
   const [genericSuggestionDrafts, setGenericSuggestionDrafts] = useState<Record<string, string>>({});
@@ -167,7 +167,15 @@ export function ScheduleReviewScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title="Review schedule" step={2} totalSteps={4} onBack={() => navigation.goBack()} />
+      <ScreenHeader
+        title="Review schedule"
+        step={2}
+        totalSteps={4}
+        onBack={() => navigation.goBack()}
+        childName={childProfile.name}
+        childAvatarId={childProfile.avatarId}
+        onPressProfile={() => navigation.navigate('ChildProfile')}
+      />
 
       <Text style={styles.helperText}>Anything not tagged counts as free time for gigs.</Text>
 

@@ -10,12 +10,14 @@ import { View, Text, Pressable, ActivityIndicator, Alert, StyleSheet } from 'rea
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { useSetup } from '../../context/SetupContext';
 import { colors } from '../../theme/colors';
 import { isGoogleCalendarConfigured, useGoogleAuthRequest, storeTokensFromAuthResult } from '../../services/googleAuth';
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'ScheduleImport'>;
 
 export function ScheduleImportScreen({ navigation }: Props) {
+  const { childProfile } = useSetup();
   const [connecting, setConnecting] = useState(false);
   const configured = isGoogleCalendarConfigured();
   const [request, response, promptAsync] = useGoogleAuthRequest();
@@ -62,7 +64,15 @@ export function ScheduleImportScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title="Set up schedule" step={2} totalSteps={4} onBack={() => navigation.goBack()} />
+      <ScreenHeader
+        title="Set up schedule"
+        step={2}
+        totalSteps={4}
+        onBack={() => navigation.goBack()}
+        childName={childProfile.name}
+        childAvatarId={childProfile.avatarId}
+        onPressProfile={() => navigation.navigate('ChildProfile')}
+      />
 
       <View style={styles.content}>
         <Text style={styles.icon}>📅</Text>

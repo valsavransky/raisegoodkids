@@ -96,7 +96,15 @@ export function GigsSetupScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title="Gigs" step={4} totalSteps={4} onBack={() => navigation.goBack()} />
+      <ScreenHeader
+        title="Gigs"
+        step={4}
+        totalSteps={4}
+        onBack={() => navigation.goBack()}
+        childName={childProfile.name}
+        childAvatarId={childProfile.avatarId}
+        onPressProfile={() => navigation.navigate('ChildProfile')}
+      />
 
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.introText}>

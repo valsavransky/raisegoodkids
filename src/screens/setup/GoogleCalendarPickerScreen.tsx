@@ -7,6 +7,7 @@ import { View, Text, Pressable, FlatList, ActivityIndicator, StyleSheet } from '
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { useSetup } from '../../context/SetupContext';
 import { MOCK_CALENDARS } from '../../data/mockGoogleCalendar';
 import { getValidAccessToken, signOut } from '../../services/googleAuth';
 import { fetchCalendarList, GoogleCalendarSummary, GoogleApiError } from '../../services/googleCalendarApi';
@@ -15,6 +16,7 @@ import { colors } from '../../theme/colors';
 type Props = NativeStackScreenProps<SetupStackParamList, 'GoogleCalendarPicker'>;
 
 export function GoogleCalendarPickerScreen({ navigation }: Props) {
+  const { childProfile } = useSetup();
   const [calendars, setCalendars] = useState<GoogleCalendarSummary[]>(MOCK_CALENDARS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +54,15 @@ export function GoogleCalendarPickerScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title="Choose a calendar" step={2} totalSteps={4} onBack={() => navigation.goBack()} />
+      <ScreenHeader
+        title="Choose a calendar"
+        step={2}
+        totalSteps={4}
+        onBack={() => navigation.goBack()}
+        childName={childProfile.name}
+        childAvatarId={childProfile.avatarId}
+        onPressProfile={() => navigation.navigate('ChildProfile')}
+      />
       <Text style={styles.helperText}>Pick the calendar that has school, sports, music, and extracurriculars on it.</Text>
       {error && <Text style={styles.errorText}>{error}</Text>}
       {loading ? (
