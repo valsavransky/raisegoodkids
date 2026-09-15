@@ -1,6 +1,22 @@
 // Screen 4: parent setup, step 1 of 3 — child profile.
-import React, { useMemo, useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, Modal, Platform, StyleSheet } from 'react-native';
+//
+// Progressive disclosure: a brand-new user only sees Avatar + Name at
+// first — Birthday, Grade, and the At Home toggles reveal themselves (with
+// a layout animation) once a name is entered, so the very first thing this
+// screen shows isn't a wall of six fields.
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  ScrollView,
+  Modal,
+  Platform,
+  LayoutAnimation,
+  UIManager,
+  StyleSheet,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -15,6 +31,10 @@ function eightYearsAgo(): Date {
   const d = new Date();
   d.setFullYear(d.getFullYear() - 8);
   return d;
+}
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'ChildProfile'>;
@@ -34,6 +54,15 @@ export function ChildProfileScreen({ navigation }: Props) {
     () => childProfile.name.trim().length > 0 && childProfile.birthday.length > 0,
     [childProfile.name, childProfile.birthday]
   );
+
+  const detailsUnlocked = childProfile.name.trim().length > 0;
+  const wasUnlockedRef = useRef(detailsUnlocked);
+  useEffect(() => {
+    if (detailsUnlocked !== wasUnlockedRef.current) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      wasUnlockedRef.current = detailsUnlocked;
+    }
+  }, [detailsUnlocked]);
 
   const openPicker = () => {
     setTempDate(parsedBirthday ?? eightYearsAgo());
@@ -55,7 +84,7 @@ export function ChildProfileScreen({ navigation }: Props) {
       style={styles.screen}
       contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}
     >
-      <ScreenHeader title="Add a child" step={1} totalSteps={4} />
+      <ScreenHeader title="Add a child" step={1} totalSteps={4} titleMarginTop={28} />
       <Pressable onPress={() => navigation.navigate('Login')} style={styles.loginLink}>
         <Text style={styles.loginLinkText}>Already set up Merit before? Log in</Text>
       </Pressable>
@@ -84,146 +113,150 @@ export function ChildProfileScreen({ navigation }: Props) {
         onChangeText={(name) => setChildProfile({ name })}
       />
 
-      <Text style={styles.label}>Birthday</Text>
-      <Pressable style={styles.input} onPress={openPicker}>
-        <Text style={formattedBirthday ? styles.dateText : styles.datePlaceholder}>
-          {formattedBirthday ?? 'Select birthday'}
-        </Text>
-      </Pressable>
+      {detailsUnlocked && (
+        <>
+          <Text style={styles.label}>Birthday</Text>
+          <Pressable style={styles.input} onPress={openPicker}>
+            <Text style={formattedBirthday ? styles.dateText : styles.datePlaceholder}>
+              {formattedBirthday ?? 'Select birthday'}
+            </Text>
+          </Pressable>
 
-      {showPicker && Platform.OS === 'android' && (
-        <DateTimePicker
-          value={parsedBirthday ?? eightYearsAgo()}
-          mode="date"
-          display="default"
-          maximumDate={new Date()}
-          onValueChange={handleAndroidChange}
-          onDismiss={() => setShowPicker(false)}
-        />
-      )}
+          {showPicker && Platform.OS === 'android' && (
+            <DateTimePicker
+              value={parsedBirthday ?? eightYearsAgo()}
+              mode="date"
+              display="default"
+              maximumDate={new Date()}
+              onValueChange={handleAndroidChange}
+              onDismiss={() => setShowPicker(false)}
+            />
+          )}
 
-      {Platform.OS === 'ios' && (
-        <Modal visible={showPicker} animationType="slide" transparent onRequestClose={() => setShowPicker(false)}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setShowPicker(false)}>
-            <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
-              <DateTimePicker
-                value={tempDate}
-                mode="date"
-                display="spinner"
-                maximumDate={new Date()}
-                onValueChange={(_, date) => setTempDate(date)}
-              />
-              <Pressable style={styles.modalDoneButton} onPress={confirmIOSDate}>
-                <Text style={styles.modalDoneButtonText}>Done</Text>
+          {Platform.OS === 'ios' && (
+            <Modal visible={showPicker} animationType="slide" transparent onRequestClose={() => setShowPicker(false)}>
+              <Pressable style={styles.modalBackdrop} onPress={() => setShowPicker(false)}>
+                <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
+                  <DateTimePicker
+                    value={tempDate}
+                    mode="date"
+                    display="spinner"
+                    maximumDate={new Date()}
+                    onValueChange={(_, date) => setTempDate(date)}
+                  />
+                  <Pressable style={styles.modalDoneButton} onPress={confirmIOSDate}>
+                    <Text style={styles.modalDoneButtonText}>Done</Text>
+                  </Pressable>
+                </Pressable>
               </Pressable>
-            </Pressable>
+            </Modal>
+          )}
+
+          <Text style={styles.label}>Grade in school (optional)</Text>
+          <Text style={styles.helperText}>
+            We use this to suggest age-appropriate responsibilities and gigs later in setup.
+          </Text>
+          <View style={styles.chipRow}>
+            {GRADE_OPTIONS.map((grade) => {
+              const selected = childProfile.grade === grade;
+              return (
+                <Pressable
+                  key={grade}
+                  onPress={() => setChildProfile({ grade: selected ? undefined : grade })}
+                  style={[styles.chip, selected && styles.chipSelected]}
+                >
+                  <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{grade}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Text style={styles.label}>At home</Text>
+          <Text style={styles.helperText}>
+            A couple of household details help us suggest the right Expected items and gigs later (like
+            feeding a pet or raking leaves).
+          </Text>
+
+          <View style={styles.toggleRow}>
+            <Text style={styles.toggleLabel}>Yard</Text>
+            <View style={styles.chipRow}>
+              <Pressable
+                onPress={() => setChildProfile({ hasYard: true })}
+                style={[styles.chip, childProfile.hasYard === true && styles.chipSelected]}
+              >
+                <Text style={[styles.chipText, childProfile.hasYard === true && styles.chipTextSelected]}>Yes</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setChildProfile({ hasYard: false })}
+                style={[styles.chip, childProfile.hasYard === false && styles.chipSelected]}
+              >
+                <Text style={[styles.chipText, childProfile.hasYard === false && styles.chipTextSelected]}>No</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={styles.toggleRow}>
+            <Text style={styles.toggleLabel}>Car</Text>
+            <View style={styles.chipRow}>
+              <Pressable
+                onPress={() => setChildProfile({ hasCar: true })}
+                style={[styles.chip, childProfile.hasCar === true && styles.chipSelected]}
+              >
+                <Text style={[styles.chipText, childProfile.hasCar === true && styles.chipTextSelected]}>Yes</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setChildProfile({ hasCar: false })}
+                style={[styles.chip, childProfile.hasCar === false && styles.chipSelected]}
+              >
+                <Text style={[styles.chipText, childProfile.hasCar === false && styles.chipTextSelected]}>No</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          <View style={styles.toggleRow}>
+            <Text style={styles.toggleLabel}>Pet</Text>
+            <View style={styles.chipRow}>
+              <Pressable
+                onPress={() => setChildProfile({ hasPet: true })}
+                style={[styles.chip, childProfile.hasPet === true && styles.chipSelected]}
+              >
+                <Text style={[styles.chipText, childProfile.hasPet === true && styles.chipTextSelected]}>Yes</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setChildProfile({ hasPet: false, petType: undefined, petName: undefined })}
+                style={[styles.chip, childProfile.hasPet === false && styles.chipSelected]}
+              >
+                <Text style={[styles.chipText, childProfile.hasPet === false && styles.chipTextSelected]}>No</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          {childProfile.hasPet && (
+            <View style={styles.petFieldsRow}>
+              <TextInput
+                style={[styles.input, styles.petInput]}
+                placeholder="Type (e.g. dog)"
+                value={childProfile.petType ?? ''}
+                onChangeText={(petType) => setChildProfile({ petType })}
+              />
+              <TextInput
+                style={[styles.input, styles.petInput]}
+                placeholder="Name (optional)"
+                value={childProfile.petName ?? ''}
+                onChangeText={(petName) => setChildProfile({ petName })}
+              />
+            </View>
+          )}
+
+          <Pressable
+            style={[styles.continueButton, !canContinue && styles.continueButtonDisabled]}
+            disabled={!canContinue}
+            onPress={() => navigation.navigate('ScheduleImport')}
+          >
+            <Text style={styles.continueButtonText}>Continue</Text>
           </Pressable>
-        </Modal>
+        </>
       )}
-
-      <Text style={styles.label}>Grade in school (optional)</Text>
-      <Text style={styles.helperText}>
-        We use this to suggest age-appropriate responsibilities and gigs later in setup.
-      </Text>
-      <View style={styles.chipRow}>
-        {GRADE_OPTIONS.map((grade) => {
-          const selected = childProfile.grade === grade;
-          return (
-            <Pressable
-              key={grade}
-              onPress={() => setChildProfile({ grade: selected ? undefined : grade })}
-              style={[styles.chip, selected && styles.chipSelected]}
-            >
-              <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{grade}</Text>
-            </Pressable>
-          );
-        })}
-      </View>
-
-      <Text style={styles.label}>At home</Text>
-      <Text style={styles.helperText}>
-        A couple of household details help us suggest the right Expected items and gigs later (like
-        feeding a pet or raking leaves).
-      </Text>
-
-      <View style={styles.toggleRow}>
-        <Text style={styles.toggleLabel}>Yard</Text>
-        <View style={styles.chipRow}>
-          <Pressable
-            onPress={() => setChildProfile({ hasYard: true })}
-            style={[styles.chip, childProfile.hasYard === true && styles.chipSelected]}
-          >
-            <Text style={[styles.chipText, childProfile.hasYard === true && styles.chipTextSelected]}>Yes</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setChildProfile({ hasYard: false })}
-            style={[styles.chip, childProfile.hasYard === false && styles.chipSelected]}
-          >
-            <Text style={[styles.chipText, childProfile.hasYard === false && styles.chipTextSelected]}>No</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      <View style={styles.toggleRow}>
-        <Text style={styles.toggleLabel}>Car</Text>
-        <View style={styles.chipRow}>
-          <Pressable
-            onPress={() => setChildProfile({ hasCar: true })}
-            style={[styles.chip, childProfile.hasCar === true && styles.chipSelected]}
-          >
-            <Text style={[styles.chipText, childProfile.hasCar === true && styles.chipTextSelected]}>Yes</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setChildProfile({ hasCar: false })}
-            style={[styles.chip, childProfile.hasCar === false && styles.chipSelected]}
-          >
-            <Text style={[styles.chipText, childProfile.hasCar === false && styles.chipTextSelected]}>No</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      <View style={styles.toggleRow}>
-        <Text style={styles.toggleLabel}>Pet</Text>
-        <View style={styles.chipRow}>
-          <Pressable
-            onPress={() => setChildProfile({ hasPet: true })}
-            style={[styles.chip, childProfile.hasPet === true && styles.chipSelected]}
-          >
-            <Text style={[styles.chipText, childProfile.hasPet === true && styles.chipTextSelected]}>Yes</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setChildProfile({ hasPet: false, petType: undefined, petName: undefined })}
-            style={[styles.chip, childProfile.hasPet === false && styles.chipSelected]}
-          >
-            <Text style={[styles.chipText, childProfile.hasPet === false && styles.chipTextSelected]}>No</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      {childProfile.hasPet && (
-        <View style={styles.petFieldsRow}>
-          <TextInput
-            style={[styles.input, styles.petInput]}
-            placeholder="Type (e.g. dog)"
-            value={childProfile.petType ?? ''}
-            onChangeText={(petType) => setChildProfile({ petType })}
-          />
-          <TextInput
-            style={[styles.input, styles.petInput]}
-            placeholder="Name (optional)"
-            value={childProfile.petName ?? ''}
-            onChangeText={(petName) => setChildProfile({ petName })}
-          />
-        </View>
-      )}
-
-      <Pressable
-        style={[styles.continueButton, !canContinue && styles.continueButtonDisabled]}
-        disabled={!canContinue}
-        onPress={() => navigation.navigate('ScheduleImport')}
-      >
-        <Text style={styles.continueButtonText}>Continue</Text>
-      </Pressable>
     </ScrollView>
   );
 }

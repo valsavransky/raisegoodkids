@@ -21,6 +21,10 @@ interface ScreenHeaderProps {
   childName?: string;
   childAvatarId?: string;
   onPressProfile?: () => void;
+  /** Extra breathing room above the title, beyond the default 12px — for a
+   * step whose content starts sparse (e.g. just two fields), so the title
+   * doesn't feel cramped up against the progress bar. */
+  titleMarginTop?: number;
 }
 
 export function ScreenHeader({
@@ -31,6 +35,7 @@ export function ScreenHeader({
   childName,
   childAvatarId,
   onPressProfile,
+  titleMarginTop,
 }: ScreenHeaderProps) {
   const firstName = childName?.trim().split(' ')[0];
 
@@ -64,7 +69,7 @@ export function ScreenHeader({
         ))}
       </View>
 
-      <Text style={styles.title}>{title}</Text>
+      <Text style={[styles.title, titleMarginTop != null && { marginTop: titleMarginTop }]}>{title}</Text>
     </View>
   );
 }
