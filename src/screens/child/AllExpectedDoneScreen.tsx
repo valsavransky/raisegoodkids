@@ -12,6 +12,8 @@ import { RootStackParamList } from '../../navigation/types';
 import { useAppData } from '../../context/AppDataContext';
 import { getBadgeCatalogEntry } from '../../data/badgeCatalog';
 import { Confetti } from '../../components/Confetti';
+import { BadgeIconGlyph } from '../../components/BadgeIconGlyph';
+import { HeartHandshakeIcon } from '../../components/icons/HeartHandshakeIcon';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AllExpectedDone'>;
@@ -32,7 +34,9 @@ export function AllExpectedDoneScreen({ route, navigation }: Props) {
     <View style={styles.screen}>
       <Confetti trigger={confettiTrigger} pieceCount={22} />
 
-      <Animated.Text style={[styles.icon, { transform: [{ scale: iconScale }] }]}>🔥</Animated.Text>
+      <Animated.View style={{ transform: [{ scale: iconScale }], marginBottom: 12 }}>
+        <HeartHandshakeIcon size={72} />
+      </Animated.View>
 
       <Text style={styles.title}>All done today!</Text>
       <Text style={styles.subtitle}>
@@ -41,7 +45,7 @@ export function AllExpectedDoneScreen({ route, navigation }: Props) {
 
       {badge && (
         <View style={styles.badgeCallout}>
-          <Text style={styles.badgeCalloutIcon}>{badge.icon}</Text>
+          <BadgeIconGlyph icon={badge.icon} size={20} color={badge.color} textStyle={styles.badgeCalloutIcon} />
           <Text style={styles.badgeCalloutText}>Plus: {badge.title} badge!</Text>
         </View>
       )}
@@ -55,7 +59,6 @@ export function AllExpectedDoneScreen({ route, navigation }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  icon: { fontSize: 72, marginBottom: 12 },
   title: { fontSize: 26, fontWeight: '800', color: colors.text, textAlign: 'center' },
   subtitle: { fontSize: 15, color: colors.expected, fontWeight: '700', marginTop: 8 },
   badgeCallout: {

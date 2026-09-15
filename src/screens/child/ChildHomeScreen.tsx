@@ -23,6 +23,7 @@ import { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { ExpectedItemRow } from '../../components/ExpectedItemRow';
 import { GigItemRow } from '../../components/GigItemRow';
 import { AppHeader } from '../../components/AppHeader';
+import { HeartHandshakeIcon } from '../../components/icons/HeartHandshakeIcon';
 import { colors } from '../../theme/colors';
 
 type ChildHomeNavigationProp = CompositeNavigationProp<
@@ -79,7 +80,7 @@ export function ChildHomeScreen() {
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
       <View style={styles.sectionHeaderRow}>
-        <Text style={[styles.sectionIcon, { color: colors.expected }]}>🔥</Text>
+        <HeartHandshakeIcon size={16} />
         <Text style={styles.sectionHeader}>Expected today</Text>
         <Text style={styles.streakText}>{streak}-day streak</Text>
       </View>

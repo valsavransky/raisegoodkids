@@ -9,6 +9,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { getBadgeCatalogEntry } from '../../data/badgeCatalog';
 import { Confetti } from '../../components/Confetti';
+import { BadgeIconGlyph } from '../../components/BadgeIconGlyph';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BadgeUnlock'>;
@@ -29,7 +30,7 @@ export function BadgeUnlockScreen({ route, navigation }: Props) {
       <Animated.View
         style={[styles.badgeCircle, { borderColor: entry?.color ?? colors.expected, transform: [{ scale: badgeScale }] }]}
       >
-        <Text style={styles.badgeIcon}>{entry?.icon ?? '🏅'}</Text>
+        <BadgeIconGlyph icon={entry?.icon ?? '🏅'} size={48} color={entry?.color} textStyle={styles.badgeIcon} />
       </Animated.View>
 
       <Text style={styles.title}>{entry?.title ?? 'Badge earned'}</Text>

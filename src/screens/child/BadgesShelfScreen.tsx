@@ -6,6 +6,7 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useAppData } from '../../context/AppDataContext';
 import { BADGE_CATALOG } from '../../data/badgeCatalog';
 import { AppHeader } from '../../components/AppHeader';
+import { BadgeIconGlyph } from '../../components/BadgeIconGlyph';
 import { colors } from '../../theme/colors';
 
 export function BadgesShelfScreen() {
@@ -28,7 +29,12 @@ export function BadgesShelfScreen() {
             return (
               <View key={entry.catalogId} style={styles.tile}>
                 <View style={[styles.iconCircle, earned ? { borderColor: entry.color, backgroundColor: colors.surface } : styles.iconCircleLocked]}>
-                  <Text style={[styles.icon, !earned && styles.iconLocked]}>{earned ? entry.icon : '🔒'}</Text>
+                  <BadgeIconGlyph
+                    icon={earned ? entry.icon : '🔒'}
+                    size={28}
+                    color={entry.color}
+                    textStyle={[styles.icon, !earned && styles.iconLocked]}
+                  />
                 </View>
                 <Text style={[styles.tileTitle, !earned && styles.tileTitleLocked]}>{entry.title}</Text>
                 <Text style={styles.tileDate}>

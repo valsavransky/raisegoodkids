@@ -12,15 +12,22 @@
 // resubmitting a declined gig, and the decline/retry flow doesn't exist in
 // this build (gigs are approved instantly — see the Approval model
 // revision). Add it back if/when that flow is built.
+import React from 'react';
 import { BadgeType } from '../types/models';
 import { colors } from '../theme/colors';
+import { HeartHandshakeIcon } from '../components/icons/HeartHandshakeIcon';
+
+// Almost every badge icon is a plain emoji string, matching the rest of
+// the app's icon language. The streak-3 entry is the one exception — see
+// HeartHandshakeIcon for why an emoji can't stand in for it.
+export type BadgeIcon = string | React.ComponentType<{ size?: number; color?: string }>;
 
 export interface BadgeCatalogEntry {
   catalogId: string;
   type: BadgeType;
   title: string;
   subtitle: string;
-  icon: string;
+  icon: BadgeIcon;
   color: string;
 }
 
@@ -28,7 +35,7 @@ export interface BadgeCatalogEntry {
 // gem → crown) rather than reusing one icon at every tier, so a glance at
 // the shelf tells you which badges are the bigger deal.
 export const BADGE_CATALOG: BadgeCatalogEntry[] = [
-  { catalogId: 'streak_3', type: 'streak', title: '3-Day Streak', subtitle: 'Expected badge earned', icon: '🔥', color: colors.expected },
+  { catalogId: 'streak_3', type: 'streak', title: '3-Day Streak', subtitle: 'Expected badge earned', icon: HeartHandshakeIcon, color: colors.expected },
   { catalogId: 'streak_7', type: 'streak', title: '7-Day Streak', subtitle: 'Expected badge earned', icon: '🌟', color: colors.expected },
   { catalogId: 'streak_14', type: 'streak', title: '14-Day Streak', subtitle: 'Expected badge earned', icon: '💎', color: colors.expected },
   { catalogId: 'streak_30', type: 'streak', title: '30-Day Streak', subtitle: 'Expected badge earned', icon: '👑', color: colors.expected },
