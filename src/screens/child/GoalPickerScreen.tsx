@@ -36,6 +36,7 @@ export function GoalPickerScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<GoalPickerNavigationProp>();
   const {
+    childProfile,
     goals,
     activeGoal,
     queuedGoals,
@@ -49,6 +50,7 @@ export function GoalPickerScreen() {
     futureFund,
     recordFutureFundContribution,
   } = useAppData();
+  const childName = childProfile?.name.trim() || 'your child';
 
   const [modalVisible, setModalVisible] = useState(false);
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
@@ -186,7 +188,7 @@ export function GoalPickerScreen() {
     <View style={styles.screen}>
       <AppHeader />
       <View style={styles.header}>
-        <Text style={styles.title}>{goals.length === 0 ? 'Pick a goal to start earning' : 'Your goals'}</Text>
+        <Text style={styles.title}>{goals.length === 0 ? `What's ${childName} working toward?` : 'Your goals'}</Text>
       </View>
 
       <SectionList
@@ -194,7 +196,9 @@ export function GoalPickerScreen() {
         contentContainerStyle={styles.listContent}
         sections={sections}
         keyExtractor={(goal) => goal.id}
-        ListEmptyComponent={<Text style={styles.emptyText}>No goals yet — add your first one below.</Text>}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>Pick something they actually want — every gig they do chips away at it.</Text>
+        }
         renderSectionHeader={({ section }) => <Text style={styles.sectionHeader}>{section.title}</Text>}
         renderItem={({ item }) => renderGoalRow(item)}
         ListFooterComponent={

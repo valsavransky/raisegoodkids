@@ -91,6 +91,12 @@ export function ExpectedSetupScreen({ navigation }: Props) {
       <ScreenHeader title="Expected" step={3} totalSteps={4} onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.introText}>
+          Expected is everything that comes with being part of the family — school, chores,
+          showing up. It's never paid on purpose: marking these off earns{' '}
+          {childProfile.name.trim() || 'your child'} badges for consistency, not money.
+        </Text>
+
         <Text style={styles.helperText}>
           {library
             ? `Suggestions below are typical for ${childProfile.grade} grade. Toggle off what doesn't apply, or add your own.`
@@ -176,6 +182,7 @@ export function ExpectedSetupScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 20, paddingBottom: 12 },
+  introText: { fontSize: 14, color: colors.text, marginBottom: 14, lineHeight: 20 },
   helperText: { fontSize: 13, color: colors.textMuted, marginBottom: 16, lineHeight: 19 },
   subSectionHeader: {
     fontSize: 12,

@@ -99,6 +99,12 @@ export function GigsSetupScreen({ navigation }: Props) {
       <ScreenHeader title="Gigs" step={4} totalSteps={4} onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={styles.content}>
+        <Text style={styles.introText}>
+          Does {childProfile.name.trim() || 'your child'} always ask for the newest toy, clothes,
+          or games — or to go somewhere extra fun? Gigs are optional, paid work they choose (or you
+          add your own) that count toward whatever they're saving for.
+        </Text>
+
         <Text style={styles.helperText}>
           {library
             ? `Suggestions below are typical for ${childProfile.grade} grade. Toggle off what doesn't apply, or add your own.`
@@ -191,6 +197,7 @@ export function GigsSetupScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 20, paddingBottom: 12 },
+  introText: { fontSize: 14, color: colors.text, marginBottom: 14, lineHeight: 20 },
   helperText: { fontSize: 13, color: colors.textMuted, marginBottom: 16, lineHeight: 19 },
   gigRow: { paddingVertical: 10, gap: 8 },
   gigCheckboxRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },

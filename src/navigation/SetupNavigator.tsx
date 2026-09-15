@@ -1,6 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SetupStackParamList } from './types';
+import { WelcomeScreen } from '../screens/setup/WelcomeScreen';
 import { ChildProfileScreen } from '../screens/setup/ChildProfileScreen';
 import { LoginScreen } from '../screens/setup/LoginScreen';
 import { ScheduleImportScreen } from '../screens/setup/ScheduleImportScreen';
@@ -15,6 +16,7 @@ const Stack = createNativeStackNavigator<SetupStackParamList>();
 export function SetupNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="ChildProfile" component={ChildProfileScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="ScheduleImport" component={ScheduleImportScreen} />
