@@ -136,8 +136,9 @@ export function ExpectedSetupScreen({ navigation }: Props) {
       </Pressable>
 
       <Modal visible={addModalVisible} animationType="slide" transparent onRequestClose={() => setAddModalVisible(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setAddModalVisible(false)}>
+          <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
             <Text style={styles.modalTitle}>Add Expected item</Text>
             <TextInput style={styles.input} placeholder="Name" value={draftName} onChangeText={setDraftName} />
             <View style={styles.effortRow}>
@@ -164,7 +165,8 @@ export function ExpectedSetupScreen({ navigation }: Props) {
                 <Text style={styles.modalAddText}>Add</Text>
               </Pressable>
             </View>
-          </View>
+          </Pressable>
+          </Pressable>
         </KeyboardAvoidingView>
       </Modal>
     </View>

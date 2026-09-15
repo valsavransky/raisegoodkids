@@ -462,8 +462,13 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
       </ScrollView>
 
       <Modal visible={modalMode !== null} animationType="slide" transparent onRequestClose={() => setModalMode(null)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          {/* Tapping the greyed-out backdrop dismisses the modal, same as
+           * Cancel. The card itself is also a no-op Pressable so a tap
+           * landing on its background (not on a field/button) doesn't
+           * bubble up and dismiss it too. */}
+          <Pressable style={styles.modalBackdrop} onPress={() => setModalMode(null)}>
+          <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
             <Text style={styles.modalTitle}>
               {modalMode?.editingId ? 'Edit' : 'Add'} {modalMode?.kind === 'expected' ? 'Expected item' : 'gig'}
             </Text>
@@ -499,7 +504,8 @@ export function ManageExpectedGigsScreen({ navigation }: Props) {
                 <Text style={styles.modalSaveText}>{modalMode?.editingId ? 'Save' : 'Add'}</Text>
               </Pressable>
             </View>
-          </View>
+          </Pressable>
+          </Pressable>
         </KeyboardAvoidingView>
       </Modal>
     </View>
