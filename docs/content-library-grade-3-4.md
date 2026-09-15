@@ -18,10 +18,11 @@ No effort tier or dollar value — these are the "table stakes" and should never
 | Read for 20 minutes | Daily | 3rd & 4th |
 | Put dirty clothes in the hamper | Daily | 3rd & 4th |
 | Clear your place and load into dishwasher after meals | Daily | 3rd & 4th |
-| Feed the pet | Daily | 3rd & 4th |
 | Tidy your room | Weekly | 3rd & 4th |
 | Set the table for dinner | A few times a week | 3rd & 4th |
 | Put away your own clean laundry | Weekly | 3rd & 4th (3rd grade: folded clothes handed to them to put away; 4th grade: folds and puts away independently) |
+
+*Feeding a pet isn't listed here — it's added automatically, personalized with the pet's name, only for a household that actually has one (see the child-profile household questions). Listing it as a plain, always-suggested item here caused a real bug: every family saw "Feed the pet" suggested regardless of whether they had one.*
 
 ## Gigs (optional, paid — goal-progress percentage assigned by effort tier, not a dollar value)
 
@@ -32,7 +33,6 @@ No effort tier or dollar value — these are the "table stakes" and should never
 | Wipe down kitchen counters and stovetop | Quick | 3rd & 4th |
 | Take the trash and recycling bins to the curb | Quick | 3rd & 4th |
 | Sweep the porch or garage | Quick | 3rd & 4th (if applicable) |
-| Walk the dog | Quick | 3rd & 4th (if applicable) |
 | Vacuum a room | Medium | 3rd & 4th |
 | Vacuum and wipe down the inside of the car | Medium | 3rd & 4th (if applicable) |
 | Wash the car exterior (helping, not solo) | Medium | 3rd & 4th (if applicable) |
@@ -46,6 +46,8 @@ No effort tier or dollar value — these are the "table stakes" and should never
 | Weed a garden bed | Big job | 3rd & 4th (if applicable — outdoor space) |
 | Wash the windows (reachable ones only) | Big job | 3rd & 4th |
 | Sort and start a load of laundry | Big job | 4th grade only |
+
+*Walking a pet isn't listed here either, for the same reason as feeding one above — added automatically as "Walk [pet's name]," only for a household with a dog.*
 
 ---
 

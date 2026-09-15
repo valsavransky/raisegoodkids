@@ -3,6 +3,13 @@
 // (3rd & 4th only). Treat these as starting suggestions, not a finished,
 // authoritative list — the source doc is explicit that it needs real-family
 // testing and revision, and every value here is parent-overridable.
+//
+// Feeding/walking a pet are NOT listed here on purpose — they're added
+// dynamically by ExpectedSetupScreen/GigsSetupScreen instead (personalized
+// with the pet's name, and correctly gated on hasPet/petType), so don't
+// re-add a generic "Feed the pet"/"Walk the dog" line here — it would
+// suggest itself to every family regardless of whether they have a pet,
+// which is exactly the bug this comment is here to prevent recurring.
 import { GigEffortTier } from '../types/models';
 
 export interface SuggestedExpectedItem {
@@ -33,7 +40,6 @@ const grade3And4: GradeContentLibrary = {
     { name: 'Read for 20 minutes', frequency: 'daily' },
     { name: 'Put dirty clothes in the hamper', frequency: 'daily' },
     { name: 'Clear your place and load into dishwasher after meals', frequency: 'daily' },
-    { name: 'Feed the pet', frequency: 'daily' },
     { name: 'Tidy your room', frequency: 'weekly' },
     { name: 'Set the table for dinner', frequency: 'weekly' },
     { name: 'Put away your own clean laundry', frequency: 'weekly' },
@@ -43,8 +49,7 @@ const grade3And4: GradeContentLibrary = {
     { name: 'Empty the wastebaskets around the house', effortTier: 'quick' },
     { name: 'Wipe down kitchen counters and stovetop', effortTier: 'quick' },
     { name: 'Take the trash and recycling bins to the curb', effortTier: 'quick' },
-    { name: 'Sweep the porch or garage', effortTier: 'quick' },
-    { name: 'Walk the dog', effortTier: 'quick' },
+    { name: 'Sweep the porch or garage', effortTier: 'quick', ifApplicable: 'yard' },
     { name: 'Vacuum a room', effortTier: 'medium' },
     { name: 'Vacuum and wipe down the inside of the car', effortTier: 'medium', ifApplicable: 'car' },
     { name: 'Wash the car exterior (helping, not solo)', effortTier: 'medium', ifApplicable: 'car' },
