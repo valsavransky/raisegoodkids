@@ -11,7 +11,10 @@ import { BadgeUnlockScreen } from '../screens/child/BadgeUnlockScreen';
 import { AllExpectedDoneScreen } from '../screens/child/AllExpectedDoneScreen';
 import { ImportGoogleCalendarScreen } from '../screens/child/ImportGoogleCalendarScreen';
 import { ImportGoogleCalendarEventsScreen } from '../screens/child/ImportGoogleCalendarEventsScreen';
-import { ManageExpectedGigsScreen } from '../screens/parent/ManageExpectedGigsScreen';
+import { SettingsScreen } from '../screens/parent/SettingsScreen';
+import { ExpectedItemsScreen } from '../screens/parent/ExpectedItemsScreen';
+import { GigsScreen } from '../screens/parent/GigsScreen';
+import { AccountScreen } from '../screens/parent/AccountScreen';
 import { EditProfileScreen } from '../screens/parent/EditProfileScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -29,7 +32,10 @@ export function RootStackNavigator() {
       <Stack.Group screenOptions={{ presentation: 'modal' }}>
         <Stack.Screen name="ImportGoogleCalendar" component={ImportGoogleCalendarScreen} />
         <Stack.Screen name="ImportGoogleCalendarEvents" component={ImportGoogleCalendarEventsScreen} />
-        <Stack.Screen name="ManageExpectedGigs" component={ManageExpectedGigsScreen} />
+        <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen name="ExpectedItemsSettings" component={ExpectedItemsScreen} />
+        <Stack.Screen name="GigsSettings" component={GigsScreen} />
+        <Stack.Screen name="AccountSettings" component={AccountScreen} />
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       </Stack.Group>
     </Stack.Navigator>

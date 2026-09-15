@@ -25,6 +25,9 @@ export type RootStackParamList = {
   AllExpectedDone: { badgeCatalogId?: string };
   ImportGoogleCalendar: undefined;
   ImportGoogleCalendarEvents: { calendarId: string };
-  ManageExpectedGigs: undefined;
+  Settings: undefined;
+  ExpectedItemsSettings: undefined;
+  GigsSettings: undefined;
+  AccountSettings: undefined;
   EditProfile: undefined;
 };

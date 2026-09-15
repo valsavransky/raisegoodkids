@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
+import { SettingsSubHeader } from '../../components/SettingsSubHeader';
 import { useAppData } from '../../context/AppDataContext';
 import { GRADE_OPTIONS } from '../../data/contentLibrary';
 import { AVATAR_OPTIONS } from '../../data/avatars';
@@ -86,13 +87,7 @@ export function EditProfileScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
-          <Text style={styles.closeButton}>Close</Text>
-        </Pressable>
-        <Text style={styles.title}>Edit profile</Text>
-        <View style={{ width: 44 }} />
-      </View>
+      <SettingsSubHeader title="Edit Profile" onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}>
         <Text style={styles.label}>Your name</Text>
@@ -305,16 +300,6 @@ export function EditProfileScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 12,
-  },
-  closeButton: { fontSize: 15, color: colors.textMuted, width: 44 },
-  title: { fontSize: 17, fontWeight: '700', color: colors.text },
   content: { paddingHorizontal: 20, paddingTop: 4 },
   label: { fontSize: 15, fontWeight: '600', color: colors.text, marginTop: 20, marginBottom: 8 },
   sectionLabel: { marginTop: 28 },

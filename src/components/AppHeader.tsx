@@ -25,7 +25,7 @@ export function AppHeader() {
       </View>
       <View style={styles.headerRight}>
         <Text style={styles.avatar}>{AVATAR_EMOJI[childProfile?.avatarId ?? ''] ?? '🙂'}</Text>
-        <Pressable onPress={() => navigation.navigate('ManageExpectedGigs')} hitSlop={12} style={styles.settingsWrap}>
+        <Pressable onPress={() => navigation.navigate('Settings')} hitSlop={12} style={styles.settingsWrap}>
           <Text style={styles.settingsIcon}>⚙️</Text>
           {/* Nudges the parent toward the Account tab's "Secure your
            * account" flow — the account exists and is already backing up
