@@ -53,7 +53,7 @@ export function GoogleCalendarPickerScreen({ navigation }: Props) {
   return (
     <View style={styles.screen}>
       <ScreenHeader title="Choose a calendar" step={2} totalSteps={4} onBack={() => navigation.goBack()} />
-      <Text style={styles.helperText}>Pick the calendar that has school, practice, and extracurriculars on it.</Text>
+      <Text style={styles.helperText}>Pick the calendar that has school, sports, music, and extracurriculars on it.</Text>
       {error && <Text style={styles.errorText}>{error}</Text>}
       {loading ? (
         <View style={styles.centered}>

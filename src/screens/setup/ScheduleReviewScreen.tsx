@@ -22,9 +22,10 @@ import { colors } from '../../theme/colors';
 
 const CATEGORIES: { value: ScheduleEventCategory; label: string }[] = [
   { value: 'school', label: 'School' },
+  { value: 'sports', label: 'Sports' },
   { value: 'extracurricular', label: 'Extracurricular' },
-  { value: 'practice', label: 'Practice' },
-  { value: 'skip', label: 'Skip' },
+  { value: 'music', label: 'Music' },
+  { value: 'other', label: 'Other' },
 ];
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -50,6 +51,11 @@ export function ScheduleReviewScreen({ navigation }: Props) {
   const [genericSuggestionDrafts, setGenericSuggestionDrafts] = useState<Record<string, string>>({});
   const [suggestionFrequency, setSuggestionFrequency] = useState<Record<string, 'daily' | 'weekly'>>({});
   const [suggestionDuration, setSuggestionDuration] = useState<Record<string, string>>({});
+  // Only meaningful for events tagged 'sports' — whether this particular
+  // commitment is a practice (worth a suggested Expected item) or a game
+  // (a one-off event, not a daily/weekly habit). Not persisted on the
+  // event itself since it only ever affects whether a suggestion shows.
+  const [sportsIsPractice, setSportsIsPractice] = useState<Record<string, boolean>>({});
   const [modalVisible, setModalVisible] = useState(false);
   const [draftTitle, setDraftTitle] = useState('');
   const [draftCategory, setDraftCategory] = useState<ScheduleEventCategory>('school');
@@ -173,8 +179,9 @@ export function ScheduleReviewScreen({ navigation }: Props) {
         ListEmptyComponent={<Text style={styles.emptyText}>No events yet — add anything worth knowing about.</Text>}
         renderItem={({ item }) => {
           const status = suggestionStatus[item.localId] ?? 'pending';
-          const showSuggestion = status === 'pending' && categoryTriggersSuggestion(item.category);
-          const suggestion = showSuggestion ? suggestExpectedItemForEvent(item.title) : null;
+          const showSuggestion =
+            status === 'pending' && categoryTriggersSuggestion(item.category, sportsIsPractice[item.localId]);
+          const suggestion = showSuggestion ? suggestExpectedItemForEvent(item.title, item.category) : null;
 
           return (
             <View style={styles.eventRow}>
@@ -205,6 +212,40 @@ export function ScheduleReviewScreen({ navigation }: Props) {
                   );
                 })}
               </View>
+
+              {item.category === 'sports' && (
+                <View style={styles.sportsTypeRow}>
+                  <Text style={styles.sportsTypeLabel}>Practice or game?</Text>
+                  <View style={styles.categoryRow}>
+                    <Pressable
+                      onPress={() => setSportsIsPractice((prev) => ({ ...prev, [item.localId]: true }))}
+                      style={[styles.categoryChip, sportsIsPractice[item.localId] === true && styles.categoryChipSelected]}
+                    >
+                      <Text
+                        style={[
+                          styles.categoryChipText,
+                          sportsIsPractice[item.localId] === true && styles.categoryChipTextSelected,
+                        ]}
+                      >
+                        Practice
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setSportsIsPractice((prev) => ({ ...prev, [item.localId]: false }))}
+                      style={[styles.categoryChip, sportsIsPractice[item.localId] === false && styles.categoryChipSelected]}
+                    >
+                      <Text
+                        style={[
+                          styles.categoryChipText,
+                          sportsIsPractice[item.localId] === false && styles.categoryChipTextSelected,
+                        ]}
+                      >
+                        Game
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+              )}
 
               {status === 'added' && (
                 <View style={styles.suggestionAddedCard}>
@@ -419,6 +460,8 @@ const styles = StyleSheet.create({
   },
   cadenceTagText: { fontSize: 11, color: colors.expected, fontWeight: '700' },
   categoryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
+  sportsTypeRow: { marginBottom: 12 },
+  sportsTypeLabel: { fontSize: 12, color: colors.textMuted, fontWeight: '600', marginBottom: 6 },
   suggestionCard: {
     backgroundColor: colors.background,
     borderRadius: 10,
