@@ -7,11 +7,14 @@
 //
 // One idea per slide, tapped through rather than shown as one dense block —
 // the first version put the whole pitch on screen at once and read as a
-// wall of text on an actual phone. Three slides (trimmed from an earlier
-// four-slide cut that felt like too many taps for a first launch): the
-// mission statement, the "why the split" idea, and the money lesson. No
-// swipe library — a plain "Next" button drives local state, with a
-// slide+fade so advancing reads as a real transition rather than a jump cut.
+// wall of text on an actual phone. No swipe library — a plain "Next" button
+// drives local state, with a slide+fade so advancing reads as a real
+// transition rather than a jump cut.
+//
+// The logo sits in its own fixed block above the slide text rather than
+// being vertically centered together with it — centering them as one unit
+// meant the logo's on-screen position shifted with every slide's text
+// length. Only the text area re-centers itself as the copy changes.
 import React, { useRef, useState } from 'react';
 import { View, Text, Pressable, Animated, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,7 +33,10 @@ interface Slide {
 const SLIDES: Slide[] = [
   { headline: 'Raise a well-rounded, responsible kid who knows the value of hard work.' },
   {
-    body: "In a world of instant gratification and one-tap purchases, it's easy to lose sight of what work is actually worth. Being part of this family — school, chores, showing up — is simply expected, not a paid job. Anything extra is a gig: real work that earns real progress toward a goal they choose.",
+    body: "In a world of instant gratification and one-tap purchases, it's easy to lose sight of what work is actually worth.",
+  },
+  {
+    body: 'Being part of this family — school, chores, showing up — is simply expected, not a paid job. Anything extra is a gig: real work that earns real progress toward a goal they choose.',
   },
   {
     body: "Along the way, they'll learn to save first, watch their money grow, and spend what they've actually earned — never just a lecture about money.",
@@ -66,13 +72,13 @@ export function WelcomeScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={[styles.screen, { paddingBottom: 24 + insets.bottom }]}>
-      <View style={styles.centered}>
-        <View style={styles.brandRow}>
-          <Logo size={64} />
-          <Text style={styles.wordmark}>Merit</Text>
-        </View>
+    <View style={[styles.screen, { paddingTop: insets.top + 32, paddingBottom: 24 + insets.bottom }]}>
+      <View style={styles.brandRow}>
+        <Logo size={64} />
+        <Text style={styles.wordmark}>Merit</Text>
+      </View>
 
+      <View style={styles.textArea}>
         <Animated.View style={[styles.slideContent, { opacity: fade, transform: [{ translateX: shift }] }]}>
           {slide.headline && <Text style={styles.headline}>{slide.headline}</Text>}
           {slide.body && <Text style={styles.body}>{slide.body}</Text>}
@@ -94,10 +100,10 @@ export function WelcomeScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 28, paddingTop: 40 },
-  centered: { flex: 1, justifyContent: 'center' },
-  brandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, marginBottom: 36 },
+  screen: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 28 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
   wordmark: { fontSize: 28, fontWeight: '700', color: colors.text },
+  textArea: { flex: 1, justifyContent: 'center' },
   slideContent: {},
   headline: {
     fontSize: 24,
