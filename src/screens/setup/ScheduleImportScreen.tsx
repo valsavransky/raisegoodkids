@@ -67,7 +67,7 @@ export function ScheduleImportScreen({ navigation }: Props) {
       <View style={styles.content}>
         <Text style={styles.icon}>📅</Text>
         <Text style={styles.explanation}>
-          Knowing school, extracurriculars, and practice helps us suggest a realistic amount of
+          Knowing school, sports, music, and extracurriculars helps us suggest a realistic amount of
           Expected items and Gigs.
         </Text>
 

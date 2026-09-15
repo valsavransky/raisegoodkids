@@ -109,7 +109,7 @@ export function ImportGoogleCalendarScreen({ navigation }: Props) {
       ) : phase === 'needsConnect' ? (
         <View style={styles.connectContent}>
           <Text style={styles.explanation}>
-            Sign in to pull school, practice, and extracurricular events from your calendar.
+            Sign in to pull school, sports, music, and extracurricular events from your calendar.
           </Text>
           {error && <Text style={styles.errorText}>{error}</Text>}
           <Pressable style={styles.primaryButton} onPress={handleConnect} disabled={connecting || !request}>
@@ -122,7 +122,7 @@ export function ImportGoogleCalendarScreen({ navigation }: Props) {
         </View>
       ) : (
         <>
-          <Text style={styles.helperText}>Pick the calendar that has school, practice, and extracurriculars on it.</Text>
+          <Text style={styles.helperText}>Pick the calendar that has school, sports, music, and extracurriculars on it.</Text>
           {error && <Text style={styles.errorText}>{error}</Text>}
           <FlatList
             contentContainerStyle={styles.listContent}

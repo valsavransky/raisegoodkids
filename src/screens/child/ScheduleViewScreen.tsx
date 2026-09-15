@@ -1,15 +1,12 @@
 // A read/manage view of schedule events, grouped by day of week for
 // recurring events and by date for one-off ones. Not part of the original
 // screens-and-flows.md spec — added because knowing what's already
-// committed (school, practice, extracurriculars) is useful on its own, not
-// just as an input to setup suggestions.
+// committed (school, sports, music, extracurriculars) is useful on its
+// own, not just as an input to setup suggestions.
 //
 // Originally view-only — there was no way to add or edit anything here
 // after setup finished. Now supports adding, editing, and deleting events
 // manually, plus importing more from the (stubbed) Google Calendar flow.
-//
-// 'skip' events are omitted from the list here — they were explicitly
-// marked as not worth tracking during schedule review/import.
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, SectionList, ScrollView, Modal, Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -32,16 +29,18 @@ const SHORT_DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const CATEGORIES: { value: ScheduleEventCategory; label: string }[] = [
   { value: 'school', label: 'School' },
+  { value: 'sports', label: 'Sports' },
   { value: 'extracurricular', label: 'Extracurricular' },
-  { value: 'practice', label: 'Practice' },
-  { value: 'skip', label: 'Skip' },
+  { value: 'music', label: 'Music' },
+  { value: 'other', label: 'Other' },
 ];
 
 const CATEGORY_LABELS: Record<ScheduleEventCategory, string> = {
   school: 'School',
+  sports: 'Sports',
   extracurricular: 'Extracurricular',
-  practice: 'Practice',
-  skip: 'Skip',
+  music: 'Music',
+  other: 'Other',
 };
 
 const CADENCE_OPTIONS: ScheduleEventCadence[] = ['daily', 'weekly', 'biweekly', 'monthly'];
@@ -81,16 +80,14 @@ export function ScheduleViewScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<DraftState>(BLANK_DRAFT);
 
-  const trackedEvents = scheduleEvents.filter((e) => e.category !== 'skip');
-
   const recurringByDay = DAY_LABELS.map((label, dayIndex) => ({
     title: label,
-    data: trackedEvents
+    data: scheduleEvents
       .filter((e) => e.recurring && (e.daysOfWeek ?? []).includes(dayIndex))
       .sort((a, b) => (a.startTime ?? '').localeCompare(b.startTime ?? '')),
   })).filter((section) => section.data.length > 0);
 
-  const oneOff = trackedEvents
+  const oneOff = scheduleEvents
     .filter((e) => !e.recurring)
     .sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''));
 

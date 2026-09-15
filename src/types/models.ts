@@ -30,7 +30,15 @@ export interface ChildProfile {
   petName?: string;
 }
 
-export type ScheduleEventCategory = 'school' | 'extracurricular' | 'practice' | 'skip';
+// 'skip' (hide from the schedule) was removed — redundant with just not
+// importing/deleting an event, and confusing on manual add (see
+// docs/screens-and-flows.md). 'practice' was folded into 'music'/'sports'
+// (which is which now depends on the activity, not a separate tag); 'other'
+// is the new safe catch-all for anything that isn't naturally one of the
+// four real categories (an appointment, a playdate) — shows on the
+// schedule like everything else, just never triggers a suggested Expected
+// item (see src/data/practiceSuggestions.ts).
+export type ScheduleEventCategory = 'school' | 'sports' | 'extracurricular' | 'music' | 'other';
 export type ScheduleEventSource = 'google_calendar' | 'manual';
 
 /** How often a recurring event repeats. Google Calendar imports derive this
