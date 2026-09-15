@@ -25,4 +25,5 @@ export type RootStackParamList = {
   ImportGoogleCalendar: undefined;
   ImportGoogleCalendarEvents: { calendarId: string };
   ManageExpectedGigs: undefined;
+  EditProfile: undefined;
 };

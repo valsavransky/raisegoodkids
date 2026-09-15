@@ -33,6 +33,7 @@ const DEFAULT_FUTURE_FUND_PERCENTAGE = 10;
 const STORAGE_KEY = '@merit/appData/v1';
 
 interface PersistedAppData {
+  parentName: string | null;
   childProfile: ChildProfile | null;
   scheduleEvents: ScheduleEvent[];
   expectedItems: ExpectedItem[];
@@ -71,6 +72,10 @@ interface AppDataContextValue {
    * since a null childProfile before hydration doesn't yet mean "new
    * user," just "haven't checked storage yet." */
   isHydrated: boolean;
+  /** The parent's own name — no separate ParentAccount entity exists yet
+   * (see ChildProfile.parentAccountId), so this lives as its own top-level
+   * field rather than awkwardly on the child's profile. */
+  parentName: string | null;
   childProfile: ChildProfile | null;
   scheduleEvents: ScheduleEvent[];
   expectedItems: ExpectedItem[];
@@ -88,6 +93,11 @@ interface AppDataContextValue {
     expectedItems: DraftExpectedItem[];
     gigs: DraftGig[];
   }) => void;
+
+  /** Fixes a real gap: nothing after initial setup could correct a typo'd
+   * child name/birthday or edit any other profile field until now. */
+  updateChildProfile: (fields: Partial<Omit<ChildProfile, 'id' | 'parentAccountId'>>) => void;
+  updateParentName: (name: string) => void;
 
   isExpectedDoneToday: (expectedItemId: string) => boolean;
   markExpectedDone: (expectedItemId: string) => MarkExpectedDoneResult;
@@ -160,6 +170,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   // triggers a fresh reconcile against the new token instead of being
   // silently skipped.
   const reconciledTokenRef = useRef<string | null>(null);
+  const [parentName, setParentName] = useState<string | null>(null);
   const [childProfile, setChildProfile] = useState<ChildProfile | null>(null);
   const [scheduleEvents, setScheduleEvents] = useState<ScheduleEvent[]>([]);
   const [expectedItems, setExpectedItems] = useState<ExpectedItem[]>([]);
@@ -179,6 +190,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw) {
           const data: PersistedAppData = JSON.parse(raw);
+          setParentName(data.parentName ?? null);
           setChildProfile(data.childProfile);
           setScheduleEvents(data.scheduleEvents);
           setExpectedItems(data.expectedItems);
@@ -211,6 +223,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         const { data: serverData } = await fetchData(token);
         if (serverData && !childProfile) {
           const data = serverData as PersistedAppData;
+          setParentName(data.parentName ?? null);
           setChildProfile(data.childProfile);
           setScheduleEvents(data.scheduleEvents);
           setExpectedItems(data.expectedItems);
@@ -223,6 +236,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           setBadges(data.badges);
         } else if (childProfile) {
           await saveData(token, {
+            parentName,
             childProfile,
             scheduleEvents,
             expectedItems,
@@ -250,6 +264,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isHydrated) return;
     const data: PersistedAppData = {
+      parentName,
       childProfile,
       scheduleEvents,
       expectedItems,
@@ -271,6 +286,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     isHydrated,
     token,
     hasReconciled,
+    parentName,
     childProfile,
     scheduleEvents,
     expectedItems,
@@ -282,6 +298,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     gigEffortValues,
     badges,
   ]);
+
+  const updateChildProfile: AppDataContextValue['updateChildProfile'] = (fields) => {
+    setChildProfile((prev) => (prev ? { ...prev, ...fields } : prev));
+  };
+
+  const updateParentName: AppDataContextValue['updateParentName'] = (name) => {
+    setParentName(name.trim().length > 0 ? name.trim() : null);
+  };
 
   const completeSetup: AppDataContextValue['completeSetup'] = (draft) => {
     const childId = makeId('child');
@@ -637,6 +661,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
    * local data. Explicit here instead. */
   const resetAllData = async () => {
     await AsyncStorage.removeItem(STORAGE_KEY);
+    setParentName(null);
     setChildProfile(null);
     setScheduleEvents([]);
     setExpectedItems([]);
@@ -656,7 +681,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     <AppDataContext.Provider
       value={{
         isHydrated,
+        parentName,
         childProfile,
+        updateChildProfile,
+        updateParentName,
         scheduleEvents,
         expectedItems,
         expectedCompletions,

@@ -12,6 +12,7 @@ import { AllExpectedDoneScreen } from '../screens/child/AllExpectedDoneScreen';
 import { ImportGoogleCalendarScreen } from '../screens/child/ImportGoogleCalendarScreen';
 import { ImportGoogleCalendarEventsScreen } from '../screens/child/ImportGoogleCalendarEventsScreen';
 import { ManageExpectedGigsScreen } from '../screens/parent/ManageExpectedGigsScreen';
+import { EditProfileScreen } from '../screens/parent/EditProfileScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -29,6 +30,7 @@ export function RootStackNavigator() {
         <Stack.Screen name="ImportGoogleCalendar" component={ImportGoogleCalendarScreen} />
         <Stack.Screen name="ImportGoogleCalendarEvents" component={ImportGoogleCalendarEventsScreen} />
         <Stack.Screen name="ManageExpectedGigs" component={ManageExpectedGigsScreen} />
+        <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       </Stack.Group>
     </Stack.Navigator>
   );
