@@ -44,7 +44,7 @@ export function ScreenHeader({
         <View style={styles.brandRow}>
           {/* Swap the mark by changing this import — nothing else in the
            * header depends on it being the medal-and-ribbon Logo. */}
-          <Logo size={22} />
+          <Logo size={28} />
           <Text style={styles.wordmark}>Merit</Text>
         </View>
 
@@ -72,7 +72,7 @@ export function ScreenHeader({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
-    paddingTop: 28,
+    paddingTop: 36,
     paddingBottom: 12,
   },
   topRow: {
@@ -90,8 +90,8 @@ const styles = StyleSheet.create({
   backArrowHidden: {
     opacity: 0,
   },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  wordmark: { fontSize: 15, fontWeight: '700', color: colors.text },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  wordmark: { fontSize: 19, fontWeight: '700', color: colors.text },
   profileChip: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   progressSegment: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.border },
   progressSegmentFilled: { backgroundColor: colors.expected },
   title: {
-    fontSize: 24,
+    fontSize: 21,
     fontWeight: '700',
     color: colors.text,
     marginTop: 12,

@@ -85,8 +85,14 @@ export function ImportGoogleCalendarEventsScreen({ route, navigation }: Props) {
       }
       if (!cancelled) {
         setEvents(result);
+        // Pre-check only recurring events — a repeated commitment (piano
+        // every Tuesday) is almost always worth tracking, while a one-off
+        // (a single dentist appointment) usually isn't. One-offs still show
+        // up, just unchecked, so they're easy to add if they do matter.
         setSelectedIds(
-          result.filter((e) => !alreadyAddedTitles.has(e.title.trim().toLowerCase())).map((e) => e.id)
+          result
+            .filter((e) => e.recurring && !alreadyAddedTitles.has(e.title.trim().toLowerCase()))
+            .map((e) => e.id)
         );
         setLoading(false);
       }
