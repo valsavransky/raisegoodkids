@@ -1,12 +1,17 @@
-// Shared header for the parent setup wizard: back arrow + brand mark + a
-// visual step-progress bar (replacing "Step X of Y" text — reads at a
-// glance) + a tappable child-profile chip once a name exists (jumps back
-// to the Child Profile step to review/edit it) + title. Parent-facing
-// voice is calm and efficient — no exclamation points (see
-// docs/screens-and-flows.md, "Dual voice").
+// Shared header for the parent setup wizard: back arrow + a visual
+// step-progress bar (replacing "Step X of Y" text — reads at a glance) + a
+// tappable child-profile chip once a name exists (jumps back to the Child
+// Profile step to review/edit it) + title. Parent-facing voice is calm and
+// efficient — no exclamation points (see docs/screens-and-flows.md, "Dual
+// voice").
+//
+// No Merit brand mark here on purpose — it's already made its impression on
+// the Welcome screen, and most step-by-step wizards (Stripe onboarding,
+// Apple setup) drop the logo from inner steps once the user knows what
+// app they're in, keeping the chrome to just back arrow + progress + title.
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Logo } from './Logo';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AVATAR_EMOJI } from '../data/avatars';
 import { colors } from '../theme/colors';
 
@@ -37,21 +42,15 @@ export function ScreenHeader({
   onPressProfile,
   titleMarginTop,
 }: ScreenHeaderProps) {
+  const insets = useSafeAreaInsets();
   const firstName = childName?.trim().split(' ')[0];
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top + 12 }]}>
       <View style={styles.topRow}>
         <Pressable onPress={onBack} disabled={!onBack} hitSlop={12} style={styles.sideSlot}>
           <Text style={[styles.backArrow, !onBack && styles.backArrowHidden]}>{'←'}</Text>
         </Pressable>
-
-        <View style={styles.brandRow}>
-          {/* Swap the mark by changing this import — nothing else in the
-           * header depends on it being the medal-and-ribbon Logo. */}
-          <Logo size={28} />
-          <Text style={styles.wordmark}>Merit</Text>
-        </View>
 
         {firstName ? (
           <Pressable onPress={onPressProfile} hitSlop={8} style={styles.profileChip}>
@@ -77,7 +76,6 @@ export function ScreenHeader({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
-    paddingTop: 36,
     paddingBottom: 12,
   },
   topRow: {
@@ -95,8 +93,6 @@ const styles = StyleSheet.create({
   backArrowHidden: {
     opacity: 0,
   },
-  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  wordmark: { fontSize: 19, fontWeight: '700', color: colors.text },
   profileChip: {
     flexDirection: 'row',
     alignItems: 'center',
