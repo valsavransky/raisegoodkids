@@ -118,7 +118,7 @@ export function EditProfileScreen({ navigation }: Props) {
                 }}
                 style={[styles.avatarOption, selected && styles.avatarOptionSelected]}
               >
-                <Text style={styles.avatarEmoji}>{avatar.emoji}</Text>
+                <avatar.Icon size={40} />
               </Pressable>
             );
           })}
@@ -332,7 +332,6 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   avatarOptionSelected: { borderColor: colors.expected },
-  avatarEmoji: { fontSize: 26 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     paddingHorizontal: 14,

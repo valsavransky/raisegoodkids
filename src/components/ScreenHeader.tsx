@@ -12,7 +12,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AVATAR_EMOJI } from '../data/avatars';
+import { AvatarGlyph } from './AvatarGlyph';
 import { colors } from '../theme/colors';
 
 interface ScreenHeaderProps {
@@ -54,7 +54,7 @@ export function ScreenHeader({
 
         {firstName ? (
           <Pressable onPress={onPressProfile} hitSlop={8} style={styles.profileChip}>
-            <Text style={styles.profileAvatar}>{AVATAR_EMOJI[childAvatarId ?? ''] ?? '🙂'}</Text>
+            <AvatarGlyph avatarId={childAvatarId} size={18} />
             <Text style={styles.profileName}>{firstName}</Text>
           </Pressable>
         ) : (
@@ -102,7 +102,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: colors.surface,
   },
-  profileAvatar: { fontSize: 14 },
   profileName: { fontSize: 12, fontWeight: '600', color: colors.text },
   progressRow: { flexDirection: 'row', gap: 6, marginTop: 16, marginBottom: 4 },
   progressSegment: { flex: 1, height: 4, borderRadius: 2, backgroundColor: colors.border },

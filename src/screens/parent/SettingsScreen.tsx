@@ -13,7 +13,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { useAppData } from '../../context/AppDataContext';
 import { useAuth } from '../../context/AuthContext';
-import { AVATAR_EMOJI } from '../../data/avatars';
+import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { signOut as signOutOfGoogle } from '../../services/googleAuth';
 import { colors } from '../../theme/colors';
 
@@ -58,7 +58,7 @@ export function SettingsScreen({ navigation }: Props) {
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
         <Pressable onPress={() => navigation.navigate('EditProfile')} style={styles.profileRow}>
-          <Text style={styles.profileAvatar}>{AVATAR_EMOJI[childProfile?.avatarId ?? ''] ?? '🙂'}</Text>
+          <AvatarGlyph avatarId={childProfile?.avatarId} size={36} />
           <View style={styles.rowInfo}>
             <Text style={styles.profileName}>{childProfile?.name || 'Your child'}</Text>
             <Text style={styles.rowSubtitle}>{parentName ? `Parent: ${parentName}` : 'Add your name'}</Text>
@@ -159,7 +159,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     gap: 12,
   },
-  profileAvatar: { fontSize: 36 },
   profileName: { fontSize: 16, fontWeight: '700', color: colors.text },
   row: {
     flexDirection: 'row',

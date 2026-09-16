@@ -1,5 +1,5 @@
 # Screens & Flows Spec: Merit
-*Companion to vision-doc-kids-goals-app.md. This document tracks concrete screen-level decisions as they're made, for handoff to design and to Claude Code. Last updated: Sept 8, 2026.*
+*Companion to vision-doc-kids-goals-app.md. This document tracks concrete screen-level decisions as they're made, for handoff to design and to Claude Code. Last updated: Sept 16, 2026.*
 
 ---
 
@@ -74,7 +74,7 @@ Both converge on a payoff step: redeem the goal (parent fulfills it in real life
 **Purpose:** create a single child's profile (full flow is one child at a time, not a multi-child wizard).
 **Key elements:**
 - Back arrow + "Add a child" + step indicator ("Step 1 of 3")
-- Avatar picker (5 simple icon-based options, no photo requirement)
+- **Avatar picker (revised, now built):** 5 illustrated character avatars, no photo requirement — replaces the earlier plain animal-emoji set. The set: **Blob monster** (amber, wall-eyed with tongue out), **Narwhal** (teal, winking with tongue out), **Cactus** (violet, cross-eyed with a single crooked tooth — the one character with a visible tooth rather than a tongue, a deliberate outlier in the set), **Cloud** (magenta, winking with a tongue-out laugh and soft rosy cheeks), **Donut** (tonal amber with colored sprinkles, derpy eyes looking in opposite directions with tongue out). **Reusable design rule:** every character follows the same "two dot eyes + an expressive mouth" formula, so new characters can be added later (a cupcake, a mushroom, a robot, etc.) and will automatically feel part of the same family. Built as flat SVG primitives (`src/components/icons/AvatarIcons.tsx`) for a fast first pass — **known limitation:** these should still get a proper illustrator's pass (cleaner curves, possibly subtle shading) before they're considered final, since kids will be looking at these repeatedly.
 - Name field
 - Birthday field
 - Grade in school (optional) — feeds the age/grade content library for suggested Expected items and Gigs (see below)

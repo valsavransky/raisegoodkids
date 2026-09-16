@@ -11,7 +11,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppData } from '../context/AppDataContext';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../navigation/types';
-import { AVATAR_EMOJI } from '../data/avatars';
+import { AvatarGlyph } from './AvatarGlyph';
 import { Logo } from './Logo';
 import { colors } from '../theme/colors';
 
@@ -30,7 +30,7 @@ export function AppHeader() {
         <Text style={styles.wordmark}>Merit</Text>
       </View>
       <Pressable onPress={() => navigation.navigate('Settings')} hitSlop={8} style={styles.chip}>
-        <Text style={styles.avatar}>{AVATAR_EMOJI[childProfile?.avatarId ?? ''] ?? '🙂'}</Text>
+        <AvatarGlyph avatarId={childProfile?.avatarId} size={20} />
         {firstName && <Text style={styles.name}>{firstName}</Text>}
         {/* Nudges the parent toward the Account tab's "Secure your
          * account" flow — the account exists and is already backing up
@@ -62,7 +62,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     position: 'relative',
   },
-  avatar: { fontSize: 16 },
   name: { fontSize: 13, fontWeight: '700', color: colors.text },
   chipDot: {
     position: 'absolute',
