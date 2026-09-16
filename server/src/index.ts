@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { pool, runMigrations } from './db';
 import { authRouter, requireAuth, AuthedRequest } from './auth';
+import { goalsRouter } from './goals';
 
 const app = express();
 app.use(cors());
@@ -12,6 +13,7 @@ app.get('/', (_req, res) => {
 });
 
 app.use('/auth', authRouter);
+app.use('/goals', goalsRouter);
 
 // The app's entire local data blob (see PersistedAppData in
 // AppDataContext.tsx), stored as one JSONB column per account — mirrors

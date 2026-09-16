@@ -178,6 +178,13 @@ export type GoalStatus = 'queued' | 'active' | 'achieved' | 'fulfilled';
  * summing approved GigCompletion.percentageAwarded for this goal, so a
  * later-corrected completion can't leave the goal record out of sync.
  */
+/** Powers "Suggested for you" on the Goal tab (see src/data/goalIdeas.ts) —
+ * set once when a goal is added, by keyword match against its name, or by
+ * asking Claude when no keyword matches (e.g. a brand name like "Needo";
+ * see server/src/goals.ts). Absent for goals added before this field
+ * existed, or when neither method found a confident category. */
+export type GoalCategory = 'toys' | 'games' | 'tech' | 'sports' | 'creative' | 'experience';
+
 export interface Goal {
   id: string;
   childProfileId: string;
@@ -189,6 +196,7 @@ export interface Goal {
   createdAt: string;
   achievedAt?: string;
   fulfilledAt?: string;
+  category?: GoalCategory;
 }
 
 /** Fixed "pay yourself first" skim off every gig's earned value, taken before

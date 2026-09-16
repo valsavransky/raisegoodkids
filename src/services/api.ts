@@ -4,6 +4,7 @@
 // on-device storage, since the household's data must never depend on the
 // network being up.
 import { API_BASE_URL } from '../config';
+import { GoalCategory } from '../types/models';
 
 export class ApiError extends Error {
   status: number;
@@ -51,4 +52,21 @@ export function fetchData(token: string): Promise<{ data: unknown | null }> {
 
 export function saveData(token: string, data: unknown): Promise<{ ok: true }> {
   return request('/data', { method: 'PUT', token, body: { data } });
+}
+
+/** Falls back to { category: null } on any failure (offline, server error,
+ * no ANTHROPIC_API_KEY configured) rather than throwing — this only ever
+ * feeds an optional "suggested for you" list, never something the goal-add
+ * flow itself should be blocked by. */
+export async function classifyGoalCategory(token: string, name: string): Promise<GoalCategory | null> {
+  try {
+    const result = await request<{ category: GoalCategory | null }>('/goals/classify-category', {
+      method: 'POST',
+      token,
+      body: { name },
+    });
+    return result.category;
+  } catch {
+    return null;
+  }
 }

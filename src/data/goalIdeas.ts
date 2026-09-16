@@ -4,7 +4,9 @@
 // separate, vendor-dependent workstream — see docs/screens-and-flows.md);
 // these are static, parent-overridable starting points, same spirit as the
 // grade content library.
-export type GoalCategory = 'toys' | 'games' | 'tech' | 'sports' | 'creative' | 'experience';
+import { GoalCategory } from '../types/models';
+
+export type { GoalCategory };
 
 export interface GoalIdea {
   name: string;
@@ -68,22 +70,28 @@ export function guessGoalCategory(name: string): GoalCategory | undefined {
 /**
  * Suggests up to `limit` goal ideas related to a household's existing
  * goals — category-matched against whichever category appears most often
- * among their current goal names, excluding ideas that duplicate an
- * existing goal name. Returns [] once there's nothing to base a suggestion
- * on (no goals yet, or none of their goal names match a known category).
+ * among their current goals, excluding ideas that duplicate an existing
+ * goal name. Returns [] once there's nothing to base a suggestion on (no
+ * goals yet, or none of their goals have a known category).
+ *
+ * Prefers each goal's stored `category` (set at add-time — see
+ * AppDataContext.addGoal — by keyword match, or by asking Claude when
+ * keywords miss; see server/src/goals.ts) and only falls back to
+ * re-guessing from the name for older goals saved before that field
+ * existed.
  */
-export function suggestGoalIdeas(existingGoalNames: string[], limit = 3): GoalIdea[] {
-  if (existingGoalNames.length === 0) return [];
+export function suggestGoalIdeas(existingGoals: { name: string; category?: GoalCategory }[], limit = 3): GoalIdea[] {
+  if (existingGoals.length === 0) return [];
 
   const categoryCounts = new Map<GoalCategory, number>();
-  for (const name of existingGoalNames) {
-    const category = guessGoalCategory(name);
+  for (const goal of existingGoals) {
+    const category = goal.category ?? guessGoalCategory(goal.name);
     if (category) categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1);
   }
   if (categoryCounts.size === 0) return [];
 
   const topCategory = [...categoryCounts.entries()].sort((a, b) => b[1] - a[1])[0][0];
-  const existingLower = new Set(existingGoalNames.map((n) => n.trim().toLowerCase()));
+  const existingLower = new Set(existingGoals.map((g) => g.name.trim().toLowerCase()));
 
   return GOAL_IDEAS.filter(
     (idea) => idea.category === topCategory && !existingLower.has(idea.name.toLowerCase())

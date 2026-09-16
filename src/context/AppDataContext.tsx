@@ -17,6 +17,7 @@ import {
   Gig,
   GigCompletion,
   Goal,
+  GoalCategory,
   FutureFund,
   GigEffortValues,
   Badge,
@@ -117,7 +118,7 @@ interface AppDataContextValue {
   queuedGoals: () => Goal[];
   completedGoals: () => Goal[];
   getGoal: (goalId: string) => Goal | undefined;
-  addGoal: (name: string, realWorldCost: number) => void;
+  addGoal: (name: string, realWorldCost: number, category?: GoalCategory) => void;
   setActiveGoal: (goalId: string) => void;
   /** Only allowed for a non-active goal with zero progress recorded against
    * it — a goal that was ever active could carry real earned progress. */
@@ -470,7 +471,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       .sort((a, b) => (b.achievedAt ?? '').localeCompare(a.achievedAt ?? ''));
   const getGoal = (goalId: string): Goal | undefined => goals.find((g) => g.id === goalId);
 
-  const addGoal = (name: string, realWorldCost: number) => {
+  const addGoal = (name: string, realWorldCost: number, category?: GoalCategory) => {
     const hasActive = goals.some((g) => g.status === 'active');
     const goal: Goal = {
       id: makeId('goal'),
@@ -480,6 +481,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       queuePosition: goals.length,
       status: hasActive ? 'queued' : 'active',
       createdAt: new Date().toISOString(),
+      category,
     };
     setGoals((prev) => [...prev, goal]);
   };

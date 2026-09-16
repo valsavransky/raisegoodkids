@@ -23,11 +23,13 @@ import { useNavigation, CompositeNavigationProp } from '@react-navigation/native
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppData } from '../../context/AppDataContext';
+import { useAuth } from '../../context/AuthContext';
 import { Goal } from '../../types/models';
 import { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { AppHeader } from '../../components/AppHeader';
 import { Confetti } from '../../components/Confetti';
-import { CATEGORY_EMOJI, GoalIdea, suggestGoalIdeas } from '../../data/goalIdeas';
+import { CATEGORY_EMOJI, GoalIdea, guessGoalCategory, suggestGoalIdeas } from '../../data/goalIdeas';
+import { classifyGoalCategory } from '../../services/api';
 import { colors } from '../../theme/colors';
 
 type GoalPickerNavigationProp = CompositeNavigationProp<
@@ -53,6 +55,7 @@ export function GoalPickerScreen() {
     futureFund,
     recordFutureFundContribution,
   } = useAppData();
+  const { token } = useAuth();
   const childName = childProfile?.name.trim() || 'your child';
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -76,7 +79,7 @@ export function GoalPickerScreen() {
     ...(completed.length > 0 ? [{ title: 'Completed', data: completed }] : []),
   ];
 
-  const suggestedIdeas = suggestGoalIdeas(goals.map((g) => g.name));
+  const suggestedIdeas = suggestGoalIdeas(goals);
 
   const openAddModal = () => {
     setEditingGoalId(null);
@@ -99,15 +102,21 @@ export function GoalPickerScreen() {
     setModalVisible(true);
   };
 
-  const confirmSave = () => {
+  const confirmSave = async () => {
     const cost = parseFloat(draftCost);
     if (!draftName.trim() || Number.isNaN(cost) || cost <= 0) return;
+    const name = draftName.trim();
     if (editingGoalId) {
-      updateGoal(editingGoalId, { name: draftName.trim(), realWorldCost: cost });
+      updateGoal(editingGoalId, { name, realWorldCost: cost });
     } else {
-      addGoal(draftName.trim(), cost);
+      setModalVisible(false);
       setConfettiTrigger((n) => n + 1);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Keyword match is instant and free — only fall back to asking Claude
+      // (a network round trip) when it misses, e.g. a brand name like "Needo".
+      const category = guessGoalCategory(name) ?? (token ? (await classifyGoalCategory(token, name)) ?? undefined : undefined);
+      addGoal(name, cost, category);
+      return;
     }
     setModalVisible(false);
   };
