@@ -3,7 +3,7 @@
 // on the Settings list (which also shows a small amber dot there while
 // still unsecured, mirroring the same nudge on the gear icon).
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -75,7 +75,11 @@ export function AccountScreen({ navigation }: Props) {
     <View style={styles.screen}>
       <SettingsSubHeader title="Account" onBack={() => navigation.goBack()} />
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}
+        keyboardShouldPersistTaps="handled"
+      >
         {isAutoAccount ? (
           <>
             <Text style={styles.helper}>
@@ -149,6 +153,7 @@ export function AccountScreen({ navigation }: Props) {
           </Text>
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

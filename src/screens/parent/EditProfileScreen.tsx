@@ -5,7 +5,7 @@
 // Save (like the rest of Settings) rather than writing straight through on
 // every keystroke.
 import React, { useMemo, useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, Modal, Platform, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, Modal, Platform, KeyboardAvoidingView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -89,7 +89,11 @@ export function EditProfileScreen({ navigation }: Props) {
     <View style={styles.screen}>
       <SettingsSubHeader title="Edit Profile" onBack={() => navigation.goBack()} />
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.label}>Your name</Text>
         <TextInput
           style={styles.input}
@@ -294,6 +298,7 @@ export function EditProfileScreen({ navigation }: Props) {
           <Text style={styles.saveButtonText}>{status === 'saved' ? '✓ Saved' : 'Save'}</Text>
         </Pressable>
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

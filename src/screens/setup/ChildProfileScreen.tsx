@@ -13,6 +13,7 @@ import {
   ScrollView,
   Modal,
   Platform,
+  KeyboardAvoidingView,
   LayoutAnimation,
   UIManager,
   StyleSheet,
@@ -80,10 +81,12 @@ export function ChildProfileScreen({ navigation }: Props) {
   };
 
   return (
-    <ScrollView
-      style={styles.screen}
-      contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}
-    >
+    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView
+        style={styles.screen}
+        contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}
+        keyboardShouldPersistTaps="handled"
+      >
       <ScreenHeader title="Add a child" step={1} totalSteps={4} titleMarginTop={28} />
       <Pressable onPress={() => navigation.navigate('Login')} style={styles.loginLink}>
         <Text style={styles.loginLinkText}>Already set up Merit before? Log in</Text>
@@ -257,7 +260,8 @@ export function ChildProfileScreen({ navigation }: Props) {
           </Pressable>
         </>
       )}
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
