@@ -19,7 +19,7 @@ No effort tier or dollar value — these are the "table stakes" and should never
 | Put dirty clothes in the hamper | Daily | 3rd & 4th |
 | Clear your place and load into dishwasher after meals | Daily | 3rd & 4th |
 | Tidy your room | Weekly | 3rd & 4th |
-| Set the table for dinner | A few times a week | 3rd & 4th |
+| Set the table for dinner | Daily | 3rd & 4th |
 | Put away your own clean laundry | Weekly | 3rd & 4th (3rd grade: folded clothes handed to them to put away; 4th grade: folds and puts away independently) |
 
 *Feeding a pet isn't listed here — it's added automatically, personalized with the pet's name, only for a household that actually has one (see the child-profile household questions). Listing it as a plain, always-suggested item here caused a real bug: every family saw "Feed the pet" suggested regardless of whether they had one.*

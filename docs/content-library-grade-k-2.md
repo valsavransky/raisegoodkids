@@ -21,7 +21,7 @@ No effort tier or dollar value — same rule as every other grade band.
 | Clear your plate after meals | Daily | |
 | Put backpack and shoes by the door | Daily (school days) | The K-2nd equivalent of 3rd/4th's "pack your own backpack" — packing it is still mostly a parent task at this age; putting it away when they get home is the realistic independent piece. |
 | Tidy your room with a grown-up | Weekly | Explicitly paired, unlike 3rd/4th's solo "Tidy your room" — room tidying at this age is a shared task, not a delegated one. |
-| Help set the table for dinner | Weekly | |
+| Help set the table for dinner | Daily | |
 | Put away your own clean laundry (socks and folded shirts) | Weekly | A grown-up still folds; matching socks and putting folded items in drawers is the child's piece. |
 
 ---

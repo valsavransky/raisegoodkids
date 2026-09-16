@@ -41,8 +41,8 @@ const grade3And4: GradeContentLibrary = {
     { name: 'Read for 20 minutes', frequency: 'daily' },
     { name: 'Put dirty clothes in the hamper', frequency: 'daily' },
     { name: 'Clear your place and load into dishwasher after meals', frequency: 'daily' },
+    { name: 'Set the table for dinner', frequency: 'daily' },
     { name: 'Tidy your room', frequency: 'weekly' },
-    { name: 'Set the table for dinner', frequency: 'weekly' },
     { name: 'Put away your own clean laundry', frequency: 'weekly' },
   ],
   gigs: [
@@ -82,8 +82,8 @@ const gradeKTo2: GradeContentLibrary = {
     { name: 'Put dirty clothes in the hamper', frequency: 'daily' },
     { name: 'Clear your plate after meals', frequency: 'daily' },
     { name: 'Put backpack and shoes by the door', frequency: 'daily' },
+    { name: 'Help set the table for dinner', frequency: 'daily' },
     { name: 'Tidy your room with a grown-up', frequency: 'weekly' },
-    { name: 'Help set the table for dinner', frequency: 'weekly' },
     { name: 'Put away your own clean laundry (socks and folded shirts)', frequency: 'weekly' },
   ],
   gigs: [
