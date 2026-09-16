@@ -13,3 +13,7 @@ Check both docs before making UX or data-model decisions — many details (appro
 React Native + Expo (TypeScript). One parent account per household, with one or more child profiles — no separate child login/credentials (see the device/auth model decision in `docs/screens-and-flows.md`); the child interacts through the parent's device.
 
 See `AGENTS.md` for the Expo SDK version this project pins to and where to check version-specific API docs before writing code.
+
+## Live priorities doc
+
+`https://claude.ai/artifact/E9gWXz71mLd4B1nwMpT2bH` is the running "Merit Priorities" snapshot (what's shipped, in progress, and queued, ranked by impact/effort) — read it at the start of a new session to pick up where things left off, and re-publish it (same URL) whenever a feature ships or priorities change. Don't let it go stale.
