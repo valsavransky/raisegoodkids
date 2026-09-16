@@ -7,7 +7,7 @@
 // the top — the standard placement, which is also just where a parent
 // looks first.
 import React from 'react';
-import { View, Text, Pressable, ScrollView, Alert, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, Switch, Alert, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -21,7 +21,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
 export function SettingsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { childProfile, parentName, resetAllData } = useAppData();
+  const { childProfile, parentName, resetAllData, soundEnabled, setSoundEnabled } = useAppData();
   const { isAutoAccount, accountEmail } = useAuth();
 
   const confirmResetAllData = () => {
@@ -81,6 +81,20 @@ export function SettingsScreen({ navigation }: Props) {
           </View>
           <Text style={styles.chevron}>{'›'}</Text>
         </Pressable>
+
+        <Text style={styles.sectionLabel}>Preferences</Text>
+        <View style={styles.row}>
+          <Text style={styles.rowIcon}>🔊</Text>
+          <View style={styles.rowInfo}>
+            <Text style={styles.rowLabel}>Sound effects</Text>
+            <Text style={styles.rowSubtitle}>Chimes for checkoffs and badge unlocks</Text>
+          </View>
+          <Switch
+            value={soundEnabled}
+            onValueChange={setSoundEnabled}
+            trackColor={{ true: colors.expected }}
+          />
+        </View>
 
         <Text style={styles.sectionLabel}>Account</Text>
         <Pressable onPress={() => navigation.navigate('AccountSettings')} style={styles.row}>

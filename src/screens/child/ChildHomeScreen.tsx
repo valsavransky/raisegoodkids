@@ -15,6 +15,7 @@
 // structurally. See conversation for the "cheap solution" reasoning.
 import React from 'react';
 import { View, Text, Pressable, ScrollView, Alert, StyleSheet } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -24,6 +25,7 @@ import { ExpectedItemRow } from '../../components/ExpectedItemRow';
 import { GigItemRow } from '../../components/GigItemRow';
 import { AppHeader } from '../../components/AppHeader';
 import { HeartHandshakeIcon } from '../../components/icons/HeartHandshakeIcon';
+import { playSound } from '../../services/sound';
 import { colors } from '../../theme/colors';
 
 type ChildHomeNavigationProp = CompositeNavigationProp<
@@ -47,7 +49,13 @@ export function ChildHomeScreen() {
     gigPreviewPercentage,
     gigCompletionStatusToday,
     markGigDone,
+    soundEnabled,
   } = useAppData();
+
+  const celebrateCheckoff = () => {
+    playSound('checkoff', soundEnabled);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
 
   const goal = activeGoal();
   const { done, total } = expectedDoneCountToday();
@@ -94,6 +102,7 @@ export function ChildHomeScreen() {
               name={item.name}
               isDone={isExpectedDoneToday(item.id)}
               onPress={() => {
+                celebrateCheckoff();
                 const { newBadgeCatalogId, allDoneToday } = markExpectedDone(item.id);
                 if (allDoneToday) {
                   navigation.navigate('AllExpectedDone', { badgeCatalogId: newBadgeCatalogId ?? undefined });
@@ -115,6 +124,7 @@ export function ChildHomeScreen() {
               name={item.name}
               isDone={isExpectedDoneToday(item.id)}
               onPress={() => {
+                celebrateCheckoff();
                 const { newBadgeCatalogId, allDoneToday } = markExpectedDone(item.id);
                 if (allDoneToday) {
                   navigation.navigate('AllExpectedDone', { badgeCatalogId: newBadgeCatalogId ?? undefined });

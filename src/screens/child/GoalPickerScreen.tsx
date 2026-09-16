@@ -17,6 +17,7 @@
 // vision doc's "pay yourself first" framing.
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, SectionList, Modal, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -25,7 +26,8 @@ import { useAppData } from '../../context/AppDataContext';
 import { Goal } from '../../types/models';
 import { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { AppHeader } from '../../components/AppHeader';
-import { GoalIdea, suggestGoalIdeas } from '../../data/goalIdeas';
+import { Confetti } from '../../components/Confetti';
+import { CATEGORY_EMOJI, GoalIdea, suggestGoalIdeas } from '../../data/goalIdeas';
 import { colors } from '../../theme/colors';
 
 type GoalPickerNavigationProp = CompositeNavigationProp<
@@ -58,6 +60,7 @@ export function GoalPickerScreen() {
   const [draftName, setDraftName] = useState('');
   const [draftCost, setDraftCost] = useState('');
 
+  const [confettiTrigger, setConfettiTrigger] = useState(0);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [milestoneExpanded, setMilestoneExpanded] = useState(true);
   const [contributionModalVisible, setContributionModalVisible] = useState(false);
@@ -103,6 +106,8 @@ export function GoalPickerScreen() {
       updateGoal(editingGoalId, { name: draftName.trim(), realWorldCost: cost });
     } else {
       addGoal(draftName.trim(), cost);
+      setConfettiTrigger((n) => n + 1);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
     setModalVisible(false);
   };
@@ -196,6 +201,10 @@ export function GoalPickerScreen() {
 
   return (
     <View style={styles.screen}>
+      {/* Only mounted after the first goal add — Confetti bursts once as
+       * soon as it mounts, and this screen shouldn't celebrate on every
+       * ordinary visit, only the moment a new goal is actually added. */}
+      {confettiTrigger > 0 && <Confetti trigger={confettiTrigger} pieceCount={16} />}
       <AppHeader />
       <View style={styles.header}>
         <Text style={styles.title}>{goals.length === 0 ? `What's ${childName} working toward?` : 'Your goals'}</Text>
@@ -223,6 +232,7 @@ export function GoalPickerScreen() {
                       style={styles.suggestedChip}
                       onPress={() => openAddModalFromIdea(idea)}
                     >
+                      <Text style={styles.suggestedChipEmoji}>{CATEGORY_EMOJI[idea.category]}</Text>
                       <Text style={styles.suggestedChipText}>{idea.name}</Text>
                       <Text style={styles.suggestedChipCost}>~${idea.typicalCost}</Text>
                     </Pressable>
@@ -408,6 +418,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  suggestedChipEmoji: { fontSize: 14 },
   suggestedChipText: { fontSize: 13, fontWeight: '600', color: colors.text },
   suggestedChipCost: { fontSize: 12, color: colors.textMuted },
   futureFundCard: {

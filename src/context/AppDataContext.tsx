@@ -44,6 +44,9 @@ interface PersistedAppData {
   futureFund: FutureFund | null;
   gigEffortValues: GigEffortValues;
   badges: Badge[];
+  /** Defaults to true (missing on any data saved before this field existed,
+   * so `?? true` at every read site treats that the same as "on"). */
+  soundEnabled: boolean;
 }
 
 export interface MarkGigDoneResult {
@@ -86,6 +89,11 @@ interface AppDataContextValue {
   futureFund: FutureFund | null;
   gigEffortValues: GigEffortValues;
   badges: Badge[];
+  /** Household-wide toggle for the checkoff/badge-unlock sound effects —
+   * off by default nowhere, since a kid's first reaction should be
+   * delightful, but easy to mute for a quiet room or a shared device. */
+  soundEnabled: boolean;
+  setSoundEnabled: (enabled: boolean) => void;
 
   completeSetup: (draft: {
     childProfile: DraftChildProfile;
@@ -181,6 +189,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [futureFund, setFutureFund] = useState<FutureFund | null>(null);
   const [gigEffortValues, setGigEffortValues] = useState<GigEffortValues>(DEFAULT_GIG_EFFORT_VALUES);
   const [badges, setBadges] = useState<Badge[]>([]);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
 
   // Load once on mount. Until this resolves, isHydrated stays false so
   // callers don't mistake "haven't checked storage yet" for "new user."
@@ -201,6 +210,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           setFutureFund(data.futureFund);
           setGigEffortValues(data.gigEffortValues ?? DEFAULT_GIG_EFFORT_VALUES);
           setBadges(data.badges);
+          setSoundEnabled(data.soundEnabled ?? true);
         }
       } catch (e) {
         console.warn('Failed to load persisted app data', e);
@@ -234,6 +244,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           setFutureFund(data.futureFund);
           setGigEffortValues(data.gigEffortValues ?? DEFAULT_GIG_EFFORT_VALUES);
           setBadges(data.badges);
+          setSoundEnabled(data.soundEnabled ?? true);
         } else if (childProfile) {
           await saveData(token, {
             parentName,
@@ -247,6 +258,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
             futureFund,
             gigEffortValues,
             badges,
+            soundEnabled,
           });
         }
       } catch (e) {
@@ -275,6 +287,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       futureFund,
       gigEffortValues,
       badges,
+      soundEnabled,
     };
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data)).catch((e) =>
       console.warn('Failed to persist app data', e)
@@ -297,6 +310,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     futureFund,
     gigEffortValues,
     badges,
+    soundEnabled,
   ]);
 
   const updateChildProfile: AppDataContextValue['updateChildProfile'] = (fields) => {
@@ -695,6 +709,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         futureFund,
         gigEffortValues,
         badges,
+        soundEnabled,
+        setSoundEnabled,
         completeSetup,
         isExpectedDoneToday,
         markExpectedDone,

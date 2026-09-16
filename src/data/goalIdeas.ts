@@ -35,6 +35,15 @@ export const GOAL_IDEAS: GoalIdea[] = [
   { name: 'Concert or show tickets', category: 'experience', typicalCost: 60 },
 ];
 
+export const CATEGORY_EMOJI: Record<GoalCategory, string> = {
+  toys: '🧸',
+  games: '🎮',
+  tech: '📱',
+  sports: '⚽',
+  creative: '🎨',
+  experience: '🎡',
+};
+
 const CATEGORY_KEYWORDS: Record<GoalCategory, string[]> = {
   toys: ['lego', 'toy', 'figure', 'doll', 'stuffed', 'playset'],
   games: ['game', 'switch', 'xbox', 'playstation', 'nintendo', 'roblox', 'minecraft'],
