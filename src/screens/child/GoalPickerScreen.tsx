@@ -25,6 +25,7 @@ import { useAppData } from '../../context/AppDataContext';
 import { Goal } from '../../types/models';
 import { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { AppHeader } from '../../components/AppHeader';
+import { GoalIdea, suggestGoalIdeas } from '../../data/goalIdeas';
 import { colors } from '../../theme/colors';
 
 type GoalPickerNavigationProp = CompositeNavigationProp<
@@ -72,10 +73,19 @@ export function GoalPickerScreen() {
     ...(completed.length > 0 ? [{ title: 'Completed', data: completed }] : []),
   ];
 
+  const suggestedIdeas = suggestGoalIdeas(goals.map((g) => g.name));
+
   const openAddModal = () => {
     setEditingGoalId(null);
     setDraftName('');
     setDraftCost('');
+    setModalVisible(true);
+  };
+
+  const openAddModalFromIdea = (idea: GoalIdea) => {
+    setEditingGoalId(null);
+    setDraftName(idea.name);
+    setDraftCost(String(idea.typicalCost));
     setModalVisible(true);
   };
 
@@ -203,6 +213,24 @@ export function GoalPickerScreen() {
         renderItem={({ item }) => renderGoalRow(item)}
         ListFooterComponent={
           <>
+            {suggestedIdeas.length > 0 && (
+              <View style={styles.suggestedSection}>
+                <Text style={styles.suggestedLabel}>Suggested for you</Text>
+                <View style={styles.suggestedRow}>
+                  {suggestedIdeas.map((idea) => (
+                    <Pressable
+                      key={idea.name}
+                      style={styles.suggestedChip}
+                      onPress={() => openAddModalFromIdea(idea)}
+                    >
+                      <Text style={styles.suggestedChipText}>{idea.name}</Text>
+                      <Text style={styles.suggestedChipCost}>~${idea.typicalCost}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
+
             <Pressable style={styles.addButton} onPress={openAddModal}>
               <Text style={styles.addButtonText}>+ Add a new goal</Text>
             </Pressable>
@@ -359,6 +387,29 @@ const styles = StyleSheet.create({
   linkActionDanger: { color: colors.danger, fontSize: 13, fontWeight: '700' },
   addButton: { paddingVertical: 12, alignItems: 'center' },
   addButtonText: { color: colors.expected, fontSize: 15, fontWeight: '600' },
+  suggestedSection: { marginTop: 4, marginBottom: 4 },
+  suggestedLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  suggestedRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  suggestedChip: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  suggestedChipText: { fontSize: 13, fontWeight: '600', color: colors.text },
+  suggestedChipCost: { fontSize: 12, color: colors.textMuted },
   futureFundCard: {
     marginTop: 12,
     padding: 16,
