@@ -5,6 +5,7 @@
 // the wizard's ScreenHeader.
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppData } from '../context/AppDataContext';
@@ -15,6 +16,7 @@ import { Logo } from './Logo';
 import { colors } from '../theme/colors';
 
 export function AppHeader() {
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { childProfile } = useAppData();
   const { isAutoAccount } = useAuth();
@@ -22,7 +24,7 @@ export function AppHeader() {
   const firstName = childProfile?.name?.trim().split(' ')[0];
 
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
       <View style={styles.brandRow}>
         <Logo size={26} />
         <Text style={styles.wordmark}>Merit</Text>
@@ -45,7 +47,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: 22,
     paddingBottom: 14,
   },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

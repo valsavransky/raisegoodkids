@@ -7,6 +7,7 @@
 // data isn't useful once real sign-in is configured.
 import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { MOCK_CALENDARS } from '../../data/mockGoogleCalendar';
@@ -23,6 +24,7 @@ import { colors } from '../../theme/colors';
 type Props = NativeStackScreenProps<RootStackParamList, 'ImportGoogleCalendar'>;
 
 export function ImportGoogleCalendarScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const configured = isGoogleCalendarConfigured();
   const [request, response, promptAsync] = useGoogleAuthRequest();
   const [connecting, setConnecting] = useState(false);
@@ -94,7 +96,7 @@ export function ImportGoogleCalendarScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <Pressable onPress={() => navigation.goBack()} hitSlop={12}>
           <Text style={styles.closeButton}>Close</Text>
         </Pressable>
@@ -152,7 +154,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 20,
     paddingBottom: 12,
   },
   closeButton: { fontSize: 15, color: colors.textMuted, width: 44 },

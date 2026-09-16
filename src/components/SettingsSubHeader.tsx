@@ -6,6 +6,7 @@
 // flagged as needing a real design pass).
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
 
 interface SettingsSubHeaderProps {
@@ -14,8 +15,9 @@ interface SettingsSubHeaderProps {
 }
 
 export function SettingsSubHeader({ title, onBack }: SettingsSubHeaderProps) {
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
       <Pressable onPress={onBack} hitSlop={12} style={styles.sideSlot}>
         <Text style={styles.backArrow}>{'‹'}</Text>
       </Pressable>
@@ -31,7 +33,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 12,
-    paddingTop: 28,
     paddingBottom: 16,
   },
   sideSlot: { width: 44, alignItems: 'flex-start', paddingLeft: 8 },

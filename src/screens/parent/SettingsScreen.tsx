@@ -48,7 +48,7 @@ export function SettingsScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.sideSlot} />
         <Text style={styles.title}>Settings</Text>
         <Pressable onPress={() => navigation.goBack()} hitSlop={12} style={styles.closeButton}>
@@ -112,7 +112,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 28,
     paddingBottom: 16,
   },
   sideSlot: { width: 32 },
