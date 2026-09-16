@@ -70,6 +70,9 @@ export function ExpectedItemsScreen({ navigation }: Props) {
                 <View key={item.id} style={styles.row}>
                   <View style={styles.rowInfo}>
                     <Text style={styles.rowName}>{item.name}</Text>
+                    {item.linkedEventTitle && (
+                      <Text style={styles.rowLinked}>🗓 From {item.linkedEventTitle}</Text>
+                    )}
                   </View>
                   <View style={styles.rowActions}>
                     <Pressable onPress={() => openEdit(item)}>
@@ -92,6 +95,9 @@ export function ExpectedItemsScreen({ navigation }: Props) {
                 <View key={item.id} style={styles.row}>
                   <View style={styles.rowInfo}>
                     <Text style={styles.rowName}>{item.name}</Text>
+                    {item.linkedEventTitle && (
+                      <Text style={styles.rowLinked}>🗓 From {item.linkedEventTitle}</Text>
+                    )}
                   </View>
                   <View style={styles.rowActions}>
                     <Pressable onPress={() => openEdit(item)}>
@@ -174,6 +180,7 @@ const styles = StyleSheet.create({
   },
   rowInfo: { flexShrink: 1 },
   rowName: { fontSize: 15, fontWeight: '600', color: colors.text },
+  rowLinked: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   rowActions: { flexDirection: 'row', gap: 14 },
   linkAction: { color: colors.expected, fontSize: 13, fontWeight: '700' },
   linkActionDanger: { color: colors.danger, fontSize: 13, fontWeight: '700' },

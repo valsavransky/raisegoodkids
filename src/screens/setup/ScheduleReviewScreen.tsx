@@ -83,7 +83,8 @@ export function ScheduleReviewScreen({ navigation }: Props) {
     name: string,
     localId: string,
     frequency: 'daily' | 'weekly' = 'daily',
-    durationMinutes?: number
+    durationMinutes?: number,
+    linkedEventTitle?: string
   ) => {
     if (!name.trim()) return;
     const finalName =
@@ -92,7 +93,7 @@ export function ScheduleReviewScreen({ navigation }: Props) {
         : name.trim();
     setExpectedItems([
       ...expectedItems,
-      { localId: makeLocalId('expected'), name: finalName, frequency, active: true },
+      { localId: makeLocalId('expected'), name: finalName, frequency, active: true, linkedEventTitle },
     ]);
     setSuggestionStatus((prev) => ({ ...prev, [localId]: 'added' }));
     setAddedSuggestionNames((prev) => ({ ...prev, [localId]: finalName }));
@@ -280,7 +281,9 @@ export function ScheduleReviewScreen({ navigation }: Props) {
                         <Text style={styles.suggestionDismissText}>No thanks</Text>
                       </Pressable>
                       <Pressable
-                        onPress={() => acceptSuggestion(suggestion.name, item.localId, freq, Number(duration) || 0)}
+                        onPress={() =>
+                          acceptSuggestion(suggestion.name, item.localId, freq, Number(duration) || 0, item.title)
+                        }
                         style={styles.suggestionAdd}
                       >
                         <Text style={styles.suggestionAddText}>Add</Text>
@@ -317,7 +320,8 @@ export function ScheduleReviewScreen({ navigation }: Props) {
                             genericSuggestionDrafts[item.localId] ?? '',
                             item.localId,
                             freq,
-                            Number(duration) || 0
+                            Number(duration) || 0,
+                            item.title
                           )
                         }
                         style={styles.suggestionAdd}

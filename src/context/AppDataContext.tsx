@@ -346,6 +346,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           name: item.name,
           frequency: item.frequency,
           active: true,
+          linkedEventTitle: item.linkedEventTitle,
         }))
     );
     setGigs(

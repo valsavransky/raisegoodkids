@@ -40,6 +40,8 @@ export interface DraftExpectedItem {
   name: string;
   frequency: 'daily' | 'weekly';
   active: boolean;
+  /** See ExpectedItem.linkedEventTitle. */
+  linkedEventTitle?: string;
 }
 
 export interface DraftGig {

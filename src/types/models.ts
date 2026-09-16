@@ -92,6 +92,14 @@ export interface ExpectedItem {
   name: string;
   frequency: 'daily' | 'weekly';
   active: boolean;
+  /** Title of the schedule event this item was suggested from (e.g. "Rayna
+   * piano"), when accepted via the practice-suggestion prompt on
+   * ScheduleReviewScreen — shown as a subtitle in the Expected Items list so
+   * it's clear why the item exists. A plain title snapshot, not a live
+   * reference to the ScheduleEvent, so it survives that event being edited
+   * or deleted later. Absent for items added directly (manual add, or
+   * content-library suggestions with no calendar event behind them). */
+  linkedEventTitle?: string;
 }
 
 /** Self-marked by the child — no per-item parent approval, since nothing
