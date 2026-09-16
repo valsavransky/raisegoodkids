@@ -1,8 +1,9 @@
 // Suggested Expected items and Gigs, by grade. Transcribed from
-// docs/content-library-grade-3-4.md — the only grade slice authored so far
-// (3rd & 4th only). Treat these as starting suggestions, not a finished,
-// authoritative list — the source doc is explicit that it needs real-family
-// testing and revision, and every value here is parent-overridable.
+// docs/content-library-grade-3-4.md and docs/content-library-grade-k-2.md —
+// the only two grade bands authored so far. Treat these as starting
+// suggestions, not a finished, authoritative list — the source docs are
+// explicit that they need real-family testing and revision, and every value
+// here is parent-overridable.
 //
 // Feeding/walking a pet are NOT listed here on purpose — they're added
 // dynamically by ExpectedSetupScreen/GigsSetupScreen instead (personalized
@@ -66,12 +67,48 @@ const grade3And4: GradeContentLibrary = {
   ],
 };
 
-const libraries: GradeContentLibrary[] = [grade3And4];
+// K-2nd skews toward "with help"/supervised framing rather than fully
+// independent versions of the same tasks (see docs/content-library-grade-k-2.md)
+// — a 5-7 year old's realistic independence is a different shape than 3rd/4th's,
+// not just an easier version of it. No big_job gigs on purpose: nothing here
+// should require unsupervised heavy lifting or sharp/hot tools at this age.
+const gradeKTo2: GradeContentLibrary = {
+  grades: ['K', '1st', '2nd'],
+  expectedItems: [
+    { name: 'Get dressed by yourself', frequency: 'daily' },
+    { name: 'Brush teeth, morning and night', frequency: 'daily' },
+    { name: 'Make your bed (with help)', frequency: 'daily' },
+    { name: 'Put toys away before bed', frequency: 'daily' },
+    { name: 'Put dirty clothes in the hamper', frequency: 'daily' },
+    { name: 'Clear your plate after meals', frequency: 'daily' },
+    { name: 'Put backpack and shoes by the door', frequency: 'daily' },
+    { name: 'Tidy your room with a grown-up', frequency: 'weekly' },
+    { name: 'Help set the table for dinner', frequency: 'weekly' },
+    { name: 'Put away your own clean laundry (socks and folded shirts)', frequency: 'weekly' },
+  ],
+  gigs: [
+    { name: 'Water a houseplant', effortTier: 'quick' },
+    { name: 'Match socks from the laundry', effortTier: 'quick' },
+    { name: 'Wipe down the bathroom sink', effortTier: 'quick' },
+    { name: 'Put away the silverware from the dishwasher (no knives)', effortTier: 'quick' },
+    { name: 'Dust low shelves and furniture', effortTier: 'quick' },
+    { name: 'Sort recycling into the bin', effortTier: 'quick' },
+    { name: 'Help pack their lunch box', effortTier: 'quick' },
+    { name: 'Help fold and put away towels', effortTier: 'medium' },
+    { name: 'Help unload the dishwasher (plastic and unbreakable items only)', effortTier: 'medium' },
+    { name: 'Help carry in light grocery bags', effortTier: 'medium' },
+    { name: 'Rake a small pile of leaves', effortTier: 'medium', ifApplicable: 'yard' },
+    { name: 'Help wash the car with a sponge (supervised)', effortTier: 'medium', ifApplicable: 'car' },
+    { name: 'Sort a load of laundry into lights and darks', effortTier: 'medium' },
+  ],
+};
+
+const libraries: GradeContentLibrary[] = [gradeKTo2, grade3And4];
 
 /**
  * Returns the content library matching a grade, or undefined if none has
- * been authored yet. Only 3rd/4th exists in v1 — callers should handle the
- * undefined case (e.g. let the parent start from an empty list).
+ * been authored yet. Only K-2nd and 3rd/4th exist so far — callers should
+ * handle the undefined case (e.g. let the parent start from an empty list).
  */
 export function getContentLibraryForGrade(grade: string | undefined): GradeContentLibrary | undefined {
   if (!grade) return undefined;
