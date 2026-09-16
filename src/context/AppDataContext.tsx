@@ -424,11 +424,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
     // expectedCompletions state hasn't updated yet in this closure — include
     // the pending completion directly so today's picture reflects this tap.
+    // Only daily items count toward "all done today" — a weekly item has the
+    // rest of the week to get done, so it shouldn't hold up today's
+    // celebration (or, via allExpectedDoneToday below, today's Gigs).
     const today = todayString();
     const updatedCompletions = [...expectedCompletions, completion];
+    const dailyItems = expectedItems.filter((item) => item.frequency === 'daily');
     const allDoneToday =
-      expectedItems.length > 0 &&
-      expectedItems.every((item) => isExpectedItemSatisfied(item, updatedCompletions, today));
+      dailyItems.length > 0 &&
+      dailyItems.every((item) => isExpectedItemSatisfied(item, updatedCompletions, today));
 
     const newStreak = computeExpectedStreak(expectedItems, updatedCompletions, today);
     const threshold = STREAK_THRESHOLDS.find((t) => t.days === newStreak);
@@ -440,14 +444,19 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return { newBadgeCatalogId, allDoneToday };
   };
 
+  // Only daily items gate Gigs — a weekly item (e.g. "tidy your room") has
+  // the rest of the week to get done, so it shouldn't block today's Gigs
+  // the same way an undone daily item does.
   const allExpectedDoneToday = (): boolean => {
-    if (expectedItems.length === 0) return false;
-    return expectedItems.every((item) => isExpectedDoneToday(item.id));
+    const dailyItems = expectedItems.filter((item) => item.frequency === 'daily');
+    if (dailyItems.length === 0) return false;
+    return dailyItems.every((item) => isExpectedDoneToday(item.id));
   };
 
   const expectedDoneCountToday = () => {
-    const done = expectedItems.filter((item) => isExpectedDoneToday(item.id)).length;
-    return { done, total: expectedItems.length };
+    const dailyItems = expectedItems.filter((item) => item.frequency === 'daily');
+    const done = dailyItems.filter((item) => isExpectedDoneToday(item.id)).length;
+    return { done, total: dailyItems.length };
   };
 
   const expectedStreak = (): number => computeExpectedStreak(expectedItems, expectedCompletions, todayString());

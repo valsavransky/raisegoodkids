@@ -93,6 +93,19 @@ export function ChildHomeScreen() {
         <Text style={styles.streakText}>{streak}-day streak</Text>
       </View>
 
+      {total > 0 && (
+        <>
+          <View style={styles.dailyProgressTrack}>
+            {Array.from({ length: total }).map((_, i) => (
+              <View key={i} style={[styles.dailyProgressSegment, i < done && styles.dailyProgressSegmentFilled]} />
+            ))}
+          </View>
+          <Text style={styles.dailyProgressCaption}>
+            {done} of {total} done today
+          </Text>
+        </>
+      )}
+
       {dailyItems.length > 0 && (
         <>
           <Text style={styles.subSectionHeader}>Daily</Text>
@@ -221,6 +234,10 @@ const styles = StyleSheet.create({
   sectionIcon: { fontSize: 16 },
   sectionHeader: { fontSize: 17, fontWeight: '700', color: colors.text, flex: 1 },
   streakText: { fontSize: 13, color: colors.expected, fontWeight: '700' },
+  dailyProgressTrack: { flexDirection: 'row', gap: 5, marginBottom: 6 },
+  dailyProgressSegment: { flex: 1, height: 10, borderRadius: 4, backgroundColor: colors.border },
+  dailyProgressSegmentFilled: { backgroundColor: colors.expected },
+  dailyProgressCaption: { fontSize: 12, color: colors.textMuted, fontWeight: '600', marginBottom: 12 },
   subSectionHeader: {
     fontSize: 12,
     fontWeight: '700',
