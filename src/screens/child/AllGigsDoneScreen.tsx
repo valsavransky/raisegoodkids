@@ -67,10 +67,10 @@ export function AllGigsDoneScreen({ route, navigation }: Props) {
         </View>
       )}
 
-      {suggestions.length > 0 && (
-        <View style={styles.suggestSection}>
-          <Text style={styles.suggestHeading}>Out of gigs? Add a few more</Text>
-          {suggestions.map((idea) => {
+      <View style={styles.suggestSection}>
+        <Text style={styles.suggestHeading}>Out of gigs? Add a few more</Text>
+        {suggestions.length > 0 ? (
+          suggestions.map((idea) => {
             const added = addedNames.includes(idea.name);
             return (
               <View key={idea.name} style={styles.suggestRow}>
@@ -84,9 +84,17 @@ export function AllGigsDoneScreen({ route, navigation }: Props) {
                 )}
               </View>
             );
-          })}
-        </View>
-      )}
+          })
+        ) : (
+          // Onboarding auto-adds every grade-suggested gig, so a household
+          // that hasn't removed any of them will have nothing left in the
+          // content library to recommend — say so instead of showing
+          // nothing, which reads as broken rather than "you're all set."
+          <Text style={styles.suggestEmptyText}>
+            You've already got every gig we'd suggest — add a custom one anytime from Settings.
+          </Text>
+        )}
+      </View>
 
       <Pressable style={styles.continueButton} onPress={() => navigation.goBack()}>
         <Text style={styles.continueButtonText}>Awesome!</Text>
@@ -120,6 +128,7 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   suggestHeading: { fontSize: 13, fontWeight: '700', color: colors.textMuted, marginBottom: 10 },
+  suggestEmptyText: { fontSize: 13, color: colors.textMuted, lineHeight: 19 },
   suggestRow: {
     flexDirection: 'row',
     alignItems: 'center',
