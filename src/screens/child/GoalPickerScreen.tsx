@@ -16,8 +16,9 @@
 // it's a long-term investment/savings goal, not a wishlist item, per the
 // vision doc's "pay yourself first" framing.
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, SectionList, Modal, KeyboardAvoidingView, Platform, StyleSheet, Linking } from 'react-native';
+import { View, Text, TextInput, Pressable, SectionList, Modal, KeyboardAvoidingView, Platform, StyleSheet, Linking, Image } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -62,6 +63,7 @@ export function GoalPickerScreen() {
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
   const [draftCost, setDraftCost] = useState('');
+  const [draftPhotoUri, setDraftPhotoUri] = useState<string | undefined>(undefined);
 
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -85,6 +87,7 @@ export function GoalPickerScreen() {
     setEditingGoalId(null);
     setDraftName('');
     setDraftCost('');
+    setDraftPhotoUri(undefined);
     setModalVisible(true);
   };
 
@@ -92,6 +95,7 @@ export function GoalPickerScreen() {
     setEditingGoalId(null);
     setDraftName(idea.name);
     setDraftCost(String(idea.typicalCost));
+    setDraftPhotoUri(undefined);
     setModalVisible(true);
   };
 
@@ -99,7 +103,19 @@ export function GoalPickerScreen() {
     setEditingGoalId(goal.id);
     setDraftName(goal.name);
     setDraftCost(String(goal.realWorldCost));
+    setDraftPhotoUri(goal.photoUri);
     setModalVisible(true);
+  };
+
+  // Library-only (no camera) — the guided flow is "save the photo you found,
+  // then attach it here," so there's no need to ask for camera permission too.
+  const pickPhoto = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) return;
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
+    if (!result.canceled && result.assets[0]) {
+      setDraftPhotoUri(result.assets[0].uri);
+    }
   };
 
   const confirmSave = async () => {
@@ -107,7 +123,7 @@ export function GoalPickerScreen() {
     if (!draftName.trim() || Number.isNaN(cost) || cost <= 0) return;
     const name = draftName.trim();
     if (editingGoalId) {
-      updateGoal(editingGoalId, { name, realWorldCost: cost });
+      updateGoal(editingGoalId, { name, realWorldCost: cost, photoUri: draftPhotoUri });
     } else {
       setModalVisible(false);
       setConfettiTrigger((n) => n + 1);
@@ -115,7 +131,7 @@ export function GoalPickerScreen() {
       // Keyword match is instant and free — only fall back to asking Claude
       // (a network round trip) when it misses, e.g. a brand name like "Needo".
       const category = guessGoalCategory(name) ?? (token ? (await classifyGoalCategory(token, name)) ?? undefined : undefined);
-      addGoal(name, cost, category);
+      addGoal(name, cost, category, draftPhotoUri);
       return;
     }
     setModalVisible(false);
@@ -137,7 +153,10 @@ export function GoalPickerScreen() {
       return (
         <View style={[styles.goalRow, styles.goalRowActive]}>
           <View style={styles.goalRowTop}>
-            <Text style={styles.goalName}>{item.name}</Text>
+            <View style={styles.goalRowTitleGroup}>
+              {item.photoUri && <Image source={{ uri: item.photoUri }} style={styles.goalPhoto} />}
+              <Text style={styles.goalName}>{item.name}</Text>
+            </View>
             <View style={styles.activeBadge}>
               <Text style={styles.activeBadgeText}>{'✓'} Active goal</Text>
             </View>
@@ -153,7 +172,10 @@ export function GoalPickerScreen() {
       return (
         <View style={styles.goalRow}>
           <View style={styles.goalRowTop}>
-            <Text style={styles.goalName}>{item.name}</Text>
+            <View style={styles.goalRowTitleGroup}>
+              {item.photoUri && <Image source={{ uri: item.photoUri }} style={styles.goalPhoto} />}
+              <Text style={styles.goalName}>{item.name}</Text>
+            </View>
           </View>
           <View style={styles.goalRowActions}>
             <Pressable onPress={() => setActiveGoal(item.id)}>
@@ -184,7 +206,10 @@ export function GoalPickerScreen() {
       return (
         <View style={[styles.goalRow, styles.goalRowAchieved]}>
           <View style={styles.goalRowTop}>
-            <Text style={styles.goalName}>{item.name}</Text>
+            <View style={styles.goalRowTitleGroup}>
+              {item.photoUri && <Image source={{ uri: item.photoUri }} style={styles.goalPhoto} />}
+              <Text style={styles.goalName}>{item.name}</Text>
+            </View>
             <Text style={styles.achievedLabel}>🏆 Achieved</Text>
           </View>
           <Pressable style={styles.makeActiveButton} onPress={() => navigation.navigate('FulfillGoal', { goalId: item.id })}>
@@ -197,7 +222,10 @@ export function GoalPickerScreen() {
     return (
       <View style={styles.goalRow}>
         <View style={styles.goalRowTop}>
-          <Text style={styles.goalName}>{item.name}</Text>
+          <View style={styles.goalRowTitleGroup}>
+            {item.photoUri && <Image source={{ uri: item.photoUri }} style={styles.goalPhoto} />}
+            <Text style={styles.goalName}>{item.name}</Text>
+          </View>
           <Text style={styles.fulfilledLabel}>✓ Fulfilled</Text>
         </View>
       </View>
@@ -320,14 +348,37 @@ export function GoalPickerScreen() {
             <Text style={styles.modalTitle}>{editingGoalId ? 'Edit goal' : 'Add a goal'}</Text>
             <TextInput style={styles.input} placeholder="What are you saving for?" value={draftName} onChangeText={setDraftName} />
             {draftName.trim().length > 0 && (
-              <Pressable
-                style={styles.imageSearchLink}
-                onPress={() =>
-                  Linking.openURL(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(draftName.trim())}`)
-                }
-              >
-                <Text style={styles.imageSearchLinkText}>🔍 Search Google Images for "{draftName.trim()}"</Text>
-              </Pressable>
+              <View style={styles.photoHelperSection}>
+                <View style={styles.photoHelperStep}>
+                  <Pressable
+                    style={styles.photoHelperButton}
+                    onPress={() =>
+                      Linking.openURL(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(draftName.trim())}`)
+                    }
+                  >
+                    <Text style={styles.photoHelperButtonText}>🔍 Search Google Images</Text>
+                  </Pressable>
+                  <Text style={styles.photoHelperCaption}>Find a photo, then save it to your phone.</Text>
+                </View>
+
+                <View style={styles.photoHelperStep}>
+                  {draftPhotoUri ? (
+                    <View style={styles.photoPreviewRow}>
+                      <Image source={{ uri: draftPhotoUri }} style={styles.photoPreviewThumb} />
+                      <Pressable onPress={() => setDraftPhotoUri(undefined)}>
+                        <Text style={styles.linkActionDanger}>Remove</Text>
+                      </Pressable>
+                    </View>
+                  ) : (
+                    <>
+                      <Pressable style={styles.photoHelperButton} onPress={pickPhoto}>
+                        <Text style={styles.photoHelperButtonText}>📎 Add photo</Text>
+                      </Pressable>
+                      <Text style={styles.photoHelperCaption}>Attach the photo you saved.</Text>
+                    </>
+                  )}
+                </View>
+              </View>
             )}
             <TextInput
               style={styles.input}
@@ -402,6 +453,8 @@ const styles = StyleSheet.create({
   goalRowActive: { borderColor: colors.gigs, borderWidth: 2 },
   goalRowAchieved: { borderColor: colors.gigs, borderStyle: 'dashed' },
   goalRowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  goalRowTitleGroup: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
+  goalPhoto: { width: 32, height: 32, borderRadius: 8 },
   goalName: { fontSize: 16, fontWeight: '600', color: colors.text, flexShrink: 1 },
   activeBadge: { backgroundColor: colors.gigs, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
   activeBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
@@ -477,8 +530,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     marginBottom: 12,
   },
-  imageSearchLink: { alignSelf: 'flex-start', marginTop: -4, marginBottom: 12 },
-  imageSearchLinkText: { fontSize: 13, fontWeight: '600', color: colors.expected },
+  photoHelperSection: {
+    marginTop: -4,
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: colors.surface,
+    gap: 10,
+  },
+  photoHelperStep: { gap: 3 },
+  photoHelperButton: { alignSelf: 'flex-start' },
+  photoHelperButtonText: { fontSize: 13, fontWeight: '700', color: colors.expected },
+  photoHelperCaption: { fontSize: 12, color: colors.textMuted },
+  photoPreviewRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  photoPreviewThumb: { width: 48, height: 48, borderRadius: 10 },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 8 },
   modalCancelButton: { paddingVertical: 12, paddingHorizontal: 16 },
   modalCancelText: { color: colors.textMuted, fontSize: 15, fontWeight: '600' },

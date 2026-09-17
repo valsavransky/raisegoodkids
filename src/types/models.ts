@@ -197,6 +197,11 @@ export interface Goal {
   achievedAt?: string;
   fulfilledAt?: string;
   category?: GoalCategory;
+  /** A photo the parent/child attached from their photo library — typically
+   * saved from the "Search Google Images" link, but any photo works.
+   * Stored as a local file URI, not uploaded anywhere, so it's device-local
+   * only and won't follow the goal across a cross-device account recovery. */
+  photoUri?: string;
 }
 
 /** Fixed "pay yourself first" skim off every gig's earned value, taken before

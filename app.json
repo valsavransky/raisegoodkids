@@ -43,6 +43,12 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Merit uses your photos to let you attach a picture to a goal."
+        }
       ]
     ],
     "owner": "vals-kitchen"

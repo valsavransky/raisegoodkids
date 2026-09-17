@@ -118,12 +118,12 @@ interface AppDataContextValue {
   queuedGoals: () => Goal[];
   completedGoals: () => Goal[];
   getGoal: (goalId: string) => Goal | undefined;
-  addGoal: (name: string, realWorldCost: number, category?: GoalCategory) => void;
+  addGoal: (name: string, realWorldCost: number, category?: GoalCategory, photoUri?: string) => void;
   setActiveGoal: (goalId: string) => void;
   /** Only allowed for a non-active goal with zero progress recorded against
    * it — a goal that was ever active could carry real earned progress. */
   canModifyGoal: (goalId: string) => boolean;
-  updateGoal: (goalId: string, fields: { name: string; realWorldCost: number }) => void;
+  updateGoal: (goalId: string, fields: { name: string; realWorldCost: number; photoUri?: string }) => void;
   deleteGoal: (goalId: string) => void;
   goalProgressPercentage: (goalId: string) => number;
   /** Records real-world delivery of an achieved goal. Does NOT gate the next
@@ -471,7 +471,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       .sort((a, b) => (b.achievedAt ?? '').localeCompare(a.achievedAt ?? ''));
   const getGoal = (goalId: string): Goal | undefined => goals.find((g) => g.id === goalId);
 
-  const addGoal = (name: string, realWorldCost: number, category?: GoalCategory) => {
+  const addGoal = (name: string, realWorldCost: number, category?: GoalCategory, photoUri?: string) => {
     const hasActive = goals.some((g) => g.status === 'active');
     const goal: Goal = {
       id: makeId('goal'),
@@ -482,6 +482,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       status: hasActive ? 'queued' : 'active',
       createdAt: new Date().toISOString(),
       category,
+      photoUri,
     };
     setGoals((prev) => [...prev, goal]);
   };
@@ -515,7 +516,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return goal.status !== 'active' && goalProgressPercentage(goalId) === 0;
   };
 
-  const updateGoal = (goalId: string, fields: { name: string; realWorldCost: number }) => {
+  const updateGoal = (goalId: string, fields: { name: string; realWorldCost: number; photoUri?: string }) => {
     if (!canModifyGoal(goalId)) return;
     setGoals((prev) => prev.map((g) => (g.id === goalId ? { ...g, ...fields } : g)));
   };
