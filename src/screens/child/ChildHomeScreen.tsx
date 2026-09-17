@@ -14,7 +14,7 @@
 // call where it belongs (the present parent) rather than enforcing it
 // structurally. See conversation for the "cheap solution" reasoning.
 import React from 'react';
-import { View, Text, Pressable, ScrollView, Alert, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert, StyleSheet, Image } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -76,7 +76,10 @@ export function ChildHomeScreen() {
             </Pressable>
           ) : (
             <View style={styles.goalCard}>
-              <Text style={styles.goalName}>{goal.name}</Text>
+              <View style={styles.goalTitleRow}>
+                {goal.photoUri && <Image source={{ uri: goal.photoUri }} style={styles.goalPhoto} />}
+                <Text style={styles.goalName}>{goal.name}</Text>
+              </View>
               <View style={styles.progressBarTrack}>
                 <View style={[styles.progressBarFill, { width: `${Math.min(goalProgressPercentage(goal.id), 100)}%` }]} />
               </View>
@@ -226,7 +229,9 @@ const styles = StyleSheet.create({
   },
   emptyGoalText: { fontSize: 16, fontWeight: '700', color: colors.gigs },
   goalCard: { backgroundColor: colors.surface, borderRadius: 14, padding: 16, marginBottom: 16 },
-  goalName: { fontSize: 17, fontWeight: '700', color: colors.text, marginBottom: 10 },
+  goalTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
+  goalPhoto: { width: 36, height: 36, borderRadius: 9 },
+  goalName: { fontSize: 17, fontWeight: '700', color: colors.text },
   progressBarTrack: { height: 10, borderRadius: 5, backgroundColor: colors.border, overflow: 'hidden' },
   progressBarFill: { height: 10, borderRadius: 5, backgroundColor: colors.gigs },
   goalProgressText: { fontSize: 13, color: colors.textMuted, marginTop: 8, fontWeight: '600' },

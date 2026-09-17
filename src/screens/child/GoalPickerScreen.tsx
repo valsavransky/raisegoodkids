@@ -358,7 +358,7 @@ export function GoalPickerScreen() {
                   >
                     <Text style={styles.photoHelperButtonText}>🔍 Search Google Images</Text>
                   </Pressable>
-                  <Text style={styles.photoHelperCaption}>Find a photo, then save it to your phone.</Text>
+                  <Text style={styles.photoHelperCaption}>Find a photo, save it to your phone, then come back to this screen.</Text>
                 </View>
 
                 <View style={styles.photoHelperStep}>
