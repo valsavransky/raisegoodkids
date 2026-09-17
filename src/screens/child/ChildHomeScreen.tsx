@@ -57,6 +57,13 @@ export function ChildHomeScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
+  // A gig means real earnings toward the goal — a stronger "success" haptic
+  // and a brighter, distinct chime than the plain Expected checkoff above.
+  const celebrateGig = () => {
+    playSound('gigComplete', soundEnabled);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
   const goal = activeGoal();
   const { done, total } = expectedDoneCountToday();
   const gigsUnlocked = allExpectedDoneToday();
@@ -170,9 +177,12 @@ export function ChildHomeScreen() {
             const status = gigCompletionStatusToday(gig.id);
             const startGig = () => {
               const achievedGoalId = goal.id;
-              const { achievedGoal, newBadgeCatalogId } = markGigDone(gig.id);
+              celebrateGig();
+              const { achievedGoal, newBadgeCatalogId, allGigsDoneToday } = markGigDone(gig.id);
               if (achievedGoal) {
                 navigation.navigate('GoalAchieved', { goalId: achievedGoalId });
+              } else if (allGigsDoneToday) {
+                navigation.navigate('AllGigsDone', { badgeCatalogId: newBadgeCatalogId ?? undefined });
               } else if (newBadgeCatalogId) {
                 navigation.navigate('BadgeUnlock', { catalogId: newBadgeCatalogId });
               }

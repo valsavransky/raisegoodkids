@@ -116,3 +116,39 @@ export function getContentLibraryForGrade(grade: string | undefined): GradeConte
 }
 
 export const GRADE_OPTIONS = ['K', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th'];
+
+/**
+ * Suggests up to `limit` new Gigs (grade content library + the dog-walking
+ * special case) the household hasn't already added — same logic
+ * GigsSetupScreen uses to seed suggestions during onboarding, factored out
+ * so it can also power the "recommend more gigs" prompt after a child
+ * clears every gig in a day (see AllGigsDoneScreen). Never mutates
+ * anything; the caller decides whether/how to add a suggestion.
+ */
+export function suggestMoreGigs(
+  household: {
+    grade?: string;
+    hasYard?: boolean;
+    hasCar?: boolean;
+    hasPet?: boolean;
+    petType?: string;
+    petName?: string;
+  },
+  existingGigNames: string[],
+  limit = 3
+): SuggestedGig[] {
+  const library = getContentLibraryForGrade(household.grade);
+  const householdAllows = (gig: SuggestedGig) => {
+    if (gig.ifApplicable === 'yard') return !!household.hasYard;
+    if (gig.ifApplicable === 'car') return !!household.hasCar;
+    return true;
+  };
+  const candidates: SuggestedGig[] = [
+    ...(library?.gigs.filter(householdAllows) ?? []),
+    ...(household.hasPet && household.petType?.trim().toLowerCase().includes('dog')
+      ? [{ name: `Walk ${household.petName?.trim() || 'the dog'}`, effortTier: 'quick' as const }]
+      : []),
+  ];
+  const existingLower = new Set(existingGigNames.map((name) => name.trim().toLowerCase()));
+  return candidates.filter((gig) => !existingLower.has(gig.name.trim().toLowerCase())).slice(0, limit);
+}

@@ -23,6 +23,7 @@ export type RootStackParamList = {
   FulfillGoal: { goalId: string };
   BadgeUnlock: { catalogId: string };
   AllExpectedDone: { badgeCatalogId?: string };
+  AllGigsDone: { badgeCatalogId?: string };
   ImportGoogleCalendar: undefined;
   ImportGoogleCalendarEvents: { calendarId: string };
   Settings: undefined;

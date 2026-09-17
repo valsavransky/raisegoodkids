@@ -7,6 +7,7 @@ import { createAudioPlayer } from 'expo-audio';
 
 const SOUNDS = {
   checkoff: require('../../assets/sounds/checkoff.wav'),
+  gigComplete: require('../../assets/sounds/gigComplete.wav'),
 } as const;
 
 type SoundName = keyof typeof SOUNDS;

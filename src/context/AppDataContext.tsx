@@ -57,6 +57,11 @@ export interface MarkGigDoneResult {
    * doesn't get upstaged by a badge popup in the same instant. The badge is
    * still recorded either way; it just surfaces on the shelf instead. */
   newBadgeCatalogId: string | null;
+  /** True exactly once per day — on the tap that completes the last
+   * remaining active gig — so callers can show the "all gigs done"
+   * celebration. Same precedence as newBadgeCatalogId: only set when the
+   * goal WASN'T also achieved this same tap. */
+  allGigsDoneToday: boolean;
 }
 
 export interface MarkExpectedDoneResult {
@@ -558,7 +563,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   };
 
   const markGigDone = (gigId: string): MarkGigDoneResult => {
-    const noOp: MarkGigDoneResult = { achievedGoal: false, newBadgeCatalogId: null };
+    const noOp: MarkGigDoneResult = { achievedGoal: false, newBadgeCatalogId: null, allGigsDoneToday: false };
     const goal = activeGoal();
     if (!goal || !futureFund) return noOp;
     if (gigCompletionStatusToday(gigId) !== null) return noOp;
@@ -586,6 +591,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const updatedCompletions = [...gigCompletions, completion];
     setGigCompletions(updatedCompletions);
     setFutureFund((prev) => (prev ? { ...prev, balance: prev.balance + skimAmount } : prev));
+
+    const today = todayString();
+    const activeGigs = gigs.filter((g) => g.active);
+    const allGigsDoneToday = activeGigs.every((g) =>
+      updatedCompletions.some((c) => c.gigId === g.id && c.markedDoneAt.slice(0, 10) === today)
+    );
 
     const priorProgress = goalProgressPercentage(goal.id);
     const achievedGoal = priorProgress + percentageAwarded >= 100;
@@ -626,7 +637,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       if (!achievedGoal) newBadgeCatalogId = newBadgeCatalogId ?? gigMilestone.catalogId;
     }
 
-    return { achievedGoal, newBadgeCatalogId };
+    // Same muting rule as the badge popups above — the goal-achieved
+    // celebration takes precedence over "all gigs done" in the same tap.
+    return { achievedGoal, newBadgeCatalogId, allGigsDoneToday: achievedGoal ? false : allGigsDoneToday };
   };
 
   const recordFutureFundContribution = (amount: number) => {
