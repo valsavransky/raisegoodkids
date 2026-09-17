@@ -10,7 +10,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { useAppData } from '../../context/AppDataContext';
 import { getBadgeCatalogEntry } from '../../data/badgeCatalog';
-import { suggestMoreGigs, SuggestedGig } from '../../data/contentLibrary';
+import { suggestMoreGigs, mostFrequentEffortTier, SuggestedGig } from '../../data/contentLibrary';
 import { Confetti } from '../../components/Confetti';
 import { BadgeIconGlyph } from '../../components/BadgeIconGlyph';
 import { colors } from '../../theme/colors';
@@ -18,7 +18,7 @@ import { colors } from '../../theme/colors';
 type Props = NativeStackScreenProps<RootStackParamList, 'AllGigsDone'>;
 
 export function AllGigsDoneScreen({ route, navigation }: Props) {
-  const { childProfile, gigs, addGig } = useAppData();
+  const { childProfile, gigs, addGig, gigCompletionStatusToday } = useAppData();
   const badge = route.params.badgeCatalogId ? getBadgeCatalogEntry(route.params.badgeCatalogId) : undefined;
 
   const [confettiTrigger] = useState(1);
@@ -36,10 +36,18 @@ export function AllGigsDoneScreen({ route, navigation }: Props) {
     ]).start();
   }, [iconScale, iconRotate]);
 
+  // Lead suggestions with whatever effort tier the child mostly did today
+  // (e.g. all quick gigs today -> suggest other quick ones first) — still
+  // grade-appropriate either way, just reordered toward what they're
+  // already in the groove of doing.
+  const preferredEffortTier = mostFrequentEffortTier(
+    gigs.filter((g) => gigCompletionStatusToday(g.id) === 'approved').map((g) => g.effortTier)
+  );
   const suggestions = suggestMoreGigs(
     childProfile ?? {},
     [...gigs.map((g) => g.name), ...addedNames],
-    3
+    3,
+    preferredEffortTier
   );
 
   const addSuggestion = (idea: SuggestedGig) => {

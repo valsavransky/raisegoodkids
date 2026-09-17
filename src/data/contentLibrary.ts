@@ -124,6 +124,10 @@ export const GRADE_OPTIONS = ['K', '1st', '2nd', '3rd', '4th', '5th', '6th', '7t
  * so it can also power the "recommend more gigs" prompt after a child
  * clears every gig in a day (see AllGigsDoneScreen). Never mutates
  * anything; the caller decides whether/how to add a suggestion.
+ *
+ * When `preferredEffortTier` is given (e.g. the tier the child mostly did
+ * today), matching-tier suggestions are moved to the front — still within
+ * the same grade-appropriate candidate pool, just reordered, not filtered.
  */
 export function suggestMoreGigs(
   household: {
@@ -135,7 +139,8 @@ export function suggestMoreGigs(
     petName?: string;
   },
   existingGigNames: string[],
-  limit = 3
+  limit = 3,
+  preferredEffortTier?: GigEffortTier
 ): SuggestedGig[] {
   const library = getContentLibraryForGrade(household.grade);
   const householdAllows = (gig: SuggestedGig) => {
@@ -150,5 +155,19 @@ export function suggestMoreGigs(
       : []),
   ];
   const existingLower = new Set(existingGigNames.map((name) => name.trim().toLowerCase()));
-  return candidates.filter((gig) => !existingLower.has(gig.name.trim().toLowerCase())).slice(0, limit);
+  const available = candidates.filter((gig) => !existingLower.has(gig.name.trim().toLowerCase()));
+  if (!preferredEffortTier) return available.slice(0, limit);
+  const matching = available.filter((gig) => gig.effortTier === preferredEffortTier);
+  const rest = available.filter((gig) => gig.effortTier !== preferredEffortTier);
+  return [...matching, ...rest].slice(0, limit);
+}
+
+/** Most common effort tier among a list of gigs (e.g. today's completed
+ * ones) — ties keep whichever tier appeared first. Returns undefined for
+ * an empty list, so callers can fall back to unordered suggestions. */
+export function mostFrequentEffortTier(tiers: GigEffortTier[]): GigEffortTier | undefined {
+  if (tiers.length === 0) return undefined;
+  const counts = new Map<GigEffortTier, number>();
+  for (const tier of tiers) counts.set(tier, (counts.get(tier) ?? 0) + 1);
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
 }
