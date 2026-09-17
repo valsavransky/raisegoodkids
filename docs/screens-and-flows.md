@@ -63,6 +63,7 @@ Both converge on a payoff step: redeem the goal (parent fulfills it in real life
 - Queued goal list: one marked "Active goal" (accent border, checkmark), others marked "Up next" / "Waiting in line," in order
 - "+ Add a new goal" action
 - Future Fund summary row (violet icon, "10% of every gig goes here first")
+- Add/edit goal modal: once a name is typed, a "🔍 Search Google Images" link appears — opens the device browser to a pre-filled image search for that name, so the parent/kid can see what the real item looks like and price it accurately before entering the cost. Deliberately manual (no auto-fetched image or price): pulling either programmatically from a retailer would mean scraping outside their sanctioned API, which is against Amazon's (and most retailers') terms of service — a plain search link has no such restriction since it's the same thing a person would do by hand.
 
 **Decisions locked in:**
 - **Multiple goals are queued, not concurrent.** One active goal at a time; a wishlist waits behind it. No splitting a single gig's value across two simultaneously-active goals (deferred — real complexity, limited payoff at this age).

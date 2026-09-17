@@ -16,7 +16,7 @@
 // it's a long-term investment/savings goal, not a wishlist item, per the
 // vision doc's "pay yourself first" framing.
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, SectionList, Modal, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, SectionList, Modal, KeyboardAvoidingView, Platform, StyleSheet, Linking } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
@@ -319,6 +319,16 @@ export function GoalPickerScreen() {
           <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
             <Text style={styles.modalTitle}>{editingGoalId ? 'Edit goal' : 'Add a goal'}</Text>
             <TextInput style={styles.input} placeholder="What are you saving for?" value={draftName} onChangeText={setDraftName} />
+            {draftName.trim().length > 0 && (
+              <Pressable
+                style={styles.imageSearchLink}
+                onPress={() =>
+                  Linking.openURL(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(draftName.trim())}`)
+                }
+              >
+                <Text style={styles.imageSearchLinkText}>🔍 Search Google Images for "{draftName.trim()}"</Text>
+              </Pressable>
+            )}
             <TextInput
               style={styles.input}
               placeholder="Cost ($)"
@@ -467,6 +477,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     marginBottom: 12,
   },
+  imageSearchLink: { alignSelf: 'flex-start', marginTop: -4, marginBottom: 12 },
+  imageSearchLinkText: { fontSize: 13, fontWeight: '600', color: colors.expected },
   modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 8 },
   modalCancelButton: { paddingVertical: 12, paddingHorizontal: 16 },
   modalCancelText: { color: colors.textMuted, fontSize: 15, fontWeight: '600' },
