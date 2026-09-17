@@ -27,7 +27,7 @@ export function MainNavigator() {
         tabBarIcon: () => <Text style={{ fontSize: 20 }}>{TAB_ICONS[route.name as keyof MainTabParamList]}</Text>,
       })}
     >
-      <Tab.Screen name="Home" component={ChildHomeScreen} />
+      <Tab.Screen name="Home" component={ChildHomeScreen} options={{ tabBarLabel: 'Today' }} />
       <Tab.Screen name="Goal" component={GoalPickerScreen} />
       <Tab.Screen name="Schedule" component={ScheduleViewScreen} />
       <Tab.Screen name="Badges" component={BadgesShelfScreen} />
