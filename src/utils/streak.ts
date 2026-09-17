@@ -4,13 +4,18 @@ import { ExpectedItem, ExpectedCompletion } from '../types/models';
 import { addDays } from './date';
 import { isExpectedItemSatisfied } from './expectedItemStatus';
 
+// Only daily items count toward a "fully completed" day — same reasoning as
+// the Gigs gate (AppDataContext.allExpectedDoneToday): a weekly item has the
+// rest of the week to get done, so an outstanding one shouldn't hold up
+// today's streak any more than it should hold up today's Gigs.
 export function isDayFullyCompleted(
   dateStr: string,
   activeItems: ExpectedItem[],
   completions: ExpectedCompletion[]
 ): boolean {
-  if (activeItems.length === 0) return false;
-  return activeItems.every((item) =>
+  const dailyItems = activeItems.filter((item) => item.frequency === 'daily');
+  if (dailyItems.length === 0) return false;
+  return dailyItems.every((item) =>
     isExpectedItemSatisfied(item, completions, dateStr, { excludeCorrected: true })
   );
 }
