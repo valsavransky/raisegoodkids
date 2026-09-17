@@ -281,7 +281,11 @@ export function ChildHomeScreen() {
             {stops.map((stop, i) => {
               const point = points[i];
               const categoryColor = stop.kind === 'gig' ? colors.gigs : colors.expected;
-              const ringColor = stop.done ? categoryColor : '#D8CCB8';
+              // Not-done rings are category-tinted too, not one shared
+              // neutral — otherwise an undone Expected and an undone Gig
+              // are indistinguishable until the moment they're completed.
+              const mutedRingColor = stop.kind === 'gig' ? '#E9CB9A' : '#B7D9D3';
+              const ringColor = stop.done ? categoryColor : mutedRingColor;
               const bgColor = stop.done ? categoryColor : '#FFFFFF';
               const iconColor = stop.done ? '#FFFFFF' : '#B3AA96';
               return (
