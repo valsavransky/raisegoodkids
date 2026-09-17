@@ -11,6 +11,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { useAppData } from '../../context/AppDataContext';
 import { getBadgeCatalogEntry } from '../../data/badgeCatalog';
+import { playSound } from '../../services/sound';
 import { Confetti } from '../../components/Confetti';
 import { BadgeIconGlyph } from '../../components/BadgeIconGlyph';
 import { HeartHandshakeIcon } from '../../components/icons/HeartHandshakeIcon';
@@ -19,7 +20,7 @@ import { colors } from '../../theme/colors';
 type Props = NativeStackScreenProps<RootStackParamList, 'AllExpectedDone'>;
 
 export function AllExpectedDoneScreen({ route, navigation }: Props) {
-  const { expectedStreak } = useAppData();
+  const { expectedStreak, soundEnabled } = useAppData();
   const badge = route.params.badgeCatalogId ? getBadgeCatalogEntry(route.params.badgeCatalogId) : undefined;
   const streak = expectedStreak();
 
@@ -28,6 +29,10 @@ export function AllExpectedDoneScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     Animated.spring(iconScale, { toValue: 1, friction: 5, tension: 120, useNativeDriver: true }).start();
+    // The checkoff sound already played from the tap that got here — this
+    // is the extra badge-specific stinger, only when a badge coincides.
+    if (badge) playSound('badgeUnlock', soundEnabled);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [iconScale]);
 
   return (

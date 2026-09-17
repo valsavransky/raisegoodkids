@@ -5,9 +5,12 @@
 // implying badge unlocks should read as the lighter-weight moment).
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, Animated, StyleSheet } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { getBadgeCatalogEntry } from '../../data/badgeCatalog';
+import { useAppData } from '../../context/AppDataContext';
+import { playSound } from '../../services/sound';
 import { Confetti } from '../../components/Confetti';
 import { BadgeIconGlyph } from '../../components/BadgeIconGlyph';
 import { colors } from '../../theme/colors';
@@ -15,13 +18,19 @@ import { colors } from '../../theme/colors';
 type Props = NativeStackScreenProps<RootStackParamList, 'BadgeUnlock'>;
 
 export function BadgeUnlockScreen({ route, navigation }: Props) {
+  const { soundEnabled } = useAppData();
   const entry = getBadgeCatalogEntry(route.params.catalogId);
   const [confettiTrigger] = useState(1);
   const badgeScale = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.spring(badgeScale, { toValue: 1, friction: 5, tension: 120, useNativeDriver: true }).start();
-  }, [badgeScale]);
+    playSound('badgeUnlock', soundEnabled);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    // Sound/haptic only on the moment this screen first appears — not on
+    // every soundEnabled/badgeScale reference change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <View style={styles.screen}>

@@ -11,6 +11,7 @@ import { RootStackParamList } from '../../navigation/types';
 import { useAppData } from '../../context/AppDataContext';
 import { getBadgeCatalogEntry } from '../../data/badgeCatalog';
 import { suggestMoreGigs, mostFrequentEffortTier, SuggestedGig } from '../../data/contentLibrary';
+import { playSound } from '../../services/sound';
 import { Confetti } from '../../components/Confetti';
 import { BadgeIconGlyph } from '../../components/BadgeIconGlyph';
 import { colors } from '../../theme/colors';
@@ -18,7 +19,7 @@ import { colors } from '../../theme/colors';
 type Props = NativeStackScreenProps<RootStackParamList, 'AllGigsDone'>;
 
 export function AllGigsDoneScreen({ route, navigation }: Props) {
-  const { childProfile, gigs, addGig, gigCompletionStatusToday } = useAppData();
+  const { childProfile, gigs, addGig, gigCompletionStatusToday, soundEnabled } = useAppData();
   const badge = route.params.badgeCatalogId ? getBadgeCatalogEntry(route.params.badgeCatalogId) : undefined;
 
   const [confettiTrigger] = useState(1);
@@ -34,6 +35,10 @@ export function AllGigsDoneScreen({ route, navigation }: Props) {
         Animated.spring(iconRotate, { toValue: 0, friction: 4, tension: 120, useNativeDriver: true }),
       ]),
     ]).start();
+    // The gig-complete chime already played from the tap that got here —
+    // this is the extra badge-specific stinger, only when a badge coincides.
+    if (badge) playSound('badgeUnlock', soundEnabled);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [iconScale, iconRotate]);
 
   // Lead suggestions with whatever effort tier the child mostly did today
