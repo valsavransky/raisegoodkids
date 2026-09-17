@@ -37,6 +37,14 @@ function mockEventsAsImported(calendarId: string): ImportedScheduleEvent[] {
   }));
 }
 
+// Matches on the child's first name only — real calendar titles are things
+// like "Rayna - Piano" or "Rayna's swim lesson," not full names.
+function titleMentionsChild(title: string, childName: string): boolean {
+  const firstName = childName.trim().split(/\s+/)[0];
+  if (!firstName) return false;
+  return title.toLowerCase().includes(firstName.toLowerCase());
+}
+
 function describeEvent(event: ImportedScheduleEvent): string {
   const time = event.startTime ? `${event.startTime}${event.endTime ? `-${event.endTime}` : ''}` : '';
   if (event.recurring) {
@@ -51,11 +59,12 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ImportGoogleCalendarEve
 export function ImportGoogleCalendarEventsScreen({ route, navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { calendarId } = route.params;
-  const { scheduleEvents, addScheduleEvent } = useAppData();
+  const { scheduleEvents, addScheduleEvent, childProfile } = useAppData();
   const [events, setEvents] = useState<ImportedScheduleEvent[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [nameFiltered, setNameFiltered] = useState(false);
 
   // Titles already in the schedule (from an earlier import or manual entry)
   // — matched by title alone, the one stable identity a re-fetch shares with
@@ -89,11 +98,19 @@ export function ImportGoogleCalendarEventsScreen({ route, navigation }: Props) {
         // every Tuesday) is almost always worth tracking, while a one-off
         // (a single dentist appointment) usually isn't. One-offs still show
         // up, just unchecked, so they're easy to add if they do matter.
-        setSelectedIds(
-          result
-            .filter((e) => e.recurring && !alreadyAddedTitles.has(e.title.trim().toLowerCase()))
-            .map((e) => e.id)
+        const recurringCandidates = result.filter(
+          (e) => e.recurring && !alreadyAddedTitles.has(e.title.trim().toLowerCase())
         );
+        // On a shared family calendar, narrow further to events that
+        // actually mention this child — otherwise a sibling's or parent's
+        // recurring activity gets pre-checked right alongside theirs. Only
+        // narrows when it finds at least one match; a calendar that never
+        // names the child in a title (common for a single-child household's
+        // own calendar) falls back to the plain "all recurring" behavior
+        // rather than pre-selecting nothing.
+        const nameMatched = recurringCandidates.filter((e) => titleMentionsChild(e.title, childProfile?.name ?? ''));
+        setNameFiltered(nameMatched.length > 0);
+        setSelectedIds((nameMatched.length > 0 ? nameMatched : recurringCandidates).map((e) => e.id));
         setLoading(false);
       }
     })();
@@ -137,7 +154,9 @@ export function ImportGoogleCalendarEventsScreen({ route, navigation }: Props) {
         <View style={{ width: 44 }} />
       </View>
       <Text style={styles.helperText}>
-        Select the ones worth tracking — they'll be added to your schedule.
+        {nameFiltered
+          ? `Pre-selected recurring events that mention ${childProfile?.name.trim().split(/\s+/)[0] || 'your child'} — toggle any others worth tracking too.`
+          : 'Select the ones worth tracking — they\'ll be added to your schedule.'}
       </Text>
       {error && <Text style={styles.errorText}>{error}</Text>}
       {loading ? (
