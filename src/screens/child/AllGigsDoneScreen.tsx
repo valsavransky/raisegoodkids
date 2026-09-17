@@ -98,10 +98,12 @@ export function AllGigsDoneScreen({ route, navigation }: Props) {
           // that hasn't removed any of them will have nothing left in the
           // content library to recommend — say so instead of showing
           // nothing, which reads as broken rather than "you're all set."
-          <Text style={styles.suggestEmptyText}>
-            You've already got every gig we'd suggest — add a custom one anytime from Settings.
-          </Text>
+          <Text style={styles.suggestEmptyText}>You've already got every gig we'd suggest.</Text>
         )}
+
+        <Pressable style={styles.settingsLink} onPress={() => navigation.navigate('GigsSettings')}>
+          <Text style={styles.settingsLinkText}>Manage all gigs in Settings →</Text>
+        </Pressable>
       </View>
 
       <Pressable style={styles.continueButton} onPress={() => navigation.goBack()}>
@@ -137,6 +139,8 @@ const styles = StyleSheet.create({
   },
   suggestHeading: { fontSize: 13, fontWeight: '700', color: colors.textMuted, marginBottom: 10 },
   suggestEmptyText: { fontSize: 13, color: colors.textMuted, lineHeight: 19 },
+  settingsLink: { marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.border },
+  settingsLinkText: { fontSize: 13, fontWeight: '700', color: colors.gigs },
   suggestRow: {
     flexDirection: 'row',
     alignItems: 'center',
