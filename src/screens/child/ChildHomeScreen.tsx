@@ -17,12 +17,13 @@
 // confirm, putting that judgment call where it belongs (the present parent)
 // rather than enforcing it structurally either visually or functionally.
 //
-// Weekly Expected items deliberately do NOT appear on the trail — a
-// "separate path" for them was scoped as a later, tabled decision (see the
-// priorities doc). They still need to stay actionable in the meantime, so
-// they're kept as a plain list below the trail rather than dropped
-// entirely — not restyled to the trail treatment, since that's exactly the
-// part that's tabled.
+// Weekly Expected items deliberately do NOT appear on the trail itself — a
+// full chore-x-day grid for them is still a later, tabled decision (see the
+// priorities doc, "Weekly grid/matrix view"). In the meantime they're shown
+// below the trail as small stepping-stone chips using the same icon/ring
+// visual language as trail stops, so they read as part of the same screen
+// rather than a bolted-on list — without the avatar-advancement mechanics
+// that belong to the full grid view.
 import React, { useEffect, useRef } from 'react';
 import { View, Text, Pressable, ScrollView, Alert, StyleSheet, Image, Animated } from 'react-native';
 import Svg, { Path, Defs, Pattern, Rect, Circle } from 'react-native-svg';
@@ -33,7 +34,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppData } from '../../context/AppDataContext';
 import { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { ExpectedItem, Gig } from '../../types/models';
-import { ExpectedItemRow } from '../../components/ExpectedItemRow';
 import { AppHeader } from '../../components/AppHeader';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { TaskIcon } from '../../components/icons/TaskIcons';
@@ -323,14 +323,27 @@ export function ChildHomeScreen() {
         {weeklyItems.length > 0 && (
           <View style={styles.weeklySection}>
             <Text style={styles.subSectionHeader}>Weekly</Text>
-            {weeklyItems.map((item: ExpectedItem) => (
-              <ExpectedItemRow
-                key={item.id}
-                name={item.name}
-                isDone={isExpectedDoneToday(item.id)}
-                onPress={() => handleExpectedPress(item.id)}
-              />
-            ))}
+            <View style={styles.weeklyRow}>
+              {weeklyItems.map((item: ExpectedItem) => {
+                const itemDone = isExpectedDoneToday(item.id);
+                const ringColor = itemDone ? colors.expected : '#B7D9D3';
+                const bgColor = itemDone ? colors.expected : '#FFFFFF';
+                const iconColor = itemDone ? '#FFFFFF' : '#B3AA96';
+                return (
+                  <Pressable
+                    key={item.id}
+                    disabled={itemDone}
+                    onPress={() => handleExpectedPress(item.id)}
+                    style={styles.weeklyStop}
+                  >
+                    <View style={[styles.weeklyStopCircle, { borderColor: ringColor, backgroundColor: bgColor }]}>
+                      <TaskIcon name={guessTaskIcon(item.name)} size={18} color={iconColor} />
+                    </View>
+                    <Text style={styles.weeklyStopLabel} numberOfLines={2}>{item.name}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
         )}
       </ScrollView>
@@ -408,6 +421,24 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginBottom: 6,
+    marginBottom: 10,
+  },
+  weeklyRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+  weeklyStop: { width: 68, alignItems: 'center' },
+  weeklyStopCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weeklyStopLabel: {
+    fontWeight: '700',
+    fontSize: 10.5,
+    color: '#5c574b',
+    textAlign: 'center',
+    lineHeight: 13,
+    marginTop: 5,
   },
 });
