@@ -19,12 +19,13 @@
 //
 // Weekly Expected items deliberately do NOT appear on the trail itself — a
 // full chore-x-day grid for them is still a later, tabled decision (see the
-// priorities doc, "Weekly grid/matrix view"). In the meantime they're shown
-// below the trail as small stepping-stone chips using the same icon/ring
-// visual language as trail stops, so they read as part of the same screen
-// rather than a bolted-on list — without the avatar-advancement mechanics
-// that belong to the full grid view.
-import React, { useEffect, useRef } from 'react';
+// priorities doc, "Weekly grid/matrix view"). In the meantime a small
+// "Today" / "This Week" toggle swaps the trail out for a simple row of
+// stepping-stone chips (same icon/ring visual language as trail stops)
+// instead of stacking both on one screen — closer to the "separate path"
+// weekly items were always meant to get, without the avatar-advancement
+// mechanics that belong to the full grid view.
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, ScrollView, Alert, StyleSheet, Image, Animated } from 'react-native';
 import Svg, { Path, Defs, Pattern, Rect, Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
@@ -53,7 +54,10 @@ type ChildHomeNavigationProp = CompositeNavigationProp<
 const TRAIL_WIDTH = 350;
 const COLUMN_X: [number, number] = [66, 284];
 const STEP_Y = 78;
-const FIRST_Y = 40;
+// Tall enough that the avatar — which floats above the first point by
+// AVATAR_SIZE + 26 (see avatarWrap's marginTop) — stays fully inside the
+// trail area instead of overlapping the label/toggle row above it.
+const FIRST_Y = 100;
 const AVATAR_SIZE = 72;
 const STOP_SIZE = 50;
 
@@ -117,6 +121,8 @@ export function ChildHomeScreen() {
     soundEnabled,
     expectedStreak,
   } = useAppData();
+
+  const [view, setView] = useState<'today' | 'week'>('today');
 
   const celebrateCheckoff = () => {
     playSound('checkoff', soundEnabled);
@@ -242,12 +248,27 @@ export function ChildHomeScreen() {
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <View style={styles.trailLabelRow}>
-          <Text style={styles.trailLabel}>Today's Trail</Text>
-          <Text style={styles.streakText}>{streak}-day streak</Text>
+        <View style={styles.viewToggleRow}>
+          <View style={styles.toggleTabs}>
+            <Pressable
+              onPress={() => setView('today')}
+              style={[styles.toggleTab, view === 'today' && styles.toggleTabActive]}
+            >
+              <Text style={[styles.toggleTabText, view === 'today' && styles.toggleTabTextActive]}>Today</Text>
+            </Pressable>
+            {weeklyItems.length > 0 && (
+              <Pressable
+                onPress={() => setView('week')}
+                style={[styles.toggleTab, view === 'week' && styles.toggleTabActive]}
+              >
+                <Text style={[styles.toggleTabText, view === 'week' && styles.toggleTabTextActive]}>This Week</Text>
+              </Pressable>
+            )}
+          </View>
+          {view === 'today' && <Text style={styles.streakText}>{streak}-day streak</Text>}
         </View>
 
-        {stops.length > 0 && (
+        {view === 'today' && stops.length > 0 && (
           <View style={[styles.trailArea, { height: trailHeight }]}>
             <Svg width={TRAIL_WIDTH} height={trailHeight} style={StyleSheet.absoluteFill}>
               <Path d={pathThrough(points)} stroke="#E7DCC7" strokeWidth={7} fill="none" strokeLinecap="round" strokeLinejoin="round" />
@@ -316,13 +337,14 @@ export function ChildHomeScreen() {
           </View>
         )}
 
-        <Text style={styles.doneCaption}>
-          {done + gigs.filter((g) => gigCompletionStatusToday(g.id) === 'approved').length} of {stops.length} done today
-        </Text>
+        {view === 'today' && (
+          <Text style={styles.doneCaption}>
+            {done + gigs.filter((g) => gigCompletionStatusToday(g.id) === 'approved').length} of {stops.length} done today
+          </Text>
+        )}
 
-        {weeklyItems.length > 0 && (
-          <View style={styles.weeklySection}>
-            <Text style={styles.subSectionHeader}>Weekly</Text>
+        {view === 'week' && (
+          <View style={styles.weeklyPanel}>
             <View style={styles.weeklyRow}>
               {weeklyItems.map((item: ExpectedItem) => {
                 const itemDone = isExpectedDoneToday(item.id);
@@ -372,21 +394,19 @@ const styles = StyleSheet.create({
   progressBarTrack: { height: 9, borderRadius: 999, backgroundColor: '#F7DFC0', overflow: 'hidden' },
   progressBarFill: { height: 9, borderRadius: 999, backgroundColor: colors.gigs },
   goalProgressText: { fontSize: 12.5, color: '#B96A08', marginTop: 7, fontWeight: '600' },
-  trailLabelRow: {
+  viewToggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 6,
-    paddingBottom: 4,
+    paddingBottom: 10,
   },
-  trailLabel: {
-    fontSize: 13,
-    fontWeight: '800',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: colors.expected,
-  },
+  toggleTabs: { flexDirection: 'row', backgroundColor: '#F3EEE2', borderRadius: 999, padding: 3 },
+  toggleTab: { paddingVertical: 6, paddingHorizontal: 14, borderRadius: 999 },
+  toggleTabActive: { backgroundColor: colors.expected },
+  toggleTabText: { fontSize: 12.5, fontWeight: '800', color: '#8a8578' },
+  toggleTabTextActive: { color: '#FFFFFF' },
   streakText: { fontSize: 12.5, color: colors.expected, fontWeight: '700' },
   trailArea: { width: TRAIL_WIDTH, alignSelf: 'center', marginTop: 10 },
   avatarWrap: {
@@ -414,15 +434,7 @@ const styles = StyleSheet.create({
   stopLabel: { fontWeight: '700', fontSize: 11, color: '#5c574b', textAlign: 'center', lineHeight: 14 },
   stopAmount: { fontWeight: '800', fontSize: 10, color: '#B96A08', marginTop: 1 },
   doneCaption: { textAlign: 'center', fontWeight: '600', fontSize: 13, color: '#8a8578', marginTop: 8, marginBottom: 4 },
-  weeklySection: { paddingHorizontal: 20, marginTop: 18 },
-  subSectionHeader: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 10,
-  },
+  weeklyPanel: { paddingHorizontal: 20, paddingTop: 4 },
   weeklyRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   weeklyStop: { width: 68, alignItems: 'center' },
   weeklyStopCircle: {
