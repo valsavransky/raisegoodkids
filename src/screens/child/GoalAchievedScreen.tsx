@@ -7,13 +7,14 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { useAppData } from '../../context/AppDataContext';
 import { Confetti } from '../../components/Confetti';
+import { playSound } from '../../services/sound';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GoalAchieved'>;
 
 export function GoalAchievedScreen({ route, navigation }: Props) {
   const { goalId } = route.params;
-  const { getGoal, activeGoal } = useAppData();
+  const { getGoal, activeGoal, soundEnabled } = useAppData();
   const goal = getGoal(goalId);
   // The next queued goal auto-activates the moment this one is achieved
   // (see AppDataContext.markGigDone), so by the time this screen renders
@@ -29,9 +30,7 @@ export function GoalAchievedScreen({ route, navigation }: Props) {
   }, [trophyScale]);
 
   const playFanfare = () => {
-    // No audio asset wired up yet — replaying the confetti burst stands in
-    // for the documented "ascending four-note chime" until one is added
-    // (needs expo-av + a real sound file).
+    playSound('fanfare', soundEnabled);
     setConfettiTrigger((n) => n + 1);
   };
 

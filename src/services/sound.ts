@@ -9,6 +9,7 @@ const SOUNDS = {
   checkoff: require('../../assets/sounds/checkoff.wav'),
   gigComplete: require('../../assets/sounds/gigComplete.wav'),
   badgeUnlock: require('../../assets/sounds/badgeUnlock.wav'),
+  fanfare: require('../../assets/sounds/fanfare.wav'),
 } as const;
 
 type SoundName = keyof typeof SOUNDS;
