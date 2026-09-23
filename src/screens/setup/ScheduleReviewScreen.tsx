@@ -7,13 +7,15 @@
 // whether it repeats) rather than a single free-form recurrence string, so
 // events can later be rendered as a real schedule view.
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, FlatList, ScrollView, Modal, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, FlatList, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { useSetup, DraftScheduleEvent, makeLocalId } from '../../context/SetupContext';
 import { ScheduleEventCategory, CADENCE_LABELS } from '../../types/models';
+import { ScheduleEventModal, ScheduleEventDraft, BLANK_SCHEDULE_EVENT_DRAFT } from '../../components/ScheduleEventModal';
+import { formatTimeRange12h } from '../../utils/time';
 import {
   categoryTriggersSuggestion,
   suggestExpectedItemForEvent,
@@ -32,7 +34,7 @@ const CATEGORIES: { value: ScheduleEventCategory; label: string }[] = [
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 function describeSchedule(event: DraftScheduleEvent): string {
-  const time = event.startTime ? `${event.startTime}${event.endTime ? `-${event.endTime}` : ''}` : '';
+  const time = formatTimeRange12h(event.startTime, event.endTime) ?? '';
   if (event.recurring) {
     const days = (event.daysOfWeek ?? []).map((d) => DAY_LABELS[d]).join('/');
     return [days, time].filter(Boolean).join(' ');
@@ -58,13 +60,7 @@ export function ScheduleReviewScreen({ navigation }: Props) {
   // event itself since it only ever affects whether a suggestion shows.
   const [sportsIsPractice, setSportsIsPractice] = useState<Record<string, boolean>>({});
   const [modalVisible, setModalVisible] = useState(false);
-  const [draftTitle, setDraftTitle] = useState('');
-  const [draftCategory, setDraftCategory] = useState<ScheduleEventCategory>('school');
-  const [draftRecurring, setDraftRecurring] = useState(true);
-  const [draftDaysOfWeek, setDraftDaysOfWeek] = useState<number[]>([]);
-  const [draftDate, setDraftDate] = useState('');
-  const [draftStartTime, setDraftStartTime] = useState('');
-  const [draftEndTime, setDraftEndTime] = useState('');
+  const [draft, setDraft] = useState<ScheduleEventDraft>(BLANK_SCHEDULE_EVENT_DRAFT);
 
   const updateCategory = (localId: string, category: ScheduleEventCategory) => {
     setScheduleEvents(
@@ -134,34 +130,21 @@ export function ScheduleReviewScreen({ navigation }: Props) {
   );
 
   const openAddModal = () => {
-    setDraftTitle('');
-    setDraftCategory('school');
-    setDraftRecurring(true);
-    setDraftDaysOfWeek([]);
-    setDraftDate('');
-    setDraftStartTime('');
-    setDraftEndTime('');
+    setDraft(BLANK_SCHEDULE_EVENT_DRAFT);
     setModalVisible(true);
   };
 
-  const toggleDay = (day: number) => {
-    setDraftDaysOfWeek((prev) => (prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]));
-  };
-
   const confirmAdd = () => {
-    if (!draftTitle.trim()) return;
-    if (draftRecurring && draftDaysOfWeek.length === 0) return;
-    if (!draftRecurring && !draftDate.trim()) return;
     const event: DraftScheduleEvent = {
       localId: makeLocalId('event'),
-      title: draftTitle.trim(),
-      category: draftCategory,
-      recurring: draftRecurring,
-      daysOfWeek: draftRecurring ? draftDaysOfWeek : undefined,
-      cadence: draftRecurring ? 'weekly' : undefined,
-      date: draftRecurring ? undefined : draftDate.trim(),
-      startTime: draftStartTime.trim() || undefined,
-      endTime: draftEndTime.trim() || undefined,
+      title: draft.title.trim(),
+      category: draft.category,
+      recurring: draft.recurring,
+      daysOfWeek: draft.recurring ? draft.daysOfWeek : undefined,
+      cadence: draft.recurring ? draft.cadence : undefined,
+      date: draft.recurring ? undefined : draft.date.trim(),
+      startTime: draft.startTime.trim() || undefined,
+      endTime: draft.endTime.trim() || undefined,
     };
     setScheduleEvents([...scheduleEvents, event]);
     setModalVisible(false);
@@ -348,101 +331,14 @@ export function ScheduleReviewScreen({ navigation }: Props) {
         <Text style={styles.continueButtonText}>Continue</Text>
       </Pressable>
 
-      <Modal visible={modalVisible} animationType="slide" transparent onRequestClose={() => setModalVisible(false)}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setModalVisible(false)}>
-          <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
-          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <Text style={styles.modalTitle}>Add event</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Event name"
-              value={draftTitle}
-              onChangeText={setDraftTitle}
-            />
-
-            <View style={styles.categoryRow}>
-              {CATEGORIES.map((category) => {
-                const selected = draftCategory === category.value;
-                return (
-                  <Pressable
-                    key={category.value}
-                    onPress={() => setDraftCategory(category.value)}
-                    style={[styles.categoryChip, selected && styles.categoryChipSelected]}
-                  >
-                    <Text style={[styles.categoryChipText, selected && styles.categoryChipTextSelected]}>
-                      {category.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            <View style={styles.repeatsRow}>
-              <Text style={styles.fieldLabel}>Repeats weekly</Text>
-              <View style={styles.repeatsToggle}>
-                <Pressable
-                  onPress={() => setDraftRecurring(true)}
-                  style={[styles.repeatsOption, draftRecurring && styles.repeatsOptionSelected]}
-                >
-                  <Text style={[styles.repeatsOptionText, draftRecurring && styles.repeatsOptionTextSelected]}>Yes</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setDraftRecurring(false)}
-                  style={[styles.repeatsOption, !draftRecurring && styles.repeatsOptionSelected]}
-                >
-                  <Text style={[styles.repeatsOptionText, !draftRecurring && styles.repeatsOptionTextSelected]}>No</Text>
-                </Pressable>
-              </View>
-            </View>
-
-            {draftRecurring ? (
-              <View style={styles.dayRow}>
-                {DAY_LABELS.map((label, index) => {
-                  const selected = draftDaysOfWeek.includes(index);
-                  return (
-                    <Pressable
-                      key={label}
-                      onPress={() => toggleDay(index)}
-                      style={[styles.dayChip, selected && styles.dayChipSelected]}
-                    >
-                      <Text style={[styles.dayChipText, selected && styles.dayChipTextSelected]}>{label}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            ) : (
-              <TextInput style={styles.input} placeholder="Date (YYYY-MM-DD)" value={draftDate} onChangeText={setDraftDate} />
-            )}
-
-            <View style={styles.timeRow}>
-              <TextInput
-                style={[styles.input, styles.timeInput]}
-                placeholder="Start (HH:MM)"
-                value={draftStartTime}
-                onChangeText={setDraftStartTime}
-              />
-              <TextInput
-                style={[styles.input, styles.timeInput]}
-                placeholder="End (HH:MM)"
-                value={draftEndTime}
-                onChangeText={setDraftEndTime}
-              />
-            </View>
-
-            <View style={styles.modalActions}>
-              <Pressable style={styles.modalCancelButton} onPress={() => setModalVisible(false)}>
-                <Text style={styles.modalCancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable style={styles.modalAddButton} onPress={confirmAdd}>
-                <Text style={styles.modalAddText}>Add</Text>
-              </Pressable>
-            </View>
-          </ScrollView>
-          </Pressable>
-          </Pressable>
-        </KeyboardAvoidingView>
-      </Modal>
+      <ScheduleEventModal
+        visible={modalVisible}
+        draft={draft}
+        onChangeDraft={setDraft}
+        editing={false}
+        onSave={confirmAdd}
+        onCancel={() => setModalVisible(false)}
+      />
     </View>
   );
 }
@@ -565,63 +461,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   continueButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  modalCard: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: '85%',
-  },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 16 },
-  input: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.text,
-    backgroundColor: colors.surface,
-    marginBottom: 12,
-  },
-  fieldLabel: { fontSize: 14, fontWeight: '600', color: colors.text },
-  repeatsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  repeatsToggle: { flexDirection: 'row', gap: 6 },
-  repeatsOption: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  repeatsOptionSelected: { backgroundColor: colors.expected, borderColor: colors.expected },
-  repeatsOptionText: { fontSize: 13, color: colors.text },
-  repeatsOptionTextSelected: { color: '#fff', fontWeight: '600' },
-  dayRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
-  dayChip: {
-    width: 44,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
-  dayChipSelected: { backgroundColor: colors.expected, borderColor: colors.expected },
-  dayChipText: { fontSize: 12, color: colors.text },
-  dayChipTextSelected: { color: '#fff', fontWeight: '600' },
-  timeRow: { flexDirection: 'row', gap: 10 },
-  timeInput: { flex: 1 },
-  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 8 },
-  modalCancelButton: { paddingVertical: 12, paddingHorizontal: 16 },
-  modalCancelText: { color: colors.textMuted, fontSize: 15, fontWeight: '600' },
-  modalAddButton: {
-    backgroundColor: colors.expected,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-  },
-  modalAddText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 });
