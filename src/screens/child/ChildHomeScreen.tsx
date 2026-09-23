@@ -185,6 +185,7 @@ export function ChildHomeScreen() {
   const avatarPoint = points[avatarIdx] ?? trailPointAt(0);
   const trailHeight = points.length > 0 ? FIRST_Y + (points.length - 1) * STEP_Y + 70 : 0;
   const gigsDoneToday = gigs.some((gig) => gigCompletionStatusToday(gig.id) === 'approved');
+  const gigsDoneCount = gigs.filter((gig) => gigCompletionStatusToday(gig.id) === 'approved').length;
 
   const avatarTranslate = useRef(new Animated.ValueXY({ x: avatarPoint.x, y: avatarPoint.y })).current;
   useEffect(() => {
@@ -296,6 +297,13 @@ export function ChildHomeScreen() {
           {view === 'today' && <Text style={styles.streakText}>{streak}-day streak</Text>}
         </View>
 
+        {view === 'today' && (
+          <View style={styles.doneStatsRow}>
+            <Text style={[styles.doneStatText, { color: colors.expected }]}>{done} of {total} Expected</Text>
+            <Text style={[styles.doneStatText, { color: colors.gigs }]}>{gigsDoneCount} of {gigs.length} Gigs</Text>
+          </View>
+        )}
+
         {view === 'today' && todaysEvents.length > 0 && (
           <View style={styles.scheduleStrip}>
             <Text style={styles.scheduleDayLabel}>{todayLabel}</Text>
@@ -392,12 +400,6 @@ export function ChildHomeScreen() {
               );
             })}
           </View>
-        )}
-
-        {view === 'today' && (
-          <Text style={styles.doneCaption}>
-            {done + gigs.filter((g) => gigCompletionStatusToday(g.id) === 'approved').length} of {stops.length} done today
-          </Text>
         )}
 
         {view === 'week' && (
@@ -519,7 +521,8 @@ const styles = StyleSheet.create({
   stopLabelWrap: { position: 'absolute', width: 104, alignItems: 'center' },
   stopLabel: { fontWeight: '700', fontSize: 11, color: '#5c574b', textAlign: 'center', lineHeight: 14 },
   stopAmount: { fontWeight: '800', fontSize: 10, color: '#B96A08', marginTop: 1 },
-  doneCaption: { textAlign: 'center', fontWeight: '600', fontSize: 13, color: '#8a8578', marginTop: 8, marginBottom: 4 },
+  doneStatsRow: { flexDirection: 'row', justifyContent: 'center', gap: 20, paddingHorizontal: 20, marginBottom: 8 },
+  doneStatText: { fontSize: 13, fontWeight: '700' },
   weeklyPanel: { paddingHorizontal: 20, paddingTop: 4 },
   weeklyRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   weeklyStop: { width: 68, alignItems: 'center' },
