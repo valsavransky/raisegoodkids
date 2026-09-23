@@ -126,8 +126,23 @@ export function ImportGoogleCalendarEventsScreen({ route, navigation }: Props) {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   };
 
+  // What confirmImport will actually add — excludes ids whose title has
+  // since become "already added" (e.g. a prior confirm on this same, still-
+  // mounted screen), so the button count doesn't overstate what a tap does.
+  const addableCount = selectedIds.filter((id) => {
+    const event = events.find((e) => e.id === id);
+    return event && !alreadyAddedTitles.has(event.title.trim().toLowerCase());
+  }).length;
+
   const confirmImport = () => {
-    const selected = events.filter((e) => selectedIds.includes(e.id));
+    // Re-excludes already-added titles here too, not just in the checkbox
+    // rendering — this screen stays mounted when you navigate forward and
+    // back (native-stack doesn't unmount it), so selectedIds can still hold
+    // ids picked before a prior confirm added them. Without this, pressing
+    // "Add" again after going back would duplicate those events.
+    const selected = events.filter(
+      (e) => selectedIds.includes(e.id) && !alreadyAddedTitles.has(e.title.trim().toLowerCase())
+    );
     selected.forEach((e) => {
       addScheduleEvent({
         title: e.title,
@@ -204,7 +219,7 @@ export function ImportGoogleCalendarEventsScreen({ route, navigation }: Props) {
         />
       )}
       <Pressable style={[styles.confirmButton, { marginBottom: 20 + insets.bottom }]} onPress={confirmImport}>
-        <Text style={styles.confirmButtonText}>Add {selectedIds.length} event{selectedIds.length === 1 ? '' : 's'}</Text>
+        <Text style={styles.confirmButtonText}>Add {addableCount} event{addableCount === 1 ? '' : 's'}</Text>
       </Pressable>
     </View>
   );
