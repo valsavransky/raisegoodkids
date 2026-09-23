@@ -4,7 +4,19 @@
 // separate, vendor-dependent workstream — see docs/screens-and-flows.md);
 // these are static, parent-overridable starting points, same spirit as the
 // grade content library.
+//
+// Unlike the chore content library, this isn't split into separate
+// per-band lists — most goal ideas (a bike, a video game, concert tickets)
+// are genuinely fine across the whole age range, so duplicating the list 4
+// times would mostly copy the same items with nothing gained. Instead,
+// individual ideas carry optional min/max grade tags: young-skewing "toys"
+// items (a dollhouse, an action figure) get a max, and a handful of new
+// items that only make sense for an older kid get a min. Untagged items
+// have no age restriction at all. A first, deliberately partial pass —
+// enough that a 7th grader doesn't see the same suggestions as a 3rd
+// grader, not a fully re-authored parallel library.
 import { GoalCategory } from '../types/models';
+import { GRADE_OPTIONS } from './contentLibrary';
 
 export type { GoalCategory };
 
@@ -12,15 +24,29 @@ export interface GoalIdea {
   name: string;
   category: GoalCategory;
   typicalCost: number;
+  /** Inclusive grade bounds, as an index into GRADE_OPTIONS (K=0 .. 8th=8).
+   * Omit either/both for "no restriction at this end." */
+  minGradeIndex?: number;
+  maxGradeIndex?: number;
 }
+
+function gradeIndexOf(grade: string): number {
+  const idx = GRADE_OPTIONS.indexOf(grade);
+  if (idx === -1) throw new Error(`Unknown grade "${grade}" in goalIdeas.ts`);
+  return idx;
+}
+
+const MAX_4TH = gradeIndexOf('4th');
+const MAX_6TH = gradeIndexOf('6th');
+const MIN_5TH = gradeIndexOf('5th');
 
 export const GOAL_IDEAS: GoalIdea[] = [
   { name: 'Lego set', category: 'toys', typicalCost: 40 },
-  { name: 'Building blocks set', category: 'toys', typicalCost: 35 },
-  { name: 'Action figure', category: 'toys', typicalCost: 20 },
-  { name: 'Stuffed animal', category: 'toys', typicalCost: 20 },
-  { name: 'Remote control car', category: 'toys', typicalCost: 45 },
-  { name: 'Dollhouse', category: 'toys', typicalCost: 60 },
+  { name: 'Building blocks set', category: 'toys', typicalCost: 35, maxGradeIndex: MAX_4TH },
+  { name: 'Action figure', category: 'toys', typicalCost: 20, maxGradeIndex: MAX_6TH },
+  { name: 'Stuffed animal', category: 'toys', typicalCost: 20, maxGradeIndex: MAX_4TH },
+  { name: 'Remote control car', category: 'toys', typicalCost: 45, maxGradeIndex: MAX_6TH },
+  { name: 'Dollhouse', category: 'toys', typicalCost: 60, maxGradeIndex: MAX_4TH },
   { name: '500-piece puzzle', category: 'toys', typicalCost: 20 },
   { name: 'Collectible trading cards', category: 'toys', typicalCost: 15 },
 
@@ -30,13 +56,18 @@ export const GOAL_IDEAS: GoalIdea[] = [
   { name: 'Handheld gaming device', category: 'games', typicalCost: 90 },
   { name: 'Chess or strategy game set', category: 'games', typicalCost: 30 },
   { name: 'Family game night bundle', category: 'games', typicalCost: 45 },
+  { name: 'Gaming chair', category: 'games', typicalCost: 120, minGradeIndex: MIN_5TH },
+  { name: 'Digital game store gift card', category: 'games', typicalCost: 25, minGradeIndex: MIN_5TH },
 
   { name: 'Tablet', category: 'tech', typicalCost: 150 },
   { name: 'Headphones', category: 'tech', typicalCost: 40 },
   { name: 'Smartwatch', category: 'tech', typicalCost: 80 },
-  { name: "Kids' camera", category: 'tech', typicalCost: 50 },
+  { name: "Kids' camera", category: 'tech', typicalCost: 50, maxGradeIndex: MAX_4TH },
   { name: 'Bluetooth speaker', category: 'tech', typicalCost: 35 },
   { name: 'E-reader', category: 'tech', typicalCost: 100 },
+  { name: 'Gaming headset', category: 'tech', typicalCost: 60, minGradeIndex: MIN_5TH },
+  { name: 'Wireless earbuds', category: 'tech', typicalCost: 70, minGradeIndex: MIN_5TH },
+  { name: 'Digital camera', category: 'tech', typicalCost: 90, minGradeIndex: MIN_5TH },
 
   { name: 'Bicycle', category: 'sports', typicalCost: 150 },
   { name: 'Skateboard', category: 'sports', typicalCost: 70 },
@@ -45,6 +76,7 @@ export const GOAL_IDEAS: GoalIdea[] = [
   { name: 'Scooter', category: 'sports', typicalCost: 60 },
   { name: 'Basketball hoop', category: 'sports', typicalCost: 90 },
   { name: 'Swim gear and goggles set', category: 'sports', typicalCost: 25 },
+  { name: 'Athletic shoes for a sport', category: 'sports', typicalCost: 70, minGradeIndex: MIN_5TH },
 
   { name: 'Art supplies set', category: 'creative', typicalCost: 30 },
   { name: 'Craft kit', category: 'creative', typicalCost: 25 },
@@ -59,6 +91,8 @@ export const GOAL_IDEAS: GoalIdea[] = [
   { name: 'Zoo or aquarium membership', category: 'experience', typicalCost: 80 },
   { name: 'Weekend camping trip', category: 'experience', typicalCost: 120 },
   { name: 'Cooking class', category: 'experience', typicalCost: 50 },
+  { name: 'Sports game tickets (local team)', category: 'experience', typicalCost: 50, minGradeIndex: MIN_5TH },
+  { name: 'Day out with friends (mall, arcade, bowling)', category: 'experience', typicalCost: 40, minGradeIndex: MIN_5TH },
 ];
 
 export const CATEGORY_EMOJI: Record<GoalCategory, string> = {
@@ -147,10 +181,28 @@ function daySeed(): number {
  * existed. Never repeats an existing goal name, and rotates which items
  * within a category surface (see daySeed) so it's not always the same
  * three every time.
+ *
+ * `grade` filters out ideas tagged with a min/max grade outside the
+ * child's own grade (see GoalIdea.minGradeIndex/maxGradeIndex) — a 7th
+ * grader doesn't see "Dollhouse," a 3rd grader doesn't see "Gaming
+ * headset." Omitted or unrecognized grades skip this filter entirely
+ * (most ideas have no tag anyway, so this only ever narrows, never breaks,
+ * the pool).
  */
-export function suggestGoalIdeas(existingGoals: { name: string; category?: GoalCategory }[], limit = 3): GoalIdea[] {
+export function suggestGoalIdeas(
+  existingGoals: { name: string; category?: GoalCategory }[],
+  grade?: string,
+  limit = 3
+): GoalIdea[] {
+  const gradeIdx = grade ? GRADE_OPTIONS.indexOf(grade) : -1;
   const existingLower = new Set(existingGoals.map((g) => g.name.trim().toLowerCase()));
-  const notAlreadyAdded = (idea: GoalIdea) => !existingLower.has(idea.name.toLowerCase());
+  const isEligible = (idea: GoalIdea) => {
+    if (existingLower.has(idea.name.toLowerCase())) return false;
+    if (gradeIdx === -1) return true;
+    if (idea.minGradeIndex !== undefined && gradeIdx < idea.minGradeIndex) return false;
+    if (idea.maxGradeIndex !== undefined && gradeIdx > idea.maxGradeIndex) return false;
+    return true;
+  };
   const seed = daySeed();
 
   if (existingGoals.length === 0) {
@@ -159,7 +211,7 @@ export function suggestGoalIdeas(existingGoals: { name: string; category?: GoalC
     for (const category of categories) {
       if (picks.length >= limit) break;
       const options = seededShuffle(
-        GOAL_IDEAS.filter((idea) => idea.category === category && notAlreadyAdded(idea)),
+        GOAL_IDEAS.filter((idea) => idea.category === category && isEligible(idea)),
         seed + hashString(category)
       );
       if (options[0]) picks.push(options[0]);
@@ -182,6 +234,6 @@ export function suggestGoalIdeas(existingGoals: { name: string; category?: GoalC
   }
   if (!topCategory) return [];
 
-  const matching = GOAL_IDEAS.filter((idea) => idea.category === topCategory && notAlreadyAdded(idea));
+  const matching = GOAL_IDEAS.filter((idea) => idea.category === topCategory && isEligible(idea));
   return seededShuffle(matching, seed + hashString(topCategory)).slice(0, limit);
 }

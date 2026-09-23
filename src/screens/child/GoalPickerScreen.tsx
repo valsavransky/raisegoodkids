@@ -81,7 +81,7 @@ export function GoalPickerScreen() {
     ...(completed.length > 0 ? [{ title: 'Completed', data: completed }] : []),
   ];
 
-  const suggestedIdeas = suggestGoalIdeas(goals);
+  const suggestedIdeas = suggestGoalIdeas(goals, childProfile?.grade);
 
   const openAddModal = () => {
     setEditingGoalId(null);
