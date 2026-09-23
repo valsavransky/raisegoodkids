@@ -1,28 +1,23 @@
-// A read/manage view of schedule events, grouped by day of week for
-// recurring events and by date for one-off ones. Not part of the original
-// screens-and-flows.md spec — added because knowing what's already
-// committed (school, sports, music, extracurriculars) is useful on its
-// own, not just as an input to setup suggestions.
-//
-// Originally view-only — there was no way to add or edit anything here
-// after setup finished. Now supports adding, editing, and deleting events
-// manually, plus importing more from the (stubbed) Google Calendar flow.
+// Settings → Schedule. A read/manage view of schedule events, grouped by
+// day of week for recurring events and by date for one-off ones. Moved out
+// of the bottom tab bar (see priorities doc, "Rethink the Schedule
+// surface") — its only ongoing job is occasional add/edit/delete of
+// recurring commitments, a low-frequency task that doesn't need a
+// permanent tab, matching how Expected Items and Gigs management already
+// live here instead of their own tabs. "What's on today" now surfaces on
+// Today's Trail instead (src/data/schedule.ts), which was the part of this
+// screen a kid/parent actually needed daily.
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, SectionList, ScrollView, Modal, Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
-import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAppData } from '../../context/AppDataContext';
 import { ScheduleEvent, ScheduleEventCategory, ScheduleEventCadence, CADENCE_LABELS } from '../../types/models';
-import { MainTabParamList, RootStackParamList } from '../../navigation/types';
-import { AppHeader } from '../../components/AppHeader';
+import { RootStackParamList } from '../../navigation/types';
+import { SettingsSubHeader } from '../../components/SettingsSubHeader';
 import { colors } from '../../theme/colors';
 
-type ScheduleNavigationProp = CompositeNavigationProp<
-  BottomTabNavigationProp<MainTabParamList, 'Schedule'>,
-  NativeStackNavigationProp<RootStackParamList>
->;
+type Props = NativeStackScreenProps<RootStackParamList, 'ScheduleSettings'>;
 
 const DAY_LABELS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const SHORT_DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -72,9 +67,8 @@ const BLANK_DRAFT: DraftState = {
   endTime: '',
 };
 
-export function ScheduleViewScreen() {
+export function ScheduleScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation<ScheduleNavigationProp>();
   const { scheduleEvents, addScheduleEvent, updateScheduleEvent, deleteScheduleEvent } = useAppData();
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -166,8 +160,7 @@ export function ScheduleViewScreen() {
 
   return (
     <View style={styles.screen}>
-      <AppHeader />
-      <Text style={styles.title}>Schedule</Text>
+      <SettingsSubHeader title="Schedule" onBack={() => navigation.goBack()} />
 
       <SectionList
         contentContainerStyle={styles.listContent}
@@ -331,7 +324,6 @@ export function ScheduleViewScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  title: { fontSize: 22, fontWeight: '700', color: colors.text, paddingHorizontal: 20, marginTop: 4, marginBottom: 8 },
   listContent: { paddingHorizontal: 20, paddingBottom: 8 },
   emptyText: { fontSize: 14, color: colors.textMuted, textAlign: 'center', marginTop: 24 },
   sectionHeader: { fontSize: 14, fontWeight: '700', color: colors.textMuted, marginTop: 16, marginBottom: 8 },

@@ -25,22 +25,36 @@
 // instead of stacking both on one screen — closer to the "separate path"
 // weekly items were always meant to get, without the avatar-advancement
 // mechanics that belong to the full grid view.
-import React, { useEffect, useRef, useState } from 'react';
+//
+// The "what's on today" schedule strip re-derives today's events (and their
+// past/next/upcoming status) on every screen focus rather than keeping a
+// live-ticking clock — precise enough for a glance-at-it-during-check-in
+// use case, without the battery/complexity cost of a real-time timer.
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, ScrollView, Alert, StyleSheet, Image, Animated } from 'react-native';
 import Svg, { Path, Defs, Pattern, Rect, Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
-import { useNavigation, CompositeNavigationProp } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppData } from '../../context/AppDataContext';
 import { MainTabParamList, RootStackParamList } from '../../navigation/types';
-import { ExpectedItem, Gig } from '../../types/models';
+import { ExpectedItem, Gig, ScheduleEventCategory } from '../../types/models';
 import { AppHeader } from '../../components/AppHeader';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { TaskIcon } from '../../components/icons/TaskIcons';
 import { guessTaskIcon } from '../../data/taskIcons';
+import { scheduleEventsForToday, formatEventTimeRange, TodayScheduleEvent } from '../../data/schedule';
 import { playSound } from '../../services/sound';
 import { colors } from '../../theme/colors';
+
+const CATEGORY_ICONS: Record<ScheduleEventCategory, string> = {
+  school: '🏫',
+  sports: '⚽',
+  extracurricular: '🎭',
+  music: '🎵',
+  other: '📌',
+};
 
 type ChildHomeNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Home'>,
@@ -120,9 +134,19 @@ export function ChildHomeScreen() {
     markGigDone,
     soundEnabled,
     expectedStreak,
+    scheduleEvents,
   } = useAppData();
 
   const [view, setView] = useState<'today' | 'week'>('today');
+
+  const [focusedAt, setFocusedAt] = useState(() => Date.now());
+  useFocusEffect(
+    useCallback(() => {
+      setFocusedAt(Date.now());
+    }, [])
+  );
+  const todaysEvents = useMemo(() => scheduleEventsForToday(scheduleEvents), [scheduleEvents, focusedAt]);
+  const todayLabel = useMemo(() => new Date().toLocaleDateString(undefined, { weekday: 'long' }), [focusedAt]);
 
   const celebrateCheckoff = () => {
     playSound('checkoff', soundEnabled);
@@ -268,6 +292,35 @@ export function ChildHomeScreen() {
           {view === 'today' && <Text style={styles.streakText}>{streak}-day streak</Text>}
         </View>
 
+        {view === 'today' && todaysEvents.length > 0 && (
+          <View style={styles.scheduleStrip}>
+            <Text style={styles.scheduleDayLabel}>{todayLabel}</Text>
+            {todaysEvents.map((event: TodayScheduleEvent) => (
+              <View
+                key={event.id}
+                style={[styles.scheduleRow, event.status === 'next' && styles.scheduleRowNext]}
+              >
+                <Text style={styles.scheduleIcon}>{CATEGORY_ICONS[event.category]}</Text>
+                <Text
+                  style={[
+                    styles.scheduleTitle,
+                    event.status === 'next' && styles.scheduleTitleNext,
+                    event.status === 'past' && styles.scheduleTitlePast,
+                  ]}
+                  numberOfLines={1}
+                >
+                  {event.title}
+                </Text>
+                {formatEventTimeRange(event) && (
+                  <Text style={[styles.scheduleTime, event.status === 'past' && styles.scheduleTitlePast]}>
+                    {formatEventTimeRange(event)}
+                  </Text>
+                )}
+              </View>
+            ))}
+          </View>
+        )}
+
         {view === 'today' && stops.length > 0 && (
           <View style={[styles.trailArea, { height: trailHeight }]}>
             <Svg width={TRAIL_WIDTH} height={trailHeight} style={StyleSheet.absoluteFill}>
@@ -408,6 +461,29 @@ const styles = StyleSheet.create({
   toggleTabText: { fontSize: 12.5, fontWeight: '800', color: '#8a8578' },
   toggleTabTextActive: { color: '#FFFFFF' },
   streakText: { fontSize: 12.5, color: colors.expected, fontWeight: '700' },
+  scheduleStrip: { paddingHorizontal: 20, marginBottom: 6 },
+  scheduleDayLabel: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  scheduleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+  },
+  scheduleRowNext: { backgroundColor: '#FDF1E2' },
+  scheduleIcon: { fontSize: 14 },
+  scheduleTitle: { flex: 1, fontSize: 13, fontWeight: '600', color: colors.text },
+  scheduleTitleNext: { fontWeight: '800', color: '#B96A08' },
+  scheduleTitlePast: { color: colors.textMuted, fontWeight: '500' },
+  scheduleTime: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
   trailArea: { width: TRAIL_WIDTH, alignSelf: 'center', marginTop: 10 },
   avatarWrap: {
     position: 'absolute',

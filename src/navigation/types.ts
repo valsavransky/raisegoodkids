@@ -13,7 +13,6 @@ export type SetupStackParamList = {
 export type MainTabParamList = {
   Home: undefined;
   Goal: undefined;
-  Schedule: undefined;
   Badges: undefined;
 };
 
@@ -29,6 +28,7 @@ export type RootStackParamList = {
   Settings: undefined;
   ExpectedItemsSettings: undefined;
   GigsSettings: undefined;
+  ScheduleSettings: undefined;
   AccountSettings: undefined;
   EditProfile: undefined;
 };
