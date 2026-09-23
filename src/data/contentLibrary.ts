@@ -1,9 +1,9 @@
 // Suggested Expected items and Gigs, by grade. Transcribed from
-// docs/content-library-grade-3-4.md and docs/content-library-grade-k-2.md —
-// the only two grade bands authored so far. Treat these as starting
-// suggestions, not a finished, authoritative list — the source docs are
-// explicit that they need real-family testing and revision, and every value
-// here is parent-overridable.
+// docs/content-library-grade-k-2.md, -grade-3-4.md, -grade-5-6.md, and
+// -grade-7-8.md — the four grade bands authored so far (high school still
+// isn't). Treat these as starting suggestions, not a finished, authoritative
+// list — the source docs are explicit that they need real-family testing and
+// revision, and every value here is parent-overridable.
 //
 // Feeding/walking a pet are NOT listed here on purpose — they're added
 // dynamically by ExpectedSetupScreen/GigsSetupScreen instead (personalized
@@ -103,12 +103,105 @@ const gradeKTo2: GradeContentLibrary = {
   ],
 };
 
-const libraries: GradeContentLibrary[] = [gradeKTo2, grade3And4];
+// 5th/6th introduces the "Gig graduates to Expected" pattern — a couple of
+// tasks that were paid Gigs at younger bands (taking out the trash, packing
+// a lunch) become baseline unpaid responsibilities here, since a 10-11-year
+// old handling them without being asked (and without getting paid) is a
+// realistic step toward the "Expected is just part of being in the family"
+// framing the whole app is built around. See content-library-grade-5-6.md.
+const grade5And6: GradeContentLibrary = {
+  grades: ['5th', '6th'],
+  expectedItems: [
+    { name: 'Make your bed', frequency: 'daily' },
+    { name: 'Brush teeth, morning and night', frequency: 'daily' },
+    { name: 'Pack your own backpack for school', frequency: 'daily' },
+    { name: 'Homework before screen time', frequency: 'daily' },
+    { name: 'Read for 20 minutes', frequency: 'daily' },
+    { name: 'Pack your own lunch', frequency: 'daily' },
+    { name: 'Put dirty clothes in the hamper', frequency: 'daily' },
+    { name: 'Clear your place and load into dishwasher after meals', frequency: 'daily' },
+    { name: 'Set the table for dinner', frequency: 'daily' },
+    { name: 'Take the trash and recycling bins to the curb', frequency: 'weekly' },
+    { name: 'Tidy your room', frequency: 'weekly' },
+    { name: 'Put away your own clean laundry', frequency: 'weekly' },
+  ],
+  gigs: [
+    { name: 'Water the plants', effortTier: 'quick' },
+    { name: 'Empty the wastebaskets around the house', effortTier: 'quick' },
+    { name: 'Wipe down kitchen counters and stovetop', effortTier: 'quick' },
+    { name: 'Sweep the porch or garage', effortTier: 'quick', ifApplicable: 'yard' },
+    { name: 'Vacuum a room', effortTier: 'medium' },
+    { name: 'Vacuum and wipe down the inside of the car', effortTier: 'medium', ifApplicable: 'car' },
+    { name: 'Help wash the car exterior', effortTier: 'medium', ifApplicable: 'car' },
+    { name: 'Clean out and organize the fridge (toss expired items)', effortTier: 'medium' },
+    { name: 'Organize a closet, shelf, or pantry', effortTier: 'medium' },
+    { name: 'Fold and put away a full load of family laundry', effortTier: 'medium' },
+    { name: 'Rake leaves', effortTier: 'medium', ifApplicable: 'yard' },
+    { name: 'Help prepare a simple family meal', effortTier: 'medium' },
+    { name: 'Unload the dishwasher, including glass and sharp items', effortTier: 'medium' },
+    { name: 'Wash the dishes by hand (a full load)', effortTier: 'big_job' },
+    { name: 'Deep-clean a bathroom (sink, toilet exterior, mirror, floor)', effortTier: 'big_job' },
+    { name: 'Wash the windows (reachable ones only)', effortTier: 'big_job' },
+    { name: 'Sort, start, and switch a load of laundry to the dryer', effortTier: 'big_job' },
+    { name: 'Weed a garden bed', effortTier: 'big_job', ifApplicable: 'yard' },
+    { name: 'Mow the lawn with a push mower, supervised', effortTier: 'big_job', ifApplicable: 'yard' },
+    { name: 'Cook a simple stovetop meal, with supervision (e.g. scrambled eggs, quesadillas)', effortTier: 'big_job' },
+  ],
+};
+
+// 7th/8th is the most independent band in the current design target (high
+// school is still unauthored) — most Gigs here drop the younger bands'
+// "help"/"supervised" qualifiers and become solo tasks, and laundry
+// graduates all the way from a Big Job Gig to a weekly Expected item. See
+// content-library-grade-7-8.md.
+const grade7And8: GradeContentLibrary = {
+  grades: ['7th', '8th'],
+  expectedItems: [
+    { name: 'Make your bed', frequency: 'daily' },
+    { name: 'Brush teeth, morning and night', frequency: 'daily' },
+    { name: 'Pack your own backpack for school', frequency: 'daily' },
+    { name: 'Homework before screen time', frequency: 'daily' },
+    { name: 'Manage your own screen-time limit', frequency: 'daily' },
+    { name: 'Pack your own lunch', frequency: 'daily' },
+    { name: 'Put dirty clothes in the hamper', frequency: 'daily' },
+    { name: 'Clear your place and load into dishwasher after meals', frequency: 'daily' },
+    { name: 'Set the table for dinner', frequency: 'daily' },
+    { name: 'Take the trash and recycling bins to the curb', frequency: 'weekly' },
+    { name: 'Tidy your room', frequency: 'weekly' },
+    { name: 'Do your own laundry start to finish (wash, dry, fold, put away)', frequency: 'weekly' },
+  ],
+  gigs: [
+    { name: 'Water the plants', effortTier: 'quick' },
+    { name: 'Empty the wastebaskets around the house', effortTier: 'quick' },
+    { name: 'Wipe down kitchen counters and stovetop', effortTier: 'quick' },
+    { name: 'Sweep the porch or garage', effortTier: 'quick', ifApplicable: 'yard' },
+    { name: 'Unload the dishwasher, including glass and sharp items', effortTier: 'quick' },
+    { name: 'Vacuum a room', effortTier: 'medium' },
+    { name: 'Vacuum and wipe down the inside of the car', effortTier: 'medium', ifApplicable: 'car' },
+    { name: 'Wash the car exterior on your own', effortTier: 'medium', ifApplicable: 'car' },
+    { name: 'Clean out and organize the fridge (toss expired items)', effortTier: 'medium' },
+    { name: 'Organize a closet, shelf, pantry, or garage', effortTier: 'medium' },
+    { name: 'Fold and put away a full load of family laundry', effortTier: 'medium' },
+    { name: 'Rake leaves', effortTier: 'medium', ifApplicable: 'yard' },
+    { name: 'Prepare a simple family meal on your own, with a recipe', effortTier: 'medium' },
+    { name: 'Wash the dishes by hand (a full load)', effortTier: 'big_job' },
+    { name: 'Deep-clean a bathroom (sink, toilet, mirror, floor, tub)', effortTier: 'big_job' },
+    { name: 'Wash the windows (inside and reachable outside)', effortTier: 'big_job' },
+    { name: 'Mow the lawn on your own', effortTier: 'big_job', ifApplicable: 'yard' },
+    { name: 'Weed and mulch a garden bed', effortTier: 'big_job', ifApplicable: 'yard' },
+    { name: 'Deep-clean the garage or a storage area', effortTier: 'big_job' },
+    { name: 'Plan and cook a full family dinner, with a recipe', effortTier: 'big_job' },
+    { name: 'Wash and detail the car, inside and out', effortTier: 'big_job', ifApplicable: 'car' },
+  ],
+};
+
+const libraries: GradeContentLibrary[] = [gradeKTo2, grade3And4, grade5And6, grade7And8];
 
 /**
  * Returns the content library matching a grade, or undefined if none has
- * been authored yet. Only K-2nd and 3rd/4th exist so far — callers should
- * handle the undefined case (e.g. let the parent start from an empty list).
+ * been authored yet. K-2nd, 3rd/4th, 5th/6th, and 7th/8th exist so far —
+ * callers should handle the undefined case (e.g. let the parent start from
+ * an empty list) for anything beyond 8th grade.
  */
 export function getContentLibraryForGrade(grade: string | undefined): GradeContentLibrary | undefined {
   if (!grade) return undefined;
