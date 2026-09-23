@@ -181,6 +181,15 @@ export function ChildHomeScreen() {
   const points = stops.map((_, i) => trailPointAt(i));
   const doneCount = stops.filter((s) => s.done).length;
   const shownProgress = Math.max(doneCount, stops.length > 0 ? 1 : 0);
+  // The colored (done) portion of the path is teal through the Expected
+  // stops, then switches to the Gigs amber once progress actually reaches
+  // the gig stops — two Path elements sharing the junction point (the last
+  // Expected point) so the color change reads as a continuous line, not a
+  // gap.
+  const expectedCount = dailyItems.length;
+  const expectedProgress = Math.min(shownProgress, expectedCount);
+  const gigJunction = Math.max(expectedCount - 1, 0);
+  const showGigProgress = shownProgress > expectedCount && stops.length > expectedCount;
   const avatarIdx = Math.min(doneCount, Math.max(points.length - 1, 0));
   const avatarPoint = points[avatarIdx] ?? trailPointAt(0);
   const trailHeight = points.length > 0 ? FIRST_Y + (points.length - 1) * STEP_Y + 70 : 0;
@@ -338,13 +347,23 @@ export function ChildHomeScreen() {
             <Svg width={TRAIL_WIDTH} height={trailHeight} style={StyleSheet.absoluteFill}>
               <Path d={pathThrough(points)} stroke="#E7DCC7" strokeWidth={7} fill="none" strokeLinecap="round" strokeLinejoin="round" />
               <Path
-                d={pathThrough(points.slice(0, shownProgress))}
+                d={pathThrough(points.slice(0, expectedProgress))}
                 stroke={colors.expected}
                 strokeWidth={7}
                 fill="none"
                 strokeLinecap="round"
                 strokeLinejoin="round"
               />
+              {showGigProgress && (
+                <Path
+                  d={pathThrough(points.slice(gigJunction, shownProgress))}
+                  stroke={colors.gigs}
+                  strokeWidth={7}
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              )}
             </Svg>
 
             <Animated.View

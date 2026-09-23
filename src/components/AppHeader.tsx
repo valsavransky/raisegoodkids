@@ -73,7 +73,7 @@ export function AppHeader() {
       </View>
 
       {showHint && (
-        <View style={styles.hintAnchor} pointerEvents="box-none">
+        <View style={styles.hintAnchor}>
           <View style={styles.hintArrow} />
           <View style={styles.hintBubble}>
             <Text style={styles.hintText}>Tap here anytime to edit gigs, chores, or values.</Text>
@@ -88,7 +88,7 @@ export function AppHeader() {
 }
 
 const styles = StyleSheet.create({
-  wrap: { position: 'relative' },
+  wrap: {},
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -122,11 +122,10 @@ const styles = StyleSheet.create({
     borderColor: colors.background,
   },
   hintAnchor: {
-    position: 'absolute',
-    top: '100%',
-    right: 16,
     alignItems: 'flex-end',
-    zIndex: 20,
+    paddingHorizontal: 20,
+    marginTop: -6,
+    marginBottom: 10,
   },
   hintArrow: {
     width: 14,
@@ -134,7 +133,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.text,
     transform: [{ rotate: '45deg' }],
     marginBottom: -7,
-    marginRight: 26,
+    marginRight: 22,
   },
   hintBubble: {
     backgroundColor: colors.text,
