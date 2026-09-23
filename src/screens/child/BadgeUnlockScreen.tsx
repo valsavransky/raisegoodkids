@@ -25,8 +25,13 @@ export function BadgeUnlockScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     Animated.spring(badgeScale, { toValue: 1, friction: 5, tension: 120, useNativeDriver: true }).start();
-    playSound('badgeUnlock', soundEnabled);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    // The checkoff/gig-complete chime already started from the tap that got
+    // here — firing this stinger in the same instant risked the two
+    // AudioPlayer instances colliding on some devices and one going silent,
+    // so this waits a beat for that first sound to clear.
+    const timer = setTimeout(() => playSound('badgeUnlock', soundEnabled), 200);
+    return () => clearTimeout(timer);
     // Sound/haptic only on the moment this screen first appears — not on
     // every soundEnabled/badgeScale reference change.
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -35,9 +35,13 @@ export function AllGigsDoneScreen({ route, navigation }: Props) {
         Animated.spring(iconRotate, { toValue: 0, friction: 4, tension: 120, useNativeDriver: true }),
       ]),
     ]).start();
-    // The gig-complete chime already played from the tap that got here —
-    // this is the extra badge-specific stinger, only when a badge coincides.
-    if (badge) playSound('badgeUnlock', soundEnabled);
+    // The gig-complete chime already started from the tap that got here —
+    // firing the badge stinger in the same instant risked the two
+    // AudioPlayer instances colliding on some devices and one going silent,
+    // so this waits a beat for the gig-complete chime to clear first.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (badge) timer = setTimeout(() => playSound('badgeUnlock', soundEnabled), 200);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [iconScale, iconRotate]);
 

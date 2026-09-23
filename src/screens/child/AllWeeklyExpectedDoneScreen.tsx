@@ -29,7 +29,13 @@ export function AllWeeklyExpectedDoneScreen({ route, navigation }: Props) {
 
   useEffect(() => {
     Animated.spring(iconScale, { toValue: 1, friction: 5, tension: 120, useNativeDriver: true }).start();
-    if (badge) playSound('badgeUnlock', soundEnabled);
+    // The checkoff sound already started from the tap that got here — firing
+    // the badge stinger in the same instant risked the two AudioPlayer
+    // instances colliding on some devices and one going silent, so this
+    // waits a beat for the checkoff sound to clear first.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    if (badge) timer = setTimeout(() => playSound('badgeUnlock', soundEnabled), 200);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [iconScale]);
 
