@@ -177,7 +177,7 @@ export function ScheduleReviewScreen({ navigation }: Props) {
           const suggestion = showSuggestion ? suggestExpectedItemForEvent(item.title, item.category) : null;
 
           return (
-            <View style={styles.eventRow}>
+            <View style={[styles.eventRow, item.category === 'other' && styles.eventRowUnsorted]}>
               <View style={styles.eventInfo}>
                 <Text style={styles.eventTitle}>{item.title}</Text>
                 <View style={styles.eventMetaRow}>
@@ -356,6 +356,16 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
     backgroundColor: colors.surface,
+  },
+  // "Other" is the silent default a title that matched no keyword falls
+  // back to (see guessCategoryForTitle) — it also never triggers a related
+  // Expected-item suggestion. A dashed accent border is the only nudge
+  // toward tapping a different chip; no copy explains why on purpose, so
+  // discovering the suggestion payoff stays a "find out by trying" moment
+  // rather than a spelled-out instruction.
+  eventRowUnsorted: {
+    borderStyle: 'dashed',
+    borderColor: colors.gigs,
   },
   eventInfo: { marginBottom: 10 },
   eventTitle: { fontSize: 15, fontWeight: '600', color: colors.text },

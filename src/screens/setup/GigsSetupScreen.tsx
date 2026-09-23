@@ -107,11 +107,7 @@ export function GigsSetupScreen({ navigation }: Props) {
       />
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.introText}>
-          Does {childProfile.name.trim() || 'your child'} always ask for the newest toy, clothes,
-          or games — or to go somewhere extra fun? Gigs are optional, paid work they choose (or you
-          add your own) that count toward whatever they're saving for.
-        </Text>
+        <Text style={styles.introText}>Gigs are optional, paid work that counts toward a goal they're saving for.</Text>
 
         <Text style={styles.helperText}>
           {library

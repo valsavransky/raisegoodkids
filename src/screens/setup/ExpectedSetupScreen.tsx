@@ -99,11 +99,7 @@ export function ExpectedSetupScreen({ navigation }: Props) {
       />
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.introText}>
-          Expected is everything that comes with being part of the family — school, chores,
-          showing up. It's never paid on purpose: marking these off earns{' '}
-          {childProfile.name.trim() || 'your child'} badges for consistency, not money.
-        </Text>
+        <Text style={styles.introText}>Expected chores are unpaid — they're about consistency, not cash.</Text>
 
         <Text style={styles.helperText}>
           {library
