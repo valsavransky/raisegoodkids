@@ -65,14 +65,20 @@ export interface MarkGigDoneResult {
 }
 
 export interface MarkExpectedDoneResult {
-  /** A newly-earned streak badge's catalogId, if any. Since a streak day
-   * only counts when every Expected item was done that day, this can only
-   * ever be set alongside allDoneToday === true. */
+  /** A newly-earned badge's catalogId, if any — either a streak badge
+   * (alongside allDoneToday === true) or the weekly-completion badge
+   * (alongside allWeeklyDoneThisWeek === true). Never both in the same
+   * call, since a single item is either daily or weekly. */
   newBadgeCatalogId: string | null;
-  /** True exactly once per day — on the tap that completes the last
-   * remaining Expected item — so callers can show the "all done today"
-   * celebration. */
+  /** True only when the tapped item was itself a daily one and it completed
+   * today's full daily set — so a weekly item's checkoff never re-fires the
+   * "all done today" celebration just because the daily set happened to
+   * already be finished. */
   allDoneToday: boolean;
+  /** True only when the tapped item was itself a weekly one and it
+   * completed every active weekly item for the current week (Sunday
+   * through Saturday) — the weekly counterpart to allDoneToday. */
+  allWeeklyDoneThisWeek: boolean;
 }
 
 interface AppDataContextValue {
@@ -416,8 +422,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   };
 
   const markExpectedDone = (expectedItemId: string): MarkExpectedDoneResult => {
-    const noOp: MarkExpectedDoneResult = { newBadgeCatalogId: null, allDoneToday: false };
+    const noOp: MarkExpectedDoneResult = { newBadgeCatalogId: null, allDoneToday: false, allWeeklyDoneThisWeek: false };
     if (isExpectedDoneToday(expectedItemId)) return noOp;
+    const item = expectedItems.find((i) => i.id === expectedItemId);
+    if (!item) return noOp;
+
     const completion: ExpectedCompletion = {
       id: makeId('expectedCompletion'),
       expectedItemId,
@@ -430,24 +439,36 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
     // expectedCompletions state hasn't updated yet in this closure — include
     // the pending completion directly so today's picture reflects this tap.
-    // Only daily items count toward "all done today" — a weekly item has the
-    // rest of the week to get done, so it shouldn't hold up today's
-    // celebration (or, via allExpectedDoneToday below, today's Gigs).
+    // Only the tapped item's own frequency can complete its own period —
+    // otherwise checking off a weekly item after the daily set is already
+    // done would re-fire the daily "all done today" celebration (and vice
+    // versa), even though this tap didn't actually complete that period.
     const today = todayString();
     const updatedCompletions = [...expectedCompletions, completion];
-    const dailyItems = expectedItems.filter((item) => item.frequency === 'daily');
+    const dailyItems = expectedItems.filter((i) => i.frequency === 'daily');
+    const weeklyItems = expectedItems.filter((i) => i.frequency === 'weekly');
     const allDoneToday =
+      item.frequency === 'daily' &&
       dailyItems.length > 0 &&
-      dailyItems.every((item) => isExpectedItemSatisfied(item, updatedCompletions, today));
+      dailyItems.every((i) => isExpectedItemSatisfied(i, updatedCompletions, today));
+    const allWeeklyDoneThisWeek =
+      item.frequency === 'weekly' &&
+      weeklyItems.length > 0 &&
+      weeklyItems.every((i) => isExpectedItemSatisfied(i, updatedCompletions, today));
 
-    const newStreak = computeExpectedStreak(expectedItems, updatedCompletions, today);
-    const threshold = STREAK_THRESHOLDS.find((t) => t.days === newStreak);
     let newBadgeCatalogId: string | null = null;
-    if (threshold && !hasBadge(threshold.catalogId)) {
-      awardBadge(threshold.catalogId, { streakCount: newStreak });
-      newBadgeCatalogId = threshold.catalogId;
+    if (allDoneToday) {
+      const newStreak = computeExpectedStreak(expectedItems, updatedCompletions, today);
+      const threshold = STREAK_THRESHOLDS.find((t) => t.days === newStreak);
+      if (threshold && !hasBadge(threshold.catalogId)) {
+        awardBadge(threshold.catalogId, { streakCount: newStreak });
+        newBadgeCatalogId = threshold.catalogId;
+      }
+    } else if (allWeeklyDoneThisWeek && !hasBadge('weekly_expected_done')) {
+      awardBadge('weekly_expected_done');
+      newBadgeCatalogId = 'weekly_expected_done';
     }
-    return { newBadgeCatalogId, allDoneToday };
+    return { newBadgeCatalogId, allDoneToday, allWeeklyDoneThisWeek };
   };
 
   // Only daily items gate Gigs — a weekly item (e.g. "tidy your room") has

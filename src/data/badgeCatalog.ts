@@ -39,6 +39,7 @@ export const BADGE_CATALOG: BadgeCatalogEntry[] = [
   { catalogId: 'streak_7', type: 'streak', title: '7-Day Streak', subtitle: 'Expected badge earned', icon: '🌟', color: colors.expected },
   { catalogId: 'streak_14', type: 'streak', title: '14-Day Streak', subtitle: 'Expected badge earned', icon: '💎', color: colors.expected },
   { catalogId: 'streak_30', type: 'streak', title: '30-Day Streak', subtitle: 'Expected badge earned', icon: '👑', color: colors.expected },
+  { catalogId: 'weekly_expected_done', type: 'weekly_complete', title: 'Weekly All-Star', subtitle: 'Expected badge earned', icon: '🗓️', color: colors.expected },
   { catalogId: 'gig_milestone_1', type: 'gig_milestone', title: 'First Gig', subtitle: 'Gig badge earned', icon: '🪙', color: colors.gigs },
   { catalogId: 'gig_milestone_5', type: 'gig_milestone', title: '5 Gigs Done', subtitle: 'Gig badge earned', icon: '💰', color: colors.gigs },
   { catalogId: 'gig_milestone_20', type: 'gig_milestone', title: '20 Gigs Done', subtitle: 'Gig badge earned', icon: '🎖️', color: colors.gigs },

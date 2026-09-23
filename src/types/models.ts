@@ -223,7 +223,8 @@ export type BadgeType =
   | 'big_job_done'
   | 'goal_achieved'
   | 'character_grit'
-  | 'future_fund_milestone';
+  | 'future_fund_milestone'
+  | 'weekly_complete';
 
 /**
  * Streak length and goal-progress percentage are deliberately NOT stored as

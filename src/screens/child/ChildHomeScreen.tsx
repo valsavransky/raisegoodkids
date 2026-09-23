@@ -199,9 +199,11 @@ export function ChildHomeScreen() {
 
   const handleExpectedPress = (itemId: string) => {
     celebrateCheckoff();
-    const { newBadgeCatalogId, allDoneToday } = markExpectedDone(itemId);
+    const { newBadgeCatalogId, allDoneToday, allWeeklyDoneThisWeek } = markExpectedDone(itemId);
     if (allDoneToday) {
       navigation.navigate('AllExpectedDone', { badgeCatalogId: newBadgeCatalogId ?? undefined });
+    } else if (allWeeklyDoneThisWeek) {
+      navigation.navigate('AllWeeklyExpectedDone', { badgeCatalogId: newBadgeCatalogId ?? undefined });
     } else if (newBadgeCatalogId) {
       navigation.navigate('BadgeUnlock', { catalogId: newBadgeCatalogId });
     }
