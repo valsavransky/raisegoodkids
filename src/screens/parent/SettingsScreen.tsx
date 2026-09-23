@@ -21,7 +21,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
 export function SettingsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { childProfile, parentName, resetAllData, soundEnabled, setSoundEnabled } = useAppData();
+  const { childProfile, parentName, resetAllData, soundEnabled, setSoundEnabled, futureFund } = useAppData();
   const { isAutoAccount, accountEmail } = useAuth();
 
   const confirmResetAllData = () => {
@@ -85,6 +85,14 @@ export function SettingsScreen({ navigation }: Props) {
           <Text style={styles.rowIcon}>🗓️</Text>
           <View style={styles.rowInfo}>
             <Text style={styles.rowLabel}>Schedule</Text>
+          </View>
+          <Text style={styles.chevron}>{'›'}</Text>
+        </Pressable>
+        <Pressable onPress={() => navigation.navigate('FutureFundSettings')} style={styles.row}>
+          <Text style={styles.rowIcon}>📈</Text>
+          <View style={styles.rowInfo}>
+            <Text style={styles.rowLabel}>Future Fund</Text>
+            <Text style={styles.rowSubtitle}>{futureFund?.percentage ?? 10}% of every gig</Text>
           </View>
           <Text style={styles.chevron}>{'›'}</Text>
         </Pressable>

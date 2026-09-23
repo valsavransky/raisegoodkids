@@ -166,6 +166,11 @@ interface AppDataContextValue {
    * real account — reduces the tracked (pending) balance by that amount. */
   recordFutureFundContribution: (amount: number) => void;
 
+  /** The "pay yourself first" skim percentage taken off every gig before
+   * the rest counts toward the active goal — parent-configurable in
+   * Settings, defaults to DEFAULT_FUTURE_FUND_PERCENTAGE at setup. */
+  updateFutureFundPercentage: (percentage: number) => void;
+
   addScheduleEvent: (event: Omit<ScheduleEvent, 'id' | 'childProfileId'>) => void;
   updateScheduleEvent: (id: string, fields: Omit<ScheduleEvent, 'id' | 'childProfileId'>) => void;
   deleteScheduleEvent: (id: string) => void;
@@ -704,6 +709,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setFutureFund((prev) => (prev ? { ...prev, balance: Math.max(0, prev.balance - amount) } : prev));
   };
 
+  const updateFutureFundPercentage = (percentage: number) => {
+    setFutureFund((prev) => (prev ? { ...prev, percentage } : prev));
+  };
+
   const addScheduleEvent = (event: Omit<ScheduleEvent, 'id' | 'childProfileId'>) => {
     setScheduleEvents((prev) => [...prev, { ...event, id: makeId('scheduleEvent'), childProfileId: childProfile?.id ?? '' }]);
   };
@@ -827,6 +836,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         gigCompletionStatusToday,
         markGigDone,
         recordFutureFundContribution,
+        updateFutureFundPercentage,
         addScheduleEvent,
         updateScheduleEvent,
         deleteScheduleEvent,
