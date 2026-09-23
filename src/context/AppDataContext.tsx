@@ -137,6 +137,20 @@ interface AppDataContextValue {
   updateGoal: (goalId: string, fields: { name: string; realWorldCost: number; photoUri?: string }) => void;
   deleteGoal: (goalId: string) => void;
   goalProgressPercentage: (goalId: string) => number;
+  /** Count of a goal's approved gig completions dated today — lets a caller
+   * decide whether "move today's progress" is even worth offering before
+   * switching the active goal (see moveTodaysGigProgressToGoal). */
+  todaysApprovedGigCount: (goalId: string) => number;
+  /** Reassigns a goal's today-dated approved gig completions to a different
+   * goal, recomputing each one's percentageAwarded against the destination
+   * goal's own cost (the original figure was computed against the source
+   * goal's cost — a straight goalId swap without recomputing would
+   * misrepresent progress). Deliberately scoped to today only, and never
+   * automatic — every ordinary active-goal swap (including the automatic
+   * one when a goal is achieved) must leave each goal's own progress alone;
+   * this is only for a parent explicitly correcting a same-day "wrong goal
+   * was active" mistake. */
+  moveTodaysGigProgressToGoal: (fromGoalId: string, toGoalId: string) => void;
   /** Records real-world delivery of an achieved goal. Does NOT gate the next
    * queued goal — that activates automatically the moment this one is
    * achieved (see markGigDone), since a parent might not get to the real-
@@ -533,6 +547,29 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       .reduce((sum, c) => sum + c.percentageAwarded, 0);
   };
 
+  const todaysApprovedGigCount = (goalId: string): number => {
+    const today = todayString();
+    return gigCompletions.filter(
+      (c) => c.goalId === goalId && c.status === 'approved' && (c.approvedAt ?? c.markedDoneAt).slice(0, 10) === today
+    ).length;
+  };
+
+  const moveTodaysGigProgressToGoal = (fromGoalId: string, toGoalId: string) => {
+    const toGoal = getGoal(toGoalId);
+    if (!toGoal || !futureFund) return;
+    const today = todayString();
+    setGigCompletions((prev) =>
+      prev.map((c) => {
+        if (c.goalId !== fromGoalId || c.status !== 'approved') return c;
+        if ((c.approvedAt ?? c.markedDoneAt).slice(0, 10) !== today) return c;
+        const gig = gigs.find((g) => g.id === c.gigId);
+        if (!gig) return c;
+        const percentageAwarded = computeGigPercentage(gig.effortTier, toGoal, futureFund.percentage, gigEffortValues);
+        return { ...c, goalId: toGoalId, percentageAwarded };
+      })
+    );
+  };
+
   /** Only a non-active goal with zero earned progress is safe to edit or
    * delete — a goal that was ever active (even if since demoted back to
    * queued via setActiveGoal) could carry real progress worth protecting. */
@@ -773,6 +810,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         updateGoal,
         deleteGoal,
         goalProgressPercentage,
+        todaysApprovedGigCount,
+        moveTodaysGigProgressToGoal,
         markGoalFulfilled,
         gigPreviewPercentage,
         gigCompletionStatusToday,

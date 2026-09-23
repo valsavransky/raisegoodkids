@@ -7,16 +7,24 @@
 // made it look like nothing had happened. A queued goal can also be
 // switched to active directly: since progress is derived per-goal from its
 // own GigCompletions (see AppDataContext.goalProgressPercentage), swapping
-// which goal is active never loses anything already earned toward any goal.
+// which goal is active never loses anything already earned toward any goal
+// — each goal just keeps waiting on its own earned progress.
 // Editing/deleting is only offered for goals AppDataContext.canModifyGoal
 // allows — never the active goal, and never one carrying earned progress.
+//
+// The one exception: if the currently-active goal has gigs completed
+// *today*, switching offers to move just that same-day progress to the
+// newly-activated goal instead (see handleMakeActive / AppDataContext's
+// moveTodaysGigProgressToGoal) — a correction for "the wrong goal was
+// active when a gig got marked done," not a general transfer feature.
+// Anything earned on an earlier day stays put either way.
 //
 // The Future Fund section below the goal list is deliberately styled
 // differently (violet, its own card shape) from the goal cards above it —
 // it's a long-term investment/savings goal, not a wishlist item, per the
 // vision doc's "pay yourself first" framing.
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, SectionList, Modal, KeyboardAvoidingView, Platform, StyleSheet, Linking, Image } from 'react-native';
+import { View, Text, TextInput, Pressable, SectionList, Modal, KeyboardAvoidingView, Platform, StyleSheet, Linking, Image, Alert } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -53,6 +61,8 @@ export function GoalPickerScreen() {
     updateGoal,
     deleteGoal,
     goalProgressPercentage,
+    todaysApprovedGigCount,
+    moveTodaysGigProgressToGoal,
     futureFund,
     recordFutureFundContribution,
   } = useAppData();
@@ -82,6 +92,37 @@ export function GoalPickerScreen() {
   ];
 
   const suggestedIdeas = suggestGoalIdeas(goals, childProfile?.grade);
+
+  // Only today's progress is ever offered for a move — see the file header
+  // comment for why anything earned on an earlier day stays exactly where
+  // it was earned.
+  const handleMakeActive = (goal: Goal) => {
+    const current = active;
+    if (!current || current.id === goal.id) {
+      setActiveGoal(goal.id);
+      return;
+    }
+    const todaysCount = todaysApprovedGigCount(current.id);
+    if (todaysCount === 0) {
+      setActiveGoal(goal.id);
+      return;
+    }
+    const plural = todaysCount === 1 ? 'gig' : 'gigs';
+    Alert.alert(
+      "Move today's progress too?",
+      `${current.name} has ${todaysCount} ${plural} completed today. Move ${todaysCount === 1 ? 'it' : 'them'} to ${goal.name}, or leave ${todaysCount === 1 ? 'it' : 'them'} on ${current.name}?`,
+      [
+        { text: `Keep on ${current.name}`, style: 'cancel', onPress: () => setActiveGoal(goal.id) },
+        {
+          text: `Move to ${goal.name}`,
+          onPress: () => {
+            moveTodaysGigProgressToGoal(current.id, goal.id);
+            setActiveGoal(goal.id);
+          },
+        },
+      ]
+    );
+  };
 
   const openAddModal = () => {
     setEditingGoalId(null);
@@ -178,7 +219,7 @@ export function GoalPickerScreen() {
             </View>
           </View>
           <View style={styles.goalRowActions}>
-            <Pressable onPress={() => setActiveGoal(item.id)}>
+            <Pressable onPress={() => handleMakeActive(item)}>
               <Text style={styles.linkAction}>Make active</Text>
             </Pressable>
             {modifiable && (
