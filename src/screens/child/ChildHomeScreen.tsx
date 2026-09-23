@@ -18,13 +18,18 @@
 // rather than enforcing it structurally either visually or functionally.
 //
 // Weekly Expected items deliberately do NOT appear on the trail itself — a
-// full chore-x-day grid for them is still a later, tabled decision (see the
-// priorities doc, "Weekly grid/matrix view"). In the meantime a small
-// "Today" / "This Week" toggle swaps the trail out for a simple row of
-// stepping-stone chips (same icon/ring visual language as trail stops)
-// instead of stacking both on one screen — closer to the "separate path"
-// weekly items were always meant to get, without the avatar-advancement
-// mechanics that belong to the full grid view.
+// small "Today" / "This Week" toggle swaps the trail out for a real
+// chore-x-day habit-tracker grid instead of stacking both on one screen.
+// The grid covers both daily and weekly items (not just weekly) since a
+// week-at-a-glance view of daily consistency is useful on its own, not only
+// as a home for weekly items that don't fit the trail. Cells read from
+// ExpectedCompletion history (each completion is date-stamped, so the grid
+// is just a pivot of that, no new state); only today's column is tappable,
+// since a completion always dates to today (see markExpectedDone) — past
+// days are a read-only record, future days aren't markable yet. A weekly
+// item only ever shows one filled cell per week, wherever it was actually
+// completed — it was never tied to a specific day of week to begin with
+// (see isExpectedItemSatisfied), so the grid doesn't invent one.
 //
 // The "what's on today" schedule strip re-derives today's events (and their
 // past/next/upcoming status) on every screen focus rather than keeping a
@@ -39,7 +44,7 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppData } from '../../context/AppDataContext';
 import { MainTabParamList, RootStackParamList } from '../../navigation/types';
-import { ExpectedItem, Gig, ScheduleEventCategory } from '../../types/models';
+import { ExpectedItem, ExpectedCompletion, Gig, ScheduleEventCategory } from '../../types/models';
 import { AppHeader } from '../../components/AppHeader';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { TaskIcon } from '../../components/icons/TaskIcons';
@@ -47,6 +52,7 @@ import { guessTaskIcon } from '../../data/taskIcons';
 import { scheduleEventsForToday, formatEventTimeRange, TodayScheduleEvent } from '../../data/schedule';
 import { playSound } from '../../services/sound';
 import { colors } from '../../theme/colors';
+import { todayString, startOfWeek, addDays } from '../../utils/date';
 
 const CATEGORY_ICONS: Record<ScheduleEventCategory, string> = {
   school: '🏫',
@@ -88,6 +94,8 @@ function pathThrough(points: { x: number; y: number }[]): string {
   return 'M' + points.map((p) => `${p.x},${p.y}`).join(' L');
 }
 
+const WEEKDAY_ABBR = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
 const SPARKLE_COLORS = [colors.futureFund, colors.character, colors.gigs];
 const STAR_PATH = 'M12 2 l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z';
 
@@ -117,11 +125,82 @@ function Sparkle({ color, size, style, delay }: { color: string; size: number; s
   );
 }
 
+// One block of the "This Week" grid — a plain pivot of ExpectedCompletion
+// history (already date-stamped, no new state needed), not a new schedule
+// of its own. Daily and weekly items get their own titled block rather than
+// mixing rows together, since a weekly item's single filled cell reads
+// oddly sitting among daily items' near-solid rows.
+function WeeklyGridSection({
+  title,
+  items,
+  weekDates,
+  todayStr,
+  expectedCompletions,
+  isExpectedDoneToday,
+  onPressCell,
+}: {
+  title: string;
+  items: ExpectedItem[];
+  weekDates: string[];
+  todayStr: string;
+  expectedCompletions: ExpectedCompletion[];
+  isExpectedDoneToday: (id: string) => boolean;
+  onPressCell: (itemId: string) => void;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <View style={styles.gridSection}>
+      <Text style={styles.gridSectionTitle}>{title}</Text>
+      <View style={styles.gridHeaderRow}>
+        <View style={styles.gridLabelCol} />
+        {weekDates.map((d, i) => (
+          <View key={d} style={styles.gridHeaderCell}>
+            <Text style={[styles.gridHeaderDay, d === todayStr && styles.gridHeaderDayToday]}>
+              {WEEKDAY_ABBR[i]}
+            </Text>
+          </View>
+        ))}
+      </View>
+      {items.map((item) => (
+        <View key={item.id} style={styles.gridRow}>
+          <View style={styles.gridLabelCol}>
+            <TaskIcon name={guessTaskIcon(item.name)} size={15} color="#B3AA96" />
+            <Text style={styles.gridLabelText} numberOfLines={1}>{item.name}</Text>
+          </View>
+          {weekDates.map((d) => {
+            const isDone = expectedCompletions.some((c) => c.expectedItemId === item.id && c.date === d);
+            const isToday = d === todayStr;
+            const isFuture = d > todayStr;
+            // A weekly item that's already satisfied elsewhere this week
+            // shouldn't offer a second, redundant completion on today's cell.
+            const tappable = isToday && !isDone && !isExpectedDoneToday(item.id);
+            return (
+              <Pressable key={d} disabled={!tappable} onPress={() => onPressCell(item.id)} style={styles.gridCell}>
+                <View
+                  style={[
+                    styles.gridDot,
+                    isDone && styles.gridDotDone,
+                    isToday && !isDone && styles.gridDotToday,
+                    isFuture && !isDone && styles.gridDotFuture,
+                  ]}
+                >
+                  {isDone && <Text style={styles.gridCheck}>{'✓'}</Text>}
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export function ChildHomeScreen() {
   const navigation = useNavigation<ChildHomeNavigationProp>();
   const {
     childProfile,
     expectedItems,
+    expectedCompletions,
     isExpectedDoneToday,
     markExpectedDone,
     allExpectedDoneToday,
@@ -147,6 +226,11 @@ export function ChildHomeScreen() {
   );
   const todaysEvents = useMemo(() => scheduleEventsForToday(scheduleEvents), [scheduleEvents, focusedAt]);
   const todayLabel = useMemo(() => new Date().toLocaleDateString(undefined, { weekday: 'long' }), [focusedAt]);
+  const todayStr = useMemo(() => todayString(), [focusedAt]);
+  const weekDates = useMemo(() => {
+    const start = startOfWeek(todayStr);
+    return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+  }, [todayStr]);
 
   const celebrateCheckoff = () => {
     playSound('checkoff', soundEnabled);
@@ -294,7 +378,7 @@ export function ChildHomeScreen() {
             >
               <Text style={[styles.toggleTabText, view === 'today' && styles.toggleTabTextActive]}>Today</Text>
             </Pressable>
-            {weeklyItems.length > 0 && (
+            {expectedItems.length > 0 && (
               <Pressable
                 onPress={() => setView('week')}
                 style={[styles.toggleTab, view === 'week' && styles.toggleTabActive]}
@@ -423,27 +507,24 @@ export function ChildHomeScreen() {
 
         {view === 'week' && (
           <View style={styles.weeklyPanel}>
-            <View style={styles.weeklyRow}>
-              {weeklyItems.map((item: ExpectedItem) => {
-                const itemDone = isExpectedDoneToday(item.id);
-                const ringColor = itemDone ? colors.expected : '#B7D9D3';
-                const bgColor = itemDone ? colors.expected : '#FFFFFF';
-                const iconColor = itemDone ? '#FFFFFF' : '#B3AA96';
-                return (
-                  <Pressable
-                    key={item.id}
-                    disabled={itemDone}
-                    onPress={() => handleExpectedPress(item.id)}
-                    style={styles.weeklyStop}
-                  >
-                    <View style={[styles.weeklyStopCircle, { borderColor: ringColor, backgroundColor: bgColor }]}>
-                      <TaskIcon name={guessTaskIcon(item.name)} size={18} color={iconColor} />
-                    </View>
-                    <Text style={styles.weeklyStopLabel} numberOfLines={2}>{item.name}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            <WeeklyGridSection
+              title="Daily"
+              items={dailyItems}
+              weekDates={weekDates}
+              todayStr={todayStr}
+              expectedCompletions={expectedCompletions}
+              isExpectedDoneToday={isExpectedDoneToday}
+              onPressCell={handleExpectedPress}
+            />
+            <WeeklyGridSection
+              title="Weekly"
+              items={weeklyItems}
+              weekDates={weekDates}
+              todayStr={todayStr}
+              expectedCompletions={expectedCompletions}
+              isExpectedDoneToday={isExpectedDoneToday}
+              onPressCell={handleExpectedPress}
+            />
           </View>
         )}
       </ScrollView>
@@ -543,22 +624,40 @@ const styles = StyleSheet.create({
   doneStatsRow: { flexDirection: 'row', justifyContent: 'center', gap: 20, paddingHorizontal: 20, marginBottom: 8 },
   doneStatText: { fontSize: 13, fontWeight: '700' },
   weeklyPanel: { paddingHorizontal: 20, paddingTop: 4 },
-  weeklyRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-  weeklyStop: { width: 68, alignItems: 'center' },
-  weeklyStopCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 3,
+  gridSection: { marginBottom: 24 },
+  gridSectionTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#8a8578',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+  gridHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
+  gridLabelCol: { width: 108, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  gridHeaderCell: { flex: 1, alignItems: 'center' },
+  gridHeaderDay: { fontSize: 11, fontWeight: '700', color: '#B3AA96' },
+  gridHeaderDayToday: { color: colors.expected },
+  gridRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 7,
+    borderTopWidth: 1,
+    borderTopColor: '#F0E9D8',
+  },
+  gridLabelText: { flex: 1, fontSize: 12, fontWeight: '700', color: '#5c574b' },
+  gridCell: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  gridDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: '#B7D9D3',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  weeklyStopLabel: {
-    fontWeight: '700',
-    fontSize: 10.5,
-    color: '#5c574b',
-    textAlign: 'center',
-    lineHeight: 13,
-    marginTop: 5,
-  },
+  gridDotDone: { backgroundColor: colors.expected, borderColor: colors.expected },
+  gridDotToday: { borderColor: colors.expected },
+  gridDotFuture: { borderColor: '#EDE7D8' },
+  gridCheck: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
 });
