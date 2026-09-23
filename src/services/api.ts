@@ -46,6 +46,10 @@ export function setCredentials(token: string, email: string, password: string): 
   return request('/auth/credentials', { method: 'PATCH', token, body: { email, password } });
 }
 
+export function loginWithGoogle(idToken: string): Promise<{ token: string; email: string }> {
+  return request('/auth/google', { method: 'POST', body: { idToken } });
+}
+
 export function fetchData(token: string): Promise<{ data: unknown | null }> {
   return request('/data', { token });
 }

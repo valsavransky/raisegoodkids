@@ -1,9 +1,11 @@
 // The very first thing a brand-new parent sees — before any setup starts,
 // so nothing here can be personalized with the child's name yet (that's
-// step 1, right after this). Explains what Merit actually is and why the
-// Expected/Gigs split exists, since nothing else in the flow did before
-// this screen existed (see the "Splash/start screen needs real content"
-// item in docs/screens-and-flows.md's Known follow-ups).
+// step 1, two screens after this — SignInScreen sits between the two,
+// offering a skippable "Sign in with Google" instead of the silent
+// auto-account). Explains what Merit actually is and why the Expected/Gigs
+// split exists, since nothing else in the flow did before this screen
+// existed (see the "Splash/start screen needs real content" item in
+// docs/screens-and-flows.md's Known follow-ups).
 //
 // Two slides (trimmed down from an earlier four-slide, denser-copy cut per
 // real user feedback: too many words, too many taps for a first launch) —
@@ -95,7 +97,7 @@ export function WelcomeScreen({ navigation }: Props) {
 
   const advance = () => {
     if (isLastSlide) {
-      navigation.navigate('ChildProfile');
+      navigation.navigate('SignIn');
       return;
     }
     Animated.parallel([

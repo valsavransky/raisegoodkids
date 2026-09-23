@@ -1,5 +1,6 @@
 export type SetupStackParamList = {
   Welcome: undefined;
+  SignIn: undefined;
   ChildProfile: undefined;
   Login: undefined;
   ScheduleImport: undefined;

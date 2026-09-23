@@ -1,9 +1,20 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import { OAuth2Client } from 'google-auth-library';
 import { pool } from './db';
 
 const JWT_SECRET = process.env.JWT_SECRET;
+
+// Same OAuth client IDs the app already uses for Google Calendar access
+// (see app.json's extra.googleCalendar) — one Google Cloud client, reused
+// for both purposes, so this needs no new Google Cloud setup. Verifying the
+// ID token's audience against these confirms it was actually issued to our
+// app, not lifted from somewhere else.
+const GOOGLE_IOS_CLIENT_ID = process.env.GOOGLE_IOS_CLIENT_ID;
+const GOOGLE_ANDROID_CLIENT_ID = process.env.GOOGLE_ANDROID_CLIENT_ID;
+const googleClient = new OAuth2Client();
 
 export interface AuthedRequest extends Request {
   userId?: number;
@@ -67,6 +78,59 @@ authRouter.post('/login', async (req: Request, res: Response) => {
     return;
   }
   res.json({ token: signToken(user.id) });
+});
+
+// "Sign in with Google" — verifies the ID token the client got from Google,
+// then finds-or-creates an account by that verified email. Logging in this
+// way behaves like /auth/login (switching to a possibly-different, already-
+// existing account, adopting its server data) — see the client's
+// AuthContext.loginWithGoogle, only ever offered before a local child
+// profile exists, same as the typed-email Login screen.
+authRouter.post('/google', async (req: Request, res: Response) => {
+  const { idToken } = req.body ?? {};
+  if (typeof idToken !== 'string' || !idToken) {
+    res.status(400).json({ error: 'Missing Google ID token' });
+    return;
+  }
+  const audience = [GOOGLE_IOS_CLIENT_ID, GOOGLE_ANDROID_CLIENT_ID].filter(
+    (id): id is string => typeof id === 'string' && id.length > 0
+  );
+  if (audience.length === 0) {
+    res.status(500).json({ error: 'Google sign-in is not configured on the server' });
+    return;
+  }
+
+  let email: string | undefined;
+  try {
+    const ticket = await googleClient.verifyIdToken({ idToken, audience });
+    const payload = ticket.getPayload();
+    if (payload?.email && payload.email_verified) email = payload.email;
+  } catch {
+    // Falls through to the generic 401 below — an invalid/expired/forged
+    // token all look the same to the caller.
+  }
+  if (!email) {
+    res.status(401).json({ error: 'Could not verify that Google sign-in' });
+    return;
+  }
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const existing = await pool.query('SELECT id FROM users WHERE email = $1', [normalizedEmail]);
+  if (existing.rowCount) {
+    res.json({ token: signToken(existing.rows[0].id), email: normalizedEmail });
+    return;
+  }
+
+  // A brand-new account, created straight from Google sign-in — the
+  // password is random and genuinely unusable (there's no password-based
+  // login for an account created this way), the same pattern already used
+  // for the client's silent auto-account.
+  const passwordHash = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10);
+  const result = await pool.query('INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id', [
+    normalizedEmail,
+    passwordHash,
+  ]);
+  res.status(201).json({ token: signToken(result.rows[0].id), email: normalizedEmail });
 });
 
 // Lets an already-authenticated account (including one auto-created with a
