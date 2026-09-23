@@ -256,7 +256,9 @@ export function ChildHomeScreen() {
         <View style={styles.goalCardWrapper}>
           {!goal ? (
             <Pressable style={styles.emptyGoalCard} onPress={() => navigation.navigate('Goal')}>
+              <Text style={styles.emptyGoalIcon}>🎯</Text>
               <Text style={styles.emptyGoalText}>Pick a goal to start earning!</Text>
+              <Text style={styles.emptyGoalChevron}>{'›'}</Text>
             </Pressable>
           ) : (
             <View style={styles.goalCard}>
@@ -435,13 +437,19 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { paddingBottom: 40 },
   emptyGoalCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    padding: 20,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: colors.gigs,
+    borderRadius: 14,
+    paddingVertical: 18,
+    paddingHorizontal: 20,
     marginBottom: 4,
   },
-  emptyGoalText: { fontSize: 16, fontWeight: '700', color: colors.gigs },
+  emptyGoalIcon: { fontSize: 20 },
+  emptyGoalText: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
+  emptyGoalChevron: { fontSize: 22, fontWeight: '700', color: '#FFFFFF' },
   goalCard: { backgroundColor: '#FDF1E2', borderRadius: 20, padding: 16, marginBottom: 4 },
   goalTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 11 },
   goalPhoto: { width: 36, height: 36, borderRadius: 9 },
