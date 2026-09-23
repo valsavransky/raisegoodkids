@@ -758,6 +758,19 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
    * "this can't be undone" framing the confirmation dialog already gives
    * local data. Explicit here instead. */
   const resetAllData = async () => {
+    // The server clear has to actually land *before* local state flips to
+    // null — clearing local state first re-renders straight into the setup
+    // wizard (childProfile === null), and a parent moving fast enough to
+    // reach a fresh sign-in there (e.g. Google) before this PUT finished
+    // could trigger a reconcile that re-fetches the not-yet-cleared server
+    // data, undoing the reset. Awaiting it first closes that race.
+    if (token) {
+      try {
+        await saveData(token, null);
+      } catch (e) {
+        console.warn('Failed to clear server app data', e);
+      }
+    }
     await AsyncStorage.removeItem(STORAGE_KEY);
     setParentName(null);
     setChildProfile(null);
@@ -770,9 +783,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setFutureFund(null);
     setGigEffortValues(DEFAULT_GIG_EFFORT_VALUES);
     setBadges([]);
-    if (token) {
-      saveData(token, null).catch((e) => console.warn('Failed to clear server app data', e));
-    }
   };
 
   return (
