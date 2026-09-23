@@ -10,6 +10,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, SectionList, ScrollView, Modal, Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAppData } from '../../context/AppDataContext';
 import { ScheduleEvent, ScheduleEventCategory, ScheduleEventCadence, CADENCE_LABELS } from '../../types/models';
@@ -38,11 +39,31 @@ const CATEGORY_LABELS: Record<ScheduleEventCategory, string> = {
   other: 'Other',
 };
 
-const CADENCE_OPTIONS: ScheduleEventCadence[] = ['daily', 'weekly', 'biweekly', 'monthly'];
+// Monthly dropped from the manual picker — an edge case for the kind of
+// recurring activities (school, sports, music) this screen is for. Calendar
+// imports can still produce a 'monthly' event (see googleCalendarApi.ts),
+// and CADENCE_LABELS still has a label for it, so an imported one still
+// displays correctly — it just isn't offered as a choice when adding by hand.
+const CADENCE_OPTIONS: ScheduleEventCadence[] = ['daily', 'weekly', 'biweekly'];
+
+function timeStringToDate(hhmm: string): Date {
+  const d = new Date();
+  const [h, m] = hhmm.split(':').map(Number);
+  d.setHours(Number.isFinite(h) ? h : 15, Number.isFinite(m) ? m : 0, 0, 0);
+  return d;
+}
+
+function dateToTimeString(d: Date): string {
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+function formatTime12h(hhmm: string): string {
+  return timeStringToDate(hhmm).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
 
 function formatTimeRange(event: ScheduleEvent): string | null {
   if (!event.startTime) return null;
-  return event.endTime ? `${event.startTime}-${event.endTime}` : event.startTime;
+  return event.endTime ? `${formatTime12h(event.startTime)}–${formatTime12h(event.endTime)}` : formatTime12h(event.startTime);
 }
 
 interface DraftState {
@@ -73,6 +94,9 @@ export function ScheduleScreen({ navigation }: Props) {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<DraftState>(BLANK_DRAFT);
+
+  const [timePickerTarget, setTimePickerTarget] = useState<'startTime' | 'endTime' | null>(null);
+  const [tempTime, setTempTime] = useState<Date>(new Date());
 
   const recurringByDay = DAY_LABELS.map((label, dayIndex) => ({
     title: label,
@@ -116,6 +140,26 @@ export function ScheduleScreen({ navigation }: Props) {
       ...prev,
       daysOfWeek: prev.daysOfWeek.includes(day) ? prev.daysOfWeek.filter((d) => d !== day) : [...prev.daysOfWeek, day],
     }));
+  };
+
+  const openTimePicker = (target: 'startTime' | 'endTime') => {
+    setTempTime(draft[target] ? timeStringToDate(draft[target]) : new Date());
+    setTimePickerTarget(target);
+  };
+
+  const handleAndroidTimeChange = (_event: DateTimePickerChangeEvent, selectedDate?: Date) => {
+    const target = timePickerTarget;
+    setTimePickerTarget(null);
+    if (selectedDate && target) {
+      setDraft((prev) => ({ ...prev, [target]: dateToTimeString(selectedDate) }));
+    }
+  };
+
+  const confirmIOSTime = () => {
+    if (timePickerTarget) {
+      setDraft((prev) => ({ ...prev, [timePickerTarget]: dateToTimeString(tempTime) }));
+    }
+    setTimePickerTarget(null);
   };
 
   const confirmSave = () => {
@@ -163,6 +207,7 @@ export function ScheduleScreen({ navigation }: Props) {
       <SettingsSubHeader title="Schedule" onBack={() => navigation.goBack()} />
 
       <SectionList
+        style={styles.list}
         contentContainerStyle={styles.listContent}
         sections={sections}
         keyExtractor={(item) => item.id}
@@ -189,7 +234,7 @@ export function ScheduleScreen({ navigation }: Props) {
         )}
       />
 
-      <View style={styles.actionsRow}>
+      <View style={[styles.actionsRow, { paddingBottom: 12 + insets.bottom }]}>
         <Pressable style={styles.actionButton} onPress={openAddModal}>
           <Text style={styles.actionButtonText}>+ Add event</Text>
         </Pressable>
@@ -284,19 +329,45 @@ export function ScheduleScreen({ navigation }: Props) {
             )}
 
             <View style={styles.timeRow}>
-              <TextInput
-                style={[styles.input, styles.timeInput]}
-                placeholder="Start (HH:MM)"
-                value={draft.startTime}
-                onChangeText={(startTime) => setDraft((prev) => ({ ...prev, startTime }))}
-              />
-              <TextInput
-                style={[styles.input, styles.timeInput]}
-                placeholder="End (HH:MM)"
-                value={draft.endTime}
-                onChangeText={(endTime) => setDraft((prev) => ({ ...prev, endTime }))}
-              />
+              <Pressable style={[styles.input, styles.timeInput]} onPress={() => openTimePicker('startTime')}>
+                <Text style={draft.startTime ? styles.timeValueText : styles.timeValuePlaceholder}>
+                  {draft.startTime ? formatTime12h(draft.startTime) : 'Start time'}
+                </Text>
+              </Pressable>
+              <Pressable style={[styles.input, styles.timeInput]} onPress={() => openTimePicker('endTime')}>
+                <Text style={draft.endTime ? styles.timeValueText : styles.timeValuePlaceholder}>
+                  {draft.endTime ? formatTime12h(draft.endTime) : 'End time'}
+                </Text>
+              </Pressable>
             </View>
+
+            {timePickerTarget && Platform.OS === 'android' && (
+              <DateTimePicker
+                value={tempTime}
+                mode="time"
+                display="default"
+                onValueChange={handleAndroidTimeChange}
+                onDismiss={() => setTimePickerTarget(null)}
+              />
+            )}
+
+            {Platform.OS === 'ios' && (
+              <Modal visible={timePickerTarget !== null} animationType="slide" transparent onRequestClose={() => setTimePickerTarget(null)}>
+                <Pressable style={styles.modalBackdrop} onPress={() => setTimePickerTarget(null)}>
+                  <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
+                    <DateTimePicker
+                      value={tempTime}
+                      mode="time"
+                      display="spinner"
+                      onValueChange={(_, d) => d && setTempTime(d)}
+                    />
+                    <Pressable style={styles.modalDoneButton} onPress={confirmIOSTime}>
+                      <Text style={styles.modalDoneButtonText}>Done</Text>
+                    </Pressable>
+                  </Pressable>
+                </Pressable>
+              </Modal>
+            )}
 
             <View style={styles.modalActions}>
               {editingId && (
@@ -324,6 +395,7 @@ export function ScheduleScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
+  list: { flex: 1 },
   listContent: { paddingHorizontal: 20, paddingBottom: 8 },
   emptyText: { fontSize: 14, color: colors.textMuted, textAlign: 'center', marginTop: 24 },
   sectionHeader: { fontSize: 14, fontWeight: '700', color: colors.textMuted, marginTop: 16, marginBottom: 8 },
@@ -380,6 +452,16 @@ const styles = StyleSheet.create({
   chipTextSelected: { color: '#fff', fontWeight: '600' },
   timeRow: { flexDirection: 'row', gap: 10 },
   timeInput: { flex: 1 },
+  timeValueText: { fontSize: 16, color: colors.text },
+  timeValuePlaceholder: { fontSize: 16, color: colors.textMuted },
+  modalDoneButton: {
+    marginTop: 8,
+    backgroundColor: colors.expected,
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  modalDoneButtonText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   modalActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
   modalActionsRight: { flexDirection: 'row', gap: 12 },
   deleteButton: { paddingVertical: 12, paddingHorizontal: 4 },
