@@ -34,6 +34,12 @@ function eightYearsAgo(): Date {
   return d;
 }
 
+function eighteenYearsAgo(): Date {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 18);
+  return d;
+}
+
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
@@ -129,8 +135,9 @@ export function ChildProfileScreen({ navigation }: Props) {
             <DateTimePicker
               value={parsedBirthday ?? eightYearsAgo()}
               mode="date"
-              display="default"
+              display="calendar"
               maximumDate={new Date()}
+              minimumDate={eighteenYearsAgo()}
               onValueChange={handleAndroidChange}
               onDismiss={() => setShowPicker(false)}
             />
@@ -143,8 +150,9 @@ export function ChildProfileScreen({ navigation }: Props) {
                   <DateTimePicker
                     value={tempDate}
                     mode="date"
-                    display="spinner"
+                    display="inline"
                     maximumDate={new Date()}
+                    minimumDate={eighteenYearsAgo()}
                     onValueChange={(_, date) => setTempDate(date)}
                   />
                   <Pressable style={styles.modalDoneButton} onPress={confirmIOSDate}>
