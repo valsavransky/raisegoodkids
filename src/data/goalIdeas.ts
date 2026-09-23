@@ -97,7 +97,7 @@ export const GOAL_IDEAS: GoalIdea[] = [
 
 export const CATEGORY_EMOJI: Record<GoalCategory, string> = {
   toys: '🧸',
-  games: '🎮',
+  games: '🎲',
   tech: '📱',
   sports: '⚽',
   creative: '🎨',
