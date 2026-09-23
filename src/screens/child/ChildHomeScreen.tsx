@@ -164,8 +164,10 @@ function WeeklyGridSection({
       {items.map((item) => (
         <View key={item.id} style={styles.gridRow}>
           <View style={styles.gridLabelCol}>
-            <TaskIcon name={guessTaskIcon(item.name)} size={15} color="#B3AA96" />
-            <Text style={styles.gridLabelText} numberOfLines={1}>{item.name}</Text>
+            <View style={styles.gridLabelIcon}>
+              <TaskIcon name={guessTaskIcon(item.name)} size={15} color="#B3AA96" />
+            </View>
+            <Text style={styles.gridLabelText} numberOfLines={2}>{item.name}</Text>
           </View>
           {weekDates.map((d) => {
             const isDone = expectedCompletions.some((c) => c.expectedItemId === item.id && c.date === d);
@@ -634,7 +636,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   gridHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  gridLabelCol: { width: 108, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  gridLabelCol: { width: 128, flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
+  gridLabelIcon: { marginTop: 1 },
   gridHeaderCell: { flex: 1, alignItems: 'center' },
   gridHeaderDay: { fontSize: 11, fontWeight: '700', color: '#B3AA96' },
   gridHeaderDayToday: { color: colors.expected },
@@ -645,7 +648,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#F0E9D8',
   },
-  gridLabelText: { flex: 1, fontSize: 12, fontWeight: '700', color: '#5c574b' },
+  gridLabelText: { flex: 1, fontSize: 11, fontWeight: '700', color: '#5c574b', lineHeight: 13 },
   gridCell: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   gridDot: {
     width: 22,
