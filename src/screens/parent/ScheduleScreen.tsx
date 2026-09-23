@@ -163,9 +163,18 @@ export function ScheduleScreen({ navigation }: Props) {
   };
 
   const confirmSave = () => {
-    if (!draft.title.trim()) return;
-    if (draft.recurring && draft.daysOfWeek.length === 0) return;
-    if (!draft.recurring && !draft.date.trim()) return;
+    if (!draft.title.trim()) {
+      Alert.alert('Event name needed', 'Give this event a name before saving.');
+      return;
+    }
+    if (draft.recurring && draft.daysOfWeek.length === 0) {
+      Alert.alert('Pick a day', 'Choose at least one day this event repeats on.');
+      return;
+    }
+    if (!draft.recurring && !draft.date.trim()) {
+      Alert.alert('Pick a date', 'Enter a date for this one-time event.');
+      return;
+    }
 
     const fields = {
       title: draft.title.trim(),
