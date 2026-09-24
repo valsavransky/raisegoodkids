@@ -20,16 +20,18 @@
 // Weekly Expected items deliberately do NOT appear on the trail itself — a
 // small "Today" / "This Week" toggle swaps the trail out for a real
 // chore-x-day habit-tracker grid instead of stacking both on one screen.
-// The grid covers both daily and weekly items (not just weekly) since a
-// week-at-a-glance view of daily consistency is useful on its own, not only
-// as a home for weekly items that don't fit the trail. Cells read from
-// ExpectedCompletion history (each completion is date-stamped, so the grid
-// is just a pivot of that, no new state); only today's column is tappable,
-// since a completion always dates to today (see markExpectedDone) — past
-// days are a read-only record, future days aren't markable yet. A weekly
-// item only ever shows one filled cell per week, wherever it was actually
-// completed — it was never tied to a specific day of week to begin with
-// (see isExpectedItemSatisfied), so the grid doesn't invent one.
+// The grid holds Daily items and Gigs (DailyGridSection) — both are
+// genuinely per-day things, so a week-at-a-glance grid fits them the same
+// way. Weekly items get their own block instead (WeeklyStopSection): a
+// weekly item only ever needs ONE completion, on any day, so a row of seven
+// mostly-empty grid cells read as if six days were still outstanding — a
+// big Trail-style stop plus a status caption ("Done Thursday" / "Anytime
+// this week") says the actual rule instead of a shape to interpret. Cells
+// read from ExpectedCompletion/GigCompletion history (both are already
+// date-stamped, so this is a pivot of existing data, no new state); only
+// today's column/stop is tappable, since a completion always dates to today
+// (see markExpectedDone/markGigDone) — past days are a read-only record,
+// future days aren't markable yet.
 //
 // The "what's on today" schedule strip re-derives today's events (and their
 // past/next/upcoming status) on every screen focus rather than keeping a
@@ -44,7 +46,7 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppData } from '../../context/AppDataContext';
 import { MainTabParamList, RootStackParamList } from '../../navigation/types';
-import { ExpectedItem, ExpectedCompletion, Gig, ScheduleEventCategory } from '../../types/models';
+import { ExpectedItem, ExpectedCompletion, Gig, GigCompletion, ScheduleEventCategory } from '../../types/models';
 import { AppHeader } from '../../components/AppHeader';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { TaskIcon } from '../../components/icons/TaskIcons';
@@ -125,27 +127,32 @@ function Sparkle({ color, size, style, delay }: { color: string; size: number; s
   );
 }
 
-// One block of the "This Week" grid — a plain pivot of ExpectedCompletion
+// The "This Week" grid's Daily block — a plain pivot of ExpectedCompletion
 // history (already date-stamped, no new state needed), not a new schedule
-// of its own. Daily and weekly items get their own titled block rather than
-// mixing rows together, since a weekly item's single filled cell reads
-// oddly sitting among daily items' near-solid rows.
-function WeeklyGridSection({
+// of its own. Gigs reuse this same grid (amber instead of teal) since a gig
+// is also a per-day thing, same as a Daily item — only Weekly items get a
+// different treatment (see WeeklyStopSection below), since "any one day
+// this week" doesn't fit a day-by-day grid the way "every day" does.
+function DailyGridSection({
   title,
   items,
   weekDates,
   todayStr,
-  expectedCompletions,
-  isExpectedDoneToday,
+  isDoneOn,
+  isTappableOn,
   onPressCell,
+  color,
+  ringColor,
 }: {
   title: string;
-  items: ExpectedItem[];
+  items: { id: string; name: string }[];
   weekDates: string[];
   todayStr: string;
-  expectedCompletions: ExpectedCompletion[];
-  isExpectedDoneToday: (id: string) => boolean;
+  isDoneOn: (itemId: string, date: string) => boolean;
+  isTappableOn: (itemId: string, date: string) => boolean;
   onPressCell: (itemId: string) => void;
+  color: string;
+  ringColor: string;
 }) {
   if (items.length === 0) return null;
   return (
@@ -155,9 +162,7 @@ function WeeklyGridSection({
         <View style={styles.gridLabelCol} />
         {weekDates.map((d, i) => (
           <View key={d} style={styles.gridHeaderCell}>
-            <Text style={[styles.gridHeaderDay, d === todayStr && styles.gridHeaderDayToday]}>
-              {WEEKDAY_ABBR[i]}
-            </Text>
+            <Text style={[styles.gridHeaderDay, d === todayStr && { color }]}>{WEEKDAY_ABBR[i]}</Text>
           </View>
         ))}
       </View>
@@ -170,19 +175,18 @@ function WeeklyGridSection({
             <Text style={styles.gridLabelText} numberOfLines={2}>{item.name}</Text>
           </View>
           {weekDates.map((d) => {
-            const isDone = expectedCompletions.some((c) => c.expectedItemId === item.id && c.date === d);
+            const isDone = isDoneOn(item.id, d);
             const isToday = d === todayStr;
             const isFuture = d > todayStr;
-            // A weekly item that's already satisfied elsewhere this week
-            // shouldn't offer a second, redundant completion on today's cell.
-            const tappable = isToday && !isDone && !isExpectedDoneToday(item.id);
+            const tappable = isTappableOn(item.id, d);
             return (
               <Pressable key={d} disabled={!tappable} onPress={() => onPressCell(item.id)} style={styles.gridCell}>
                 <View
                   style={[
                     styles.gridDot,
-                    isDone && styles.gridDotDone,
-                    isToday && !isDone && styles.gridDotToday,
+                    { borderColor: ringColor },
+                    isDone && { backgroundColor: color, borderColor: color },
+                    isToday && !isDone && { borderColor: color },
                     isFuture && !isDone && styles.gridDotFuture,
                   ]}
                 >
@@ -193,6 +197,63 @@ function WeeklyGridSection({
           })}
         </View>
       ))}
+    </View>
+  );
+}
+
+const STOP_WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+// Weekly items' own block — a big circular stop (same visual language as
+// the Today Trail's stops) plus a status caption, instead of the day grid
+// above. A weekly item only ever needs ONE completion, on any day, so a row
+// of seven mostly-empty rings read as if six days were still outstanding —
+// this instead states the fact in words ("Done Thursday" / "Anytime this
+// week"), same as the Trail already does for a single thing to do.
+function WeeklyStopSection({
+  items,
+  weekDates,
+  todayStr,
+  expectedCompletions,
+  isExpectedDoneToday,
+  onPressStop,
+}: {
+  items: ExpectedItem[];
+  weekDates: string[];
+  todayStr: string;
+  expectedCompletions: ExpectedCompletion[];
+  isExpectedDoneToday: (id: string) => boolean;
+  onPressStop: (itemId: string) => void;
+}) {
+  if (items.length === 0) return null;
+  return (
+    <View style={styles.gridSection}>
+      <Text style={styles.gridSectionTitle}>Weekly</Text>
+      {items.map((item) => {
+        const completion = weekDates
+          .map((d) => expectedCompletions.find((c) => c.expectedItemId === item.id && c.date === d))
+          .find(Boolean);
+        const done = !!completion;
+        const tappable = !done && !isExpectedDoneToday(item.id);
+        const doneDayName = completion ? STOP_WEEKDAY_NAMES[new Date(`${completion.date}T00:00:00`).getDay()] : null;
+        return (
+          <Pressable
+            key={item.id}
+            disabled={!tappable}
+            onPress={() => onPressStop(item.id)}
+            style={styles.stopRow}
+          >
+            <View style={[styles.stopCircle, done && styles.stopCircleDone]}>
+              <TaskIcon name={guessTaskIcon(item.name)} size={16} color={done ? '#FFFFFF' : '#B3AA96'} />
+            </View>
+            <View style={styles.stopBody}>
+              <Text style={styles.stopName}>{item.name}</Text>
+              <Text style={[styles.stopStatus, done && styles.stopStatusDone]}>
+                {done ? `Done ${doneDayName}` : 'Anytime this week · tap to do today'}
+              </Text>
+            </View>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -210,6 +271,7 @@ export function ChildHomeScreen() {
     activeGoal,
     goalProgressPercentage,
     gigs,
+    gigCompletions,
     gigPreviewPercentage,
     gigCompletionStatusToday,
     markGigDone,
@@ -333,6 +395,19 @@ export function ChildHomeScreen() {
         { text: 'Yes, let them', onPress: startGig },
       ]
     );
+  };
+
+  // "This Week" grid helpers — a gig is per-day, same as a Daily Expected
+  // item, so both share DailyGridSection's day-by-day rendering.
+  const dailyIsDoneOn = (itemId: string, date: string) =>
+    expectedCompletions.some((c) => c.expectedItemId === itemId && c.date === date);
+  const dailyIsTappableOn = (itemId: string, date: string) => date === todayStr && !dailyIsDoneOn(itemId, date);
+  const gigIsDoneOn = (gigId: string, date: string) =>
+    gigCompletions.some((c) => c.gigId === gigId && c.status === 'approved' && c.markedDoneAt.slice(0, 10) === date);
+  const gigIsTappableOn = (gigId: string, date: string) => date === todayStr && gigCompletionStatusToday(gigId) === null;
+  const handleGigPressById = (gigId: string) => {
+    const gig = gigs.find((g) => g.id === gigId);
+    if (gig) handleGigPress(gig);
   };
 
   return (
@@ -509,23 +584,35 @@ export function ChildHomeScreen() {
 
         {view === 'week' && (
           <View style={styles.weeklyPanel}>
-            <WeeklyGridSection
+            <DailyGridSection
               title="Daily"
               items={dailyItems}
               weekDates={weekDates}
               todayStr={todayStr}
-              expectedCompletions={expectedCompletions}
-              isExpectedDoneToday={isExpectedDoneToday}
+              isDoneOn={dailyIsDoneOn}
+              isTappableOn={dailyIsTappableOn}
               onPressCell={handleExpectedPress}
+              color={colors.expected}
+              ringColor="#B7D9D3"
             />
-            <WeeklyGridSection
-              title="Weekly"
+            <DailyGridSection
+              title="Gigs"
+              items={gigs}
+              weekDates={weekDates}
+              todayStr={todayStr}
+              isDoneOn={gigIsDoneOn}
+              isTappableOn={gigIsTappableOn}
+              onPressCell={handleGigPressById}
+              color={colors.gigs}
+              ringColor="#E9CB9A"
+            />
+            <WeeklyStopSection
               items={weeklyItems}
               weekDates={weekDates}
               todayStr={todayStr}
               expectedCompletions={expectedCompletions}
               isExpectedDoneToday={isExpectedDoneToday}
-              onPressCell={handleExpectedPress}
+              onPressStop={handleExpectedPress}
             />
           </View>
         )}
@@ -640,7 +727,6 @@ const styles = StyleSheet.create({
   gridLabelIcon: { marginTop: 1 },
   gridHeaderCell: { flex: 1, alignItems: 'center' },
   gridHeaderDay: { fontSize: 11, fontWeight: '700', color: '#B3AA96' },
-  gridHeaderDayToday: { color: colors.expected },
   gridRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -659,8 +745,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  gridDotDone: { backgroundColor: colors.expected, borderColor: colors.expected },
-  gridDotToday: { borderColor: colors.expected },
   gridDotFuture: { borderColor: '#EDE7D8' },
   gridCheck: { color: '#FFFFFF', fontSize: 11, fontWeight: '800' },
+  stopRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#F0E9D8' },
+  stopCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 2.5,
+    borderColor: '#B7D9D3',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stopCircleDone: { backgroundColor: colors.expected, borderColor: colors.expected },
+  stopBody: { flex: 1 },
+  stopName: { fontSize: 13, fontWeight: '800', color: '#1C1E21' },
+  stopStatus: { fontSize: 11.5, color: '#8a8578', marginTop: 1 },
+  stopStatusDone: { color: colors.expected, fontWeight: '700' },
 });
