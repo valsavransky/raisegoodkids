@@ -37,6 +37,14 @@ interface AuthContextValue {
    * Google email (see server/src/auth.ts's /auth/google) and this just
    * adopts whatever token comes back, same as login(). */
   loginWithGoogle: (idToken: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  /** Dev/testing-only: drops the current account entirely (Google-linked or
+   * not) and mints a brand new anonymous auto-account, same as a first
+   * launch. Used by Settings' "Reset all data" so repeat testing under the
+   * same Google account doesn't recover that account's older data on the
+   * next sign-in — plain account switching (login/loginWithGoogle) is a
+   * real recovery feature and deliberately keeps working normally.
+   * Remove this along with the Reset button before real users launch. */
+  disconnectAndStartFresh: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -127,9 +135,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const disconnectAndStartFresh: AuthContextValue['disconnectAndStartFresh'] = async () => {
+    await SecureStore.deleteItemAsync(TOKEN_KEY);
+    await SecureStore.deleteItemAsync(IS_AUTO_KEY);
+    await SecureStore.deleteItemAsync(EMAIL_KEY);
+    try {
+      const autoEmail = `anon-${randomToken(16)}@merit.local`;
+      const autoPassword = randomToken(32);
+      const { token: newToken } = await signup(autoEmail, autoPassword);
+      await SecureStore.setItemAsync(TOKEN_KEY, newToken);
+      await SecureStore.setItemAsync(IS_AUTO_KEY, 'true');
+      setToken(newToken);
+      setIsAutoAccount(true);
+      setAccountEmail(null);
+    } catch (e) {
+      // No backend reachable — same fallback as the first-launch signup
+      // above; the app keeps working locally with syncing off for now.
+      console.warn('Failed to create a fresh auto account, continuing offline', e);
+      setToken(null);
+      setIsAutoAccount(true);
+      setAccountEmail(null);
+    }
+  };
+
   return (
     <AuthContext.Provider
-      value={{ isReady, token, isAutoAccount, accountEmail, claimAccount, login, loginWithGoogle }}
+      value={{
+        isReady,
+        token,
+        isAutoAccount,
+        accountEmail,
+        claimAccount,
+        login,
+        loginWithGoogle,
+        disconnectAndStartFresh,
+      }}
     >
       {children}
     </AuthContext.Provider>

@@ -195,7 +195,7 @@ interface AppDataContextValue {
 const AppDataContext = createContext<AppDataContextValue | undefined>(undefined);
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
-  const { token, isReady: authIsReady } = useAuth();
+  const { token, isReady: authIsReady, disconnectAndStartFresh } = useAuth();
   const [isHydrated, setIsHydrated] = useState(false);
   // Set once the very first server reconcile (adopt server data on a fresh
   // install, or push local data up otherwise) has run — the ordinary
@@ -765,7 +765,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
    * — otherwise the ordinary per-change sync below would just push these
    * same empty values up right after, but silently and without the same
    * "this can't be undone" framing the confirmation dialog already gives
-   * local data. Explicit here instead. */
+   * local data. Explicit here instead.
+   *
+   * Also fully disconnects the account (dev/testing convenience — see
+   * AuthContext.disconnectAndStartFresh): clearing this account's server
+   * data isn't enough on its own, since signing back in with Google
+   * afterward resolves by email to whatever account that email is already
+   * linked to, which could be a different, still-intact one from earlier
+   * testing. Dropping the account entirely avoids that mix-up. Remove this
+   * distinction (and the disconnect call below) along with the Reset
+   * button itself before real users launch — at that point account
+   * recovery via Google should always work exactly like this. */
   const resetAllData = async () => {
     // The server clear has to actually land *before* local state flips to
     // null — clearing local state first re-renders straight into the setup
@@ -792,6 +802,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setFutureFund(null);
     setGigEffortValues(DEFAULT_GIG_EFFORT_VALUES);
     setBadges([]);
+    await disconnectAndStartFresh();
   };
 
   return (
