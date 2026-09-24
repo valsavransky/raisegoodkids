@@ -21,7 +21,7 @@ const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
 type Props = NativeStackScreenProps<RootStackParamList, 'GigsSettings'>;
 type ModalMode = { editingId: string | null } | null;
 type SubTab = 'list' | 'values';
-type GigValuesStatus = 'idle' | 'saved' | 'invalid';
+type GigValuesStatus = 'idle' | 'invalid';
 
 export function GigsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
@@ -55,7 +55,7 @@ export function GigsScreen({ navigation }: Props) {
       return;
     }
     updateGigEffortValues(parsed);
-    setGigValuesStatus('saved');
+    navigation.navigate('Settings');
   };
 
   const openAdd = () => {
@@ -144,13 +144,8 @@ export function GigsScreen({ navigation }: Props) {
                 </View>
               </View>
             ))}
-            <Pressable
-              style={[styles.saveButton, gigValuesStatus === 'saved' && styles.saveButtonSaved]}
-              onPress={saveGigValues}
-            >
-              <Text style={[styles.saveButtonText, gigValuesStatus === 'saved' && styles.saveButtonTextSaved]}>
-                {gigValuesStatus === 'saved' ? '✓ Saved' : 'Save gig values'}
-              </Text>
+            <Pressable style={styles.saveButton} onPress={saveGigValues}>
+              <Text style={styles.saveButtonText}>Save gig values</Text>
             </Pressable>
             {gigValuesStatus === 'invalid' && <Text style={styles.errorText}>Enter valid, non-negative amounts.</Text>}
           </>
@@ -240,10 +235,8 @@ const styles = StyleSheet.create({
   },
   gigValueDollarSign: { fontSize: 15, color: colors.textMuted, marginRight: 2 },
   gigValueInput: { fontSize: 15, color: colors.text, paddingVertical: 8, width: 56, textAlign: 'right' },
-  saveButton: { marginTop: 12, borderWidth: 1, borderColor: colors.gigs, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
-  saveButtonSaved: { borderColor: colors.success, backgroundColor: colors.success },
-  saveButtonText: { color: colors.gigs, fontSize: 14, fontWeight: '700' },
-  saveButtonTextSaved: { color: '#fff' },
+  saveButton: { marginTop: 12, backgroundColor: colors.gigs, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  saveButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   errorText: { color: colors.danger, fontSize: 13, fontWeight: '600', textAlign: 'center', marginTop: 10 },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalCard: { backgroundColor: colors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },

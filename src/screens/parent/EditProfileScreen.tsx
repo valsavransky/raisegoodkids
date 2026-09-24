@@ -17,7 +17,6 @@ import { AVATAR_OPTIONS } from '../../data/avatars';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EditProfile'>;
-type SaveStatus = 'idle' | 'saved';
 
 function eightYearsAgo(): Date {
   const d = new Date();
@@ -48,7 +47,6 @@ export function EditProfileScreen({ navigation }: Props) {
 
   const [showPicker, setShowPicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(eightYearsAgo());
-  const [status, setStatus] = useState<SaveStatus>('idle');
 
   const parsedBirthday = birthday ? new Date(`${birthday}T00:00:00`) : null;
   const formattedBirthday = parsedBirthday
@@ -65,13 +63,11 @@ export function EditProfileScreen({ navigation }: Props) {
   const handleAndroidChange = (_event: DateTimePickerChangeEvent, selectedDate: Date) => {
     setShowPicker(false);
     setBirthday(selectedDate.toISOString().slice(0, 10));
-    setStatus('idle');
   };
 
   const confirmIOSDate = () => {
     setBirthday(tempDate.toISOString().slice(0, 10));
     setShowPicker(false);
-    setStatus('idle');
   };
 
   const save = () => {
@@ -88,7 +84,7 @@ export function EditProfileScreen({ navigation }: Props) {
       petType: hasPet ? petType : undefined,
       petName: hasPet ? petName : undefined,
     });
-    setStatus('saved');
+    navigation.navigate('Settings');
   };
 
   return (
@@ -107,7 +103,6 @@ export function EditProfileScreen({ navigation }: Props) {
           value={parentNameDraft}
           onChangeText={(t) => {
             setParentNameDraft(t);
-            setStatus('idle');
           }}
         />
 
@@ -120,7 +115,6 @@ export function EditProfileScreen({ navigation }: Props) {
                 key={avatar.id}
                 onPress={() => {
                   setAvatarId(avatar.id);
-                  setStatus('idle');
                 }}
                 style={[styles.avatarOption, selected && styles.avatarOptionSelected]}
               >
@@ -137,7 +131,6 @@ export function EditProfileScreen({ navigation }: Props) {
           value={name}
           onChangeText={(t) => {
             setName(t);
-            setStatus('idle');
           }}
         />
 
@@ -189,7 +182,6 @@ export function EditProfileScreen({ navigation }: Props) {
                 key={g}
                 onPress={() => {
                   setGrade(selected ? undefined : g);
-                  setStatus('idle');
                 }}
                 style={[styles.chip, selected && styles.chipSelected]}
               >
@@ -207,7 +199,6 @@ export function EditProfileScreen({ navigation }: Props) {
             <Pressable
               onPress={() => {
                 setHasYard(true);
-                setStatus('idle');
               }}
               style={[styles.chip, hasYard === true && styles.chipSelected]}
             >
@@ -216,7 +207,6 @@ export function EditProfileScreen({ navigation }: Props) {
             <Pressable
               onPress={() => {
                 setHasYard(false);
-                setStatus('idle');
               }}
               style={[styles.chip, hasYard === false && styles.chipSelected]}
             >
@@ -231,7 +221,6 @@ export function EditProfileScreen({ navigation }: Props) {
             <Pressable
               onPress={() => {
                 setHasCar(true);
-                setStatus('idle');
               }}
               style={[styles.chip, hasCar === true && styles.chipSelected]}
             >
@@ -240,7 +229,6 @@ export function EditProfileScreen({ navigation }: Props) {
             <Pressable
               onPress={() => {
                 setHasCar(false);
-                setStatus('idle');
               }}
               style={[styles.chip, hasCar === false && styles.chipSelected]}
             >
@@ -255,7 +243,6 @@ export function EditProfileScreen({ navigation }: Props) {
             <Pressable
               onPress={() => {
                 setHasPet(true);
-                setStatus('idle');
               }}
               style={[styles.chip, hasPet === true && styles.chipSelected]}
             >
@@ -266,7 +253,6 @@ export function EditProfileScreen({ navigation }: Props) {
                 setHasPet(false);
                 setPetType('');
                 setPetName('');
-                setStatus('idle');
               }}
               style={[styles.chip, hasPet === false && styles.chipSelected]}
             >
@@ -283,7 +269,6 @@ export function EditProfileScreen({ navigation }: Props) {
               value={petType}
               onChangeText={(t) => {
                 setPetType(t);
-                setStatus('idle');
               }}
             />
             <TextInput
@@ -292,18 +277,17 @@ export function EditProfileScreen({ navigation }: Props) {
               value={petName}
               onChangeText={(t) => {
                 setPetName(t);
-                setStatus('idle');
               }}
             />
           </View>
         )}
 
         <Pressable
-          style={[styles.saveButton, !canSave && styles.saveButtonDisabled, status === 'saved' && styles.saveButtonSaved]}
+          style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
           disabled={!canSave}
           onPress={save}
         >
-          <Text style={styles.saveButtonText}>{status === 'saved' ? '✓ Saved' : 'Save'}</Text>
+          <Text style={styles.saveButtonText}>Save</Text>
         </Pressable>
       </ScrollView>
       </KeyboardAvoidingView>
@@ -364,7 +348,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveButtonDisabled: { opacity: 0.4 },
-  saveButtonSaved: { backgroundColor: colors.success },
   saveButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalCard: {
