@@ -144,19 +144,6 @@ export function GigsSetupScreen({ navigation }: Props) {
         <Pressable style={styles.addLink} onPress={openAddModal}>
           <Text style={styles.addLinkText}>+ Add custom gig</Text>
         </Pressable>
-
-        {/* Nothing else in setup mentions that effort tiers carry a real
-         * dollar value, or that a share of it goes to savings first — both
-         * are silent defaults otherwise (see GigsScreen/FutureFundSettingsScreen).
-         * One tip here, on the last screen before "Finish setup," rather than
-         * a whole extra step for two sentences. */}
-        <View style={styles.tipCard}>
-          <Text style={styles.tipIcon}>💡</Text>
-          <Text style={styles.tipText}>
-            Quick, Medium, and Big Job each have a real dollar value behind them (starting at $5 / $10 / $15), and a
-            share of every gig goes to a Future Fund first — both are editable anytime from Settings.
-          </Text>
-        </View>
       </ScrollView>
 
       <Pressable
@@ -245,18 +232,6 @@ const styles = StyleSheet.create({
   effortChipTextSelected: { color: '#fff', fontWeight: '600' },
   addLink: { paddingVertical: 10 },
   addLinkText: { color: colors.expected, fontSize: 14, fontWeight: '600' },
-  tipCard: {
-    flexDirection: 'row',
-    gap: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    padding: 14,
-    marginTop: 10,
-  },
-  tipIcon: { fontSize: 16 },
-  tipText: { flex: 1, fontSize: 12.5, color: colors.textMuted, lineHeight: 18 },
   finishButton: {
     marginHorizontal: 20,
     marginTop: 4,
