@@ -39,7 +39,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { View, Text, Pressable, ScrollView, Alert, StyleSheet, Image, Animated } from 'react-native';
 import Svg, { Path, Defs, Pattern, Rect, Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect, CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -96,15 +95,6 @@ function pathThrough(points: { x: number; y: number }[]): string {
 }
 
 const WEEKDAY_ABBR = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-
-// A one-time, local-only (not synced, same reasoning as AppHeader's own
-// settings-chip hint) dismissible card telling a parent that gig dollar
-// values and the Future Fund skim are both editable in Settings — replaces
-// an earlier static tip on the last setup screen, which nobody read there
-// (dropped straight into "Finish setup," not really a moment for new info).
-// Showing it here instead, back on Today after setup, catches a parent
-// when they're actually using the app day-to-day.
-const MONEY_HINT_SEEN_KEY = 'merit.moneySettingsHintSeen';
 
 const SPARKLE_COLORS = [colors.futureFund, colors.character, colors.gigs];
 const STAR_PATH = 'M12 2 l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z';
@@ -229,21 +219,6 @@ export function ChildHomeScreen() {
   } = useAppData();
 
   const [view, setView] = useState<'today' | 'week'>('today');
-
-  const [showMoneyHint, setShowMoneyHint] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    AsyncStorage.getItem(MONEY_HINT_SEEN_KEY).then((seen) => {
-      if (!cancelled && !seen) setShowMoneyHint(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-  const dismissMoneyHint = () => {
-    setShowMoneyHint(false);
-    AsyncStorage.setItem(MONEY_HINT_SEEN_KEY, '1').catch(() => {});
-  };
 
   const [focusedAt, setFocusedAt] = useState(() => Date.now());
   useFocusEffect(
@@ -392,18 +367,6 @@ export function ChildHomeScreen() {
               </View>
               <Text style={styles.goalProgressText}>{Math.min(goalProgressPercentage(goal.id), 100)}% there</Text>
             </View>
-          )}
-
-          {showMoneyHint && (
-            <Pressable style={styles.moneyHintCard} onPress={() => navigation.navigate('Settings')}>
-              <Text style={styles.moneyHintIcon}>💰</Text>
-              <Text style={styles.moneyHintText}>
-                Gig dollar values and how much goes to the Future Fund are both editable anytime in Settings.
-              </Text>
-              <Pressable onPress={dismissMoneyHint} hitSlop={8} style={styles.moneyHintDismiss}>
-                <Text style={styles.moneyHintDismissText}>{'×'}</Text>
-              </Pressable>
-            </Pressable>
           )}
         </View>
       </View>
@@ -575,19 +538,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#FFF8F0' },
   fixedHeader: { paddingBottom: 12, backgroundColor: '#FFF8F0' },
   goalCardWrapper: { paddingHorizontal: 20 },
-  moneyHintCard: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    backgroundColor: '#FDF1E2',
-    borderRadius: 14,
-    padding: 14,
-    marginTop: 10,
-  },
-  moneyHintIcon: { fontSize: 16 },
-  moneyHintText: { flex: 1, fontSize: 12.5, color: '#7a5a20', lineHeight: 18, fontWeight: '600' },
-  moneyHintDismiss: { padding: 2, marginLeft: 4 },
-  moneyHintDismissText: { fontSize: 16, color: '#B96A08', fontWeight: '800' },
   scroll: { flex: 1 },
   content: { paddingBottom: 40 },
   emptyGoalCard: {

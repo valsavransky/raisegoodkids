@@ -16,34 +16,57 @@ import { AvatarGlyph } from './AvatarGlyph';
 import { Logo } from './Logo';
 import { colors } from '../theme/colors';
 
-// A one-time, local-only (not synced — seeing it again on a second device
-// is harmless) coachmark pointing at the profile chip, so a parent who
-// never opens Settings on their own still discovers gigs/Expected/value
-// editing lives there. Onboarding doesn't end with a natural "you're all
-// set" moment to hang this off of, so it just shows the first time this
-// header renders post-setup and stays dismissed forever after.
+// Two one-time, local-only (not synced — seeing either again on a second
+// device is harmless) coachmarks pointing at the profile chip, shown one
+// at a time in order — a parent who never opens Settings on their own
+// still discovers what lives there. Onboarding doesn't end with a natural
+// "you're all set" moment to hang either off of, so the first just shows
+// the first time this header renders post-setup; dismissing it reveals the
+// second immediately (each is genuinely a different fact, not a repeat),
+// and dismissing that stays dismissed forever after.
 const SETTINGS_HINT_SEEN_KEY = 'merit.settingsHintSeen';
+const MONEY_HINT_SEEN_KEY = 'merit.moneySettingsHintSeen';
+
+type HintStage = 'none' | 'settings' | 'money';
+
+const HINT_COPY: Record<Exclude<HintStage, 'none'>, string> = {
+  settings: 'Tap here anytime to edit gigs, chores, or values.',
+  money: 'Did you know: Gig dollar values and Future Fund % are automatically set. Go to Settings to edit these any time!',
+};
 
 export function AppHeader() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { childProfile } = useAppData();
   const { isAutoAccount } = useAuth();
-  const [showHint, setShowHint] = useState(false);
+  const [hintStage, setHintStage] = useState<HintStage>('none');
 
   useEffect(() => {
     let cancelled = false;
-    AsyncStorage.getItem(SETTINGS_HINT_SEEN_KEY).then((seen) => {
-      if (!cancelled && !seen) setShowHint(true);
-    });
+    (async () => {
+      const [settingsSeen, moneySeen] = await Promise.all([
+        AsyncStorage.getItem(SETTINGS_HINT_SEEN_KEY),
+        AsyncStorage.getItem(MONEY_HINT_SEEN_KEY),
+      ]);
+      if (cancelled) return;
+      if (!settingsSeen) setHintStage('settings');
+      else if (!moneySeen) setHintStage('money');
+    })();
     return () => {
       cancelled = true;
     };
   }, []);
 
   const dismissHint = () => {
-    setShowHint(false);
-    AsyncStorage.setItem(SETTINGS_HINT_SEEN_KEY, '1').catch(() => {});
+    if (hintStage === 'settings') {
+      AsyncStorage.setItem(SETTINGS_HINT_SEEN_KEY, '1').catch(() => {});
+      AsyncStorage.getItem(MONEY_HINT_SEEN_KEY).then((moneySeen) => {
+        setHintStage(moneySeen ? 'none' : 'money');
+      });
+    } else if (hintStage === 'money') {
+      AsyncStorage.setItem(MONEY_HINT_SEEN_KEY, '1').catch(() => {});
+      setHintStage('none');
+    }
   };
 
   const firstName = childProfile?.name?.trim().split(' ')[0];
@@ -57,7 +80,7 @@ export function AppHeader() {
         </View>
         <Pressable
           onPress={() => {
-            if (showHint) dismissHint();
+            if (hintStage !== 'none') dismissHint();
             navigation.navigate('Settings');
           }}
           hitSlop={8}
@@ -72,11 +95,11 @@ export function AppHeader() {
         </Pressable>
       </View>
 
-      {showHint && (
+      {hintStage !== 'none' && (
         <View style={styles.hintAnchor}>
           <View style={styles.hintArrow} />
           <View style={styles.hintBubble}>
-            <Text style={styles.hintText}>Tap here anytime to edit gigs, chores, or values.</Text>
+            <Text style={styles.hintText}>{HINT_COPY[hintStage]}</Text>
             <Pressable onPress={dismissHint} hitSlop={6} style={styles.hintDismiss}>
               <Text style={styles.hintDismissText}>Got it</Text>
             </Pressable>
@@ -140,7 +163,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    maxWidth: 230,
+    maxWidth: 260,
   },
   hintText: { color: '#fff', fontSize: 13, fontWeight: '600', lineHeight: 18 },
   hintDismiss: { marginTop: 8, alignSelf: 'flex-end' },
