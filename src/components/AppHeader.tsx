@@ -24,8 +24,14 @@ import { colors } from '../theme/colors';
 // the first time this header renders post-setup; dismissing it reveals the
 // second immediately (each is genuinely a different fact, not a repeat),
 // and dismissing that stays dismissed forever after.
-const SETTINGS_HINT_SEEN_KEY = 'merit.settingsHintSeen';
-const MONEY_HINT_SEEN_KEY = 'merit.moneySettingsHintSeen';
+// Versioned (v2): the chip's onPress used to dismiss whichever hint was
+// showing on ANY tap, not just "Got it" — meaning anyone who taps the chip
+// out of habit (rather than reading the bubble first) would silently mark
+// it seen and never actually see it. Bumping the keys invalidates that
+// already-wrong "seen" state instead of leaving existing installs stuck
+// with hints they never really saw.
+const SETTINGS_HINT_SEEN_KEY = 'merit.settingsHintSeen.v2';
+const MONEY_HINT_SEEN_KEY = 'merit.moneySettingsHintSeen.v2';
 
 type HintStage = 'none' | 'settings' | 'money';
 
@@ -79,10 +85,11 @@ export function AppHeader() {
           <Text style={styles.wordmark}>Merit</Text>
         </View>
         <Pressable
-          onPress={() => {
-            if (hintStage !== 'none') dismissHint();
-            navigation.navigate('Settings');
-          }}
+          // Only "Got it" dismisses a hint — navigating to Settings by
+          // tapping the chip it's pointing at used to silently dismiss it
+          // too, so anyone who already taps the chip out of habit (rather
+          // than reading the bubble first) would never actually see it.
+          onPress={() => navigation.navigate('Settings')}
           hitSlop={8}
           style={styles.chip}
         >
