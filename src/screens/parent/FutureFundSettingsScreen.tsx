@@ -7,8 +7,9 @@
 // Preset chips (5/10/15%, the range real "pay yourself first" advice
 // typically lands in) cover the common case in one tap; the free-form field
 // underneath still takes anything 0-100 for a parent who wants a specific
-// number. Saving jumps straight back to Settings rather than lingering on a
-// "✓ Saved" button — same as every other Settings save screen.
+// number. Saving shows a brief "✓ Saved" confirmation, then returns to
+// Settings on its own (see useSaveConfirmation) — same as every other
+// Settings save screen.
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,6 +17,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { SettingsSubHeader } from '../../components/SettingsSubHeader';
 import { useAppData } from '../../context/AppDataContext';
+import { useSaveConfirmation } from '../../hooks/useSaveConfirmation';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'FutureFundSettings'>;
@@ -28,6 +30,7 @@ export function FutureFundSettingsScreen({ navigation }: Props) {
 
   const [draft, setDraft] = useState(String(futureFund?.percentage ?? 10));
   const [invalid, setInvalid] = useState(false);
+  const { saved, showSavedThenGoBack } = useSaveConfirmation(() => navigation.navigate('Settings'));
 
   const selectPreset = (value: number) => {
     setDraft(String(value));
@@ -46,7 +49,7 @@ export function FutureFundSettingsScreen({ navigation }: Props) {
       return;
     }
     updateFutureFundPercentage(parsed);
-    navigation.navigate('Settings');
+    showSavedThenGoBack();
   };
 
   const selectedPreset = PRESETS.find((p) => String(p) === draft);
@@ -89,8 +92,8 @@ export function FutureFundSettingsScreen({ navigation }: Props) {
           </View>
         </View>
 
-        <Pressable style={styles.saveButton} onPress={save}>
-          <Text style={styles.saveButtonText}>Save</Text>
+        <Pressable style={[styles.saveButton, saved && styles.saveButtonSaved]} onPress={save} disabled={saved}>
+          <Text style={styles.saveButtonText}>{saved ? '✓ Saved' : 'Save'}</Text>
         </Pressable>
         {invalid && <Text style={styles.errorText}>Enter a percentage between 0 and 100.</Text>}
       </ScrollView>
@@ -144,6 +147,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
   },
+  saveButtonSaved: { backgroundColor: colors.success },
   saveButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   errorText: { color: colors.danger, fontSize: 13, fontWeight: '600', textAlign: 'center', marginTop: 10 },
 });

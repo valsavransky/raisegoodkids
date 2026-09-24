@@ -9,6 +9,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { SettingsSubHeader } from '../../components/SettingsSubHeader';
 import { useAppData } from '../../context/AppDataContext';
+import { useSaveConfirmation } from '../../hooks/useSaveConfirmation';
 import { Gig, GigEffortTier, GigEffortValues } from '../../types/models';
 import { colors } from '../../theme/colors';
 
@@ -38,6 +39,7 @@ export function GigsScreen({ navigation }: Props) {
     big_job: String(gigEffortValues.big_job),
   }));
   const [gigValuesStatus, setGigValuesStatus] = useState<GigValuesStatus>('idle');
+  const { saved: gigValuesSaved, showSavedThenGoBack } = useSaveConfirmation(() => navigation.navigate('Settings'));
 
   const editGigValueDraft = (tier: GigEffortTier, text: string) => {
     setGigValueDrafts((prev) => ({ ...prev, [tier]: text.replace(/[^0-9.]/g, '') }));
@@ -55,7 +57,7 @@ export function GigsScreen({ navigation }: Props) {
       return;
     }
     updateGigEffortValues(parsed);
-    navigation.navigate('Settings');
+    showSavedThenGoBack();
   };
 
   const openAdd = () => {
@@ -144,8 +146,12 @@ export function GigsScreen({ navigation }: Props) {
                 </View>
               </View>
             ))}
-            <Pressable style={styles.saveButton} onPress={saveGigValues}>
-              <Text style={styles.saveButtonText}>Save gig values</Text>
+            <Pressable
+              style={[styles.saveButton, gigValuesSaved && styles.saveButtonSaved]}
+              onPress={saveGigValues}
+              disabled={gigValuesSaved}
+            >
+              <Text style={styles.saveButtonText}>{gigValuesSaved ? '✓ Saved' : 'Save gig values'}</Text>
             </Pressable>
             {gigValuesStatus === 'invalid' && <Text style={styles.errorText}>Enter valid, non-negative amounts.</Text>}
           </>
@@ -236,6 +242,7 @@ const styles = StyleSheet.create({
   gigValueDollarSign: { fontSize: 15, color: colors.textMuted, marginRight: 2 },
   gigValueInput: { fontSize: 15, color: colors.text, paddingVertical: 8, width: 56, textAlign: 'right' },
   saveButton: { marginTop: 12, backgroundColor: colors.gigs, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  saveButtonSaved: { backgroundColor: colors.success },
   saveButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
   errorText: { color: colors.danger, fontSize: 13, fontWeight: '600', textAlign: 'center', marginTop: 10 },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },

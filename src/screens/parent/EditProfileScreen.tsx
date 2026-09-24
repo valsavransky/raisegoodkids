@@ -12,6 +12,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { SettingsSubHeader } from '../../components/SettingsSubHeader';
 import { useAppData } from '../../context/AppDataContext';
+import { useSaveConfirmation } from '../../hooks/useSaveConfirmation';
 import { GRADE_OPTIONS } from '../../data/contentLibrary';
 import { AVATAR_OPTIONS } from '../../data/avatars';
 import { colors } from '../../theme/colors';
@@ -47,6 +48,7 @@ export function EditProfileScreen({ navigation }: Props) {
 
   const [showPicker, setShowPicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(eightYearsAgo());
+  const { saved, showSavedThenGoBack } = useSaveConfirmation(() => navigation.navigate('Settings'));
 
   const parsedBirthday = birthday ? new Date(`${birthday}T00:00:00`) : null;
   const formattedBirthday = parsedBirthday
@@ -84,7 +86,7 @@ export function EditProfileScreen({ navigation }: Props) {
       petType: hasPet ? petType : undefined,
       petName: hasPet ? petName : undefined,
     });
-    navigation.navigate('Settings');
+    showSavedThenGoBack();
   };
 
   return (
@@ -283,11 +285,11 @@ export function EditProfileScreen({ navigation }: Props) {
         )}
 
         <Pressable
-          style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
-          disabled={!canSave}
+          style={[styles.saveButton, !canSave && styles.saveButtonDisabled, saved && styles.saveButtonSaved]}
+          disabled={!canSave || saved}
           onPress={save}
         >
-          <Text style={styles.saveButtonText}>Save</Text>
+          <Text style={styles.saveButtonText}>{saved ? '✓ Saved' : 'Save'}</Text>
         </Pressable>
       </ScrollView>
       </KeyboardAvoidingView>
@@ -348,6 +350,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   saveButtonDisabled: { opacity: 0.4 },
+  saveButtonSaved: { backgroundColor: colors.success },
   saveButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalCard: {
