@@ -528,8 +528,6 @@ export function ChildHomeScreen() {
       <View style={styles.fixedHeader}>
         <AppHeader />
 
-        <SettingsHintBadge onNavigateToSettings={() => navigation.navigate('Settings')} />
-
         <View style={styles.goalCardWrapper}>
           {!goal ? (
             <Pressable style={styles.emptyGoalCard} onPress={() => navigation.navigate('Goal')}>
@@ -549,6 +547,7 @@ export function ChildHomeScreen() {
               <Text style={styles.goalProgressText}>{Math.min(goalProgressPercentage(goal.id), 100)}% there</Text>
             </View>
           )}
+          <SettingsHintBadge onNavigateToSettings={() => navigation.navigate('Settings')} />
         </View>
       </View>
 
@@ -766,13 +765,13 @@ export function ChildHomeScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#FFF8F0' },
   fixedHeader: { paddingBottom: 12, backgroundColor: '#FFF8F0' },
-  goalCardWrapper: { paddingHorizontal: 20 },
-  // Normal flow, not absolutely positioned — sits between the header and
-  // the goal card, guaranteed to never overlap the profile chip above it
-  // (a floating version aimed at the goal card's corner ended up covering
-  // the chip at real device widths). Right-aligned so it still sits
-  // roughly under the chip it's pointing at.
-  hintRow: { paddingHorizontal: 20, alignItems: 'flex-end', marginBottom: 10 },
+  goalCardWrapper: { paddingHorizontal: 20, position: 'relative' },
+  // Floats over the goal card instead of pushing it down (a normal-flow
+  // version fixed the chip-overlap problem but left an odd gap above the
+  // goal card, since the card got pushed down by the hint's own height).
+  // top:8 clears the chip above (confirmed on-device — the earlier -34
+  // covered it) while still overlapping the goal card's own top edge.
+  hintRow: { position: 'absolute', top: 8, right: 0, alignItems: 'flex-end', zIndex: 20 },
   hintArrow: {
     width: 12,
     height: 12,
