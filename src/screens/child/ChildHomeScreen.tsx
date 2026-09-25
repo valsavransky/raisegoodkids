@@ -41,6 +41,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { View, Text, Pressable, ScrollView, Alert, StyleSheet, Image, Animated } from 'react-native';
 import Svg, { Path, Defs, Pattern, Rect, Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation, useFocusEffect, CompositeNavigationProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -258,6 +259,85 @@ function WeeklyStopSection({
   );
 }
 
+// Two one-time, local-only (not synced — seeing either again on a second
+// device is harmless) coachmarks about Settings, shown one at a time in
+// order — a parent who never opens Settings on their own still discovers
+// what lives there. Used to live in AppHeader, pinned to the small profile
+// chip; moved here, floating over the goal card's top-right corner (with an
+// arrow tracing back up to the chip), since that's the most eye-catching
+// thing on this screen and a heavy dark bubble in the corner was easy to
+// miss. Dismissing the first reveals the second immediately (each is a
+// genuinely different fact, not a repeat); dismissing that stays dismissed
+// forever after.
+// Versioned (v2): an earlier version of the chip let ANY tap on it dismiss
+// whatever hint was showing, not just an explicit dismiss — so tapping the
+// chip to actually go to Settings silently marked the hint seen. Keeping
+// the v2 keys here (unchanged from that fix) so anyone who already saw a
+// hint fairly under the fixed behavior doesn't see it a third time.
+const SETTINGS_HINT_SEEN_KEY = 'merit.settingsHintSeen.v2';
+const MONEY_HINT_SEEN_KEY = 'merit.moneySettingsHintSeen.v2';
+
+type HintStage = 'none' | 'settings' | 'money';
+
+const HINT_COPY: Record<Exclude<HintStage, 'none'>, string> = {
+  settings: 'Tap the profile chip anytime to edit gigs, chores, or values.',
+  money: 'Gig dollar values and Future Fund % are automatically set — go to Settings to edit these any time.',
+};
+
+function SettingsHintBadge({ onNavigateToSettings }: { onNavigateToSettings: () => void }) {
+  const [hintStage, setHintStage] = useState<HintStage>('none');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const [settingsSeen, moneySeen] = await Promise.all([
+        AsyncStorage.getItem(SETTINGS_HINT_SEEN_KEY),
+        AsyncStorage.getItem(MONEY_HINT_SEEN_KEY),
+      ]);
+      if (cancelled) return;
+      if (!settingsSeen) setHintStage('settings');
+      else if (!moneySeen) setHintStage('money');
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const dismiss = () => {
+    if (hintStage === 'settings') {
+      AsyncStorage.setItem(SETTINGS_HINT_SEEN_KEY, '1').catch(() => {});
+      AsyncStorage.getItem(MONEY_HINT_SEEN_KEY).then((moneySeen) => {
+        setHintStage(moneySeen ? 'none' : 'money');
+      });
+    } else if (hintStage === 'money') {
+      AsyncStorage.setItem(MONEY_HINT_SEEN_KEY, '1').catch(() => {});
+      setHintStage('none');
+    }
+  };
+
+  if (hintStage === 'none') return null;
+  const stepNumber = hintStage === 'settings' ? 1 : 2;
+
+  return (
+    <View style={styles.hintWrap} pointerEvents="box-none">
+      <View style={styles.hintArrow} />
+      <Pressable
+        style={styles.hintBadge}
+        onPress={() => {
+          dismiss();
+          onNavigateToSettings();
+        }}
+      >
+        <Pressable onPress={dismiss} hitSlop={8} style={styles.hintClose}>
+          <Text style={styles.hintCloseText}>{'×'}</Text>
+        </Pressable>
+        <Text style={styles.hintCount}>TIP {stepNumber} OF 2</Text>
+        <Text style={styles.hintText}>{HINT_COPY[hintStage]}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 export function ChildHomeScreen() {
   const navigation = useNavigation<ChildHomeNavigationProp>();
   const {
@@ -443,6 +523,7 @@ export function ChildHomeScreen() {
               <Text style={styles.goalProgressText}>{Math.min(goalProgressPercentage(goal.id), 100)}% there</Text>
             </View>
           )}
+          <SettingsHintBadge onNavigateToSettings={() => navigation.navigate('Settings')} />
         </View>
       </View>
 
@@ -624,7 +705,37 @@ export function ChildHomeScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#FFF8F0' },
   fixedHeader: { paddingBottom: 12, backgroundColor: '#FFF8F0' },
-  goalCardWrapper: { paddingHorizontal: 20 },
+  goalCardWrapper: { paddingHorizontal: 20, position: 'relative' },
+  hintWrap: { position: 'absolute', top: -34, right: 10, alignItems: 'flex-end', zIndex: 20 },
+  hintArrow: {
+    width: 12,
+    height: 12,
+    backgroundColor: '#FFFFFF',
+    borderLeftWidth: 1.5,
+    borderTopWidth: 1.5,
+    borderColor: colors.futureFund,
+    transform: [{ rotate: '45deg' }],
+    marginBottom: -6,
+    marginRight: 26,
+  },
+  hintBadge: {
+    width: 210,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.futureFund,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+  hintClose: { position: 'absolute', top: 6, right: 8, zIndex: 1 },
+  hintCloseText: { fontSize: 14, color: '#8a8578', fontWeight: '800' },
+  hintCount: { fontSize: 9, fontWeight: '800', color: colors.futureFund, letterSpacing: 0.4, marginBottom: 3 },
+  hintText: { fontSize: 12, lineHeight: 16.5, color: '#5c574b', paddingRight: 12 },
   scroll: { flex: 1 },
   content: { paddingBottom: 40 },
   emptyGoalCard: {
