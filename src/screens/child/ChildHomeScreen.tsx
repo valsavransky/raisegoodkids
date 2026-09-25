@@ -269,13 +269,13 @@ function WeeklyStopSection({
 // miss. Dismissing the first reveals the second immediately (each is a
 // genuinely different fact, not a repeat); dismissing that stays dismissed
 // forever after.
-// Versioned (v2): an earlier version of the chip let ANY tap on it dismiss
-// whatever hint was showing, not just an explicit dismiss — so tapping the
-// chip to actually go to Settings silently marked the hint seen. Keeping
-// the v2 keys here (unchanged from that fix) so anyone who already saw a
-// hint fairly under the fixed behavior doesn't see it a third time.
-const SETTINGS_HINT_SEEN_KEY = 'merit.settingsHintSeen.v2';
-const MONEY_HINT_SEEN_KEY = 'merit.moneySettingsHintSeen.v2';
+// Versioned (v3): AsyncStorage is device-local, not account-scoped, so
+// dismissing these while reviewing the old dark-bubble AppHeader design
+// (v2) marked them seen for every profile on that device, including a
+// brand-new one — this redesign would otherwise never show at all. Bumping
+// the keys again invalidates that stale "seen" state.
+const SETTINGS_HINT_SEEN_KEY = 'merit.settingsHintSeen.v3';
+const MONEY_HINT_SEEN_KEY = 'merit.moneySettingsHintSeen.v3';
 
 type HintStage = 'none' | 'settings' | 'money';
 
