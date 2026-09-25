@@ -59,6 +59,7 @@ import { scheduleEventsForToday, formatEventTimeRange, TodayScheduleEvent } from
 import { playSound } from '../../services/sound';
 import { colors } from '../../theme/colors';
 import { todayString, startOfWeek, addDays } from '../../utils/date';
+import { SETTINGS_HINT_SEEN_KEY, MONEY_HINT_SEEN_KEY } from '../../utils/settingsHints';
 
 const CATEGORY_ICONS: Record<ScheduleEventCategory, string> = {
   school: '🏫',
@@ -285,13 +286,9 @@ function WeeklyStopSection({
 // onboarding carousel); only the final tip shows an "×", since that's the
 // one that actually closes the sequence for good. Tapping the card itself
 // (not the chevron/×) still jumps straight to Settings.
-// Versioned (v3): AsyncStorage is device-local, not account-scoped, so
-// dismissing these while reviewing an earlier design marked them seen for
-// every profile on that device, including a brand-new one. Bumping the
-// keys invalidates stale "seen" state whenever the design changes enough
-// that people should see it again.
-const SETTINGS_HINT_SEEN_KEY = 'merit.settingsHintSeen.v3';
-const MONEY_HINT_SEEN_KEY = 'merit.moneySettingsHintSeen.v3';
+// Key constants (and why they're versioned) live in utils/settingsHints —
+// shared with AppDataContext.resetAllData, which now also clears them, so
+// a reset gives the hints a truly fresh start too, not just the app data.
 
 type HintStage = 'none' | 'settings' | 'money';
 

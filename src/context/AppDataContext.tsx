@@ -28,6 +28,7 @@ import { todayString } from '../utils/date';
 import { computeExpectedStreak } from '../utils/streak';
 import { isExpectedItemSatisfied } from '../utils/expectedItemStatus';
 import { computeGigPercentage, DEFAULT_GIG_EFFORT_VALUES } from '../utils/gigValue';
+import { SETTINGS_HINT_SEEN_KEY, MONEY_HINT_SEEN_KEY } from '../utils/settingsHints';
 import { STREAK_THRESHOLDS, GIG_MILESTONE_THRESHOLDS, FUTURE_FUND_THRESHOLDS, getBadgeCatalogEntry } from '../data/badgeCatalog';
 
 const DEFAULT_FUTURE_FUND_PERCENTAGE = 10;
@@ -791,6 +792,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       }
     }
     await AsyncStorage.removeItem(STORAGE_KEY);
+    // Also local-only but not part of PersistedAppData — a reset should
+    // give the one-time Settings coachmarks a fresh start too, not just
+    // the app data, since AsyncStorage is device-local and would otherwise
+    // stay "seen" across a reset and a brand-new child profile.
+    await AsyncStorage.multiRemove([SETTINGS_HINT_SEEN_KEY, MONEY_HINT_SEEN_KEY]);
     setParentName(null);
     setChildProfile(null);
     setScheduleEvents([]);
