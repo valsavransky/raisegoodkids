@@ -277,11 +277,16 @@ function WeeklyStopSection({
 // device is harmless) coachmarks about Settings, shown one at a time in
 // order — a parent who never opens Settings on their own still discovers
 // what lives there. Sits in normal flow between the header and the goal
-// card (not floating/absolutely positioned) — an earlier floating version
-// aimed to hover over the goal card's corner but, at real device widths,
-// ended up covering the profile chip it was supposed to point at. Normal
-// flow guarantees it can never overlap the chip above it, at the cost of
-// nudging the goal card down slightly while a hint is showing.
+// card, not floating/absolutely positioned — floating versions were tried
+// twice (hovering over the goal card's top-right corner, then nudged down
+// a bit) and each time ended up covering either the profile chip above or
+// the goal card/toggle row below, since the right offset can only really
+// be judged on an actual device after the fact. Normal flow can't overlap
+// anything by construction, at the cost of nudging the goal card down
+// slightly while a hint is showing. Its horizontal padding matches
+// AppHeader's own header row exactly, so the badge's right edge lines up
+// with the profile chip's right edge on any device width, without needing
+// either one's actual on-screen position.
 // A right-chevron advances tip 1 to tip 2 (like a "Next" step in an
 // onboarding carousel); only the final tip shows an "×", since that's the
 // one that actually closes the sequence for good. Tapping the card itself
@@ -528,6 +533,8 @@ export function ChildHomeScreen() {
       <View style={styles.fixedHeader}>
         <AppHeader />
 
+        <SettingsHintBadge onNavigateToSettings={() => navigation.navigate('Settings')} />
+
         <View style={styles.goalCardWrapper}>
           {!goal ? (
             <Pressable style={styles.emptyGoalCard} onPress={() => navigation.navigate('Goal')}>
@@ -547,7 +554,6 @@ export function ChildHomeScreen() {
               <Text style={styles.goalProgressText}>{Math.min(goalProgressPercentage(goal.id), 100)}% there</Text>
             </View>
           )}
-          <SettingsHintBadge onNavigateToSettings={() => navigation.navigate('Settings')} />
         </View>
       </View>
 
@@ -765,13 +771,16 @@ export function ChildHomeScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#FFF8F0' },
   fixedHeader: { paddingBottom: 12, backgroundColor: '#FFF8F0' },
-  goalCardWrapper: { paddingHorizontal: 20, position: 'relative' },
-  // Floats over the goal card instead of pushing it down (a normal-flow
-  // version fixed the chip-overlap problem but left an odd gap above the
-  // goal card, since the card got pushed down by the hint's own height).
-  // top:8 clears the chip above (confirmed on-device — the earlier -34
-  // covered it) while still overlapping the goal card's own top edge.
-  hintRow: { position: 'absolute', top: 8, right: 0, alignItems: 'flex-end', zIndex: 20 },
+  goalCardWrapper: { paddingHorizontal: 20 },
+  // Back to normal flow — floating (absolutely positioned) versions kept
+  // either covering the chip above or overlapping the goal card/toggle row
+  // below, since their offsets were hand-guessed against a device this
+  // could only be checked on after the fact. Normal flow can't overlap
+  // anything by construction. paddingHorizontal here matches AppHeader's
+  // own header row padding exactly, so with alignItems:'flex-end' this
+  // badge's right edge lines up with the profile chip's right edge on any
+  // device width, without needing to know either one's actual position.
+  hintRow: { paddingHorizontal: 20, alignItems: 'flex-end', marginBottom: 6 },
   hintArrow: {
     width: 12,
     height: 12,
@@ -781,16 +790,17 @@ const styles = StyleSheet.create({
     borderColor: colors.futureFund,
     transform: [{ rotate: '45deg' }],
     marginBottom: -6,
-    marginRight: 26,
+    marginRight: 16,
   },
   hintBadge: {
-    maxWidth: 260,
+    // Narrowed by roughly a third from the original 260.
+    width: 172,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: colors.futureFund,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
     shadowColor: '#000',
     shadowOpacity: 0.12,
     shadowRadius: 8,
