@@ -262,18 +262,21 @@ function WeeklyStopSection({
 // Two one-time, local-only (not synced — seeing either again on a second
 // device is harmless) coachmarks about Settings, shown one at a time in
 // order — a parent who never opens Settings on their own still discovers
-// what lives there. Used to live in AppHeader, pinned to the small profile
-// chip; moved here, floating over the goal card's top-right corner (with an
-// arrow tracing back up to the chip), since that's the most eye-catching
-// thing on this screen and a heavy dark bubble in the corner was easy to
-// miss. Dismissing the first reveals the second immediately (each is a
-// genuinely different fact, not a repeat); dismissing that stays dismissed
-// forever after.
+// what lives there. Sits in normal flow between the header and the goal
+// card (not floating/absolutely positioned) — an earlier floating version
+// aimed to hover over the goal card's corner but, at real device widths,
+// ended up covering the profile chip it was supposed to point at. Normal
+// flow guarantees it can never overlap the chip above it, at the cost of
+// nudging the goal card down slightly while a hint is showing.
+// A right-chevron advances tip 1 to tip 2 (like a "Next" step in an
+// onboarding carousel); only the final tip shows an "×", since that's the
+// one that actually closes the sequence for good. Tapping the card itself
+// (not the chevron/×) still jumps straight to Settings.
 // Versioned (v3): AsyncStorage is device-local, not account-scoped, so
-// dismissing these while reviewing the old dark-bubble AppHeader design
-// (v2) marked them seen for every profile on that device, including a
-// brand-new one — this redesign would otherwise never show at all. Bumping
-// the keys again invalidates that stale "seen" state.
+// dismissing these while reviewing an earlier design marked them seen for
+// every profile on that device, including a brand-new one. Bumping the
+// keys invalidates stale "seen" state whenever the design changes enough
+// that people should see it again.
 const SETTINGS_HINT_SEEN_KEY = 'merit.settingsHintSeen.v3';
 const MONEY_HINT_SEEN_KEY = 'merit.moneySettingsHintSeen.v3';
 
@@ -317,9 +320,10 @@ function SettingsHintBadge({ onNavigateToSettings }: { onNavigateToSettings: () 
 
   if (hintStage === 'none') return null;
   const stepNumber = hintStage === 'settings' ? 1 : 2;
+  const isLastStep = hintStage === 'money';
 
   return (
-    <View style={styles.hintWrap} pointerEvents="box-none">
+    <View style={styles.hintRow}>
       <View style={styles.hintArrow} />
       <Pressable
         style={styles.hintBadge}
@@ -328,8 +332,8 @@ function SettingsHintBadge({ onNavigateToSettings }: { onNavigateToSettings: () 
           onNavigateToSettings();
         }}
       >
-        <Pressable onPress={dismiss} hitSlop={8} style={styles.hintClose}>
-          <Text style={styles.hintCloseText}>{'×'}</Text>
+        <Pressable onPress={dismiss} hitSlop={8} style={styles.hintControl}>
+          <Text style={styles.hintControlText}>{isLastStep ? '×' : '›'}</Text>
         </Pressable>
         <Text style={styles.hintCount}>TIP {stepNumber} OF 2</Text>
         <Text style={styles.hintText}>{HINT_COPY[hintStage]}</Text>
@@ -504,6 +508,8 @@ export function ChildHomeScreen() {
       <View style={styles.fixedHeader}>
         <AppHeader />
 
+        <SettingsHintBadge onNavigateToSettings={() => navigation.navigate('Settings')} />
+
         <View style={styles.goalCardWrapper}>
           {!goal ? (
             <Pressable style={styles.emptyGoalCard} onPress={() => navigation.navigate('Goal')}>
@@ -523,7 +529,6 @@ export function ChildHomeScreen() {
               <Text style={styles.goalProgressText}>{Math.min(goalProgressPercentage(goal.id), 100)}% there</Text>
             </View>
           )}
-          <SettingsHintBadge onNavigateToSettings={() => navigation.navigate('Settings')} />
         </View>
       </View>
 
@@ -705,8 +710,13 @@ export function ChildHomeScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#FFF8F0' },
   fixedHeader: { paddingBottom: 12, backgroundColor: '#FFF8F0' },
-  goalCardWrapper: { paddingHorizontal: 20, position: 'relative' },
-  hintWrap: { position: 'absolute', top: -34, right: 10, alignItems: 'flex-end', zIndex: 20 },
+  goalCardWrapper: { paddingHorizontal: 20 },
+  // Normal flow, not absolutely positioned — sits between the header and
+  // the goal card, guaranteed to never overlap the profile chip above it
+  // (a floating version aimed at the goal card's corner ended up covering
+  // the chip at real device widths). Right-aligned so it still sits
+  // roughly under the chip it's pointing at.
+  hintRow: { paddingHorizontal: 20, alignItems: 'flex-end', marginBottom: 10 },
   hintArrow: {
     width: 12,
     height: 12,
@@ -719,7 +729,7 @@ const styles = StyleSheet.create({
     marginRight: 26,
   },
   hintBadge: {
-    width: 210,
+    maxWidth: 260,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1.5,
@@ -732,10 +742,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 4,
   },
-  hintClose: { position: 'absolute', top: 6, right: 8, zIndex: 1 },
-  hintCloseText: { fontSize: 14, color: '#8a8578', fontWeight: '800' },
+  hintControl: { position: 'absolute', top: 4, right: 8, zIndex: 1, padding: 4 },
+  hintControlText: { fontSize: 17, color: colors.futureFund, fontWeight: '800' },
   hintCount: { fontSize: 9, fontWeight: '800', color: colors.futureFund, letterSpacing: 0.4, marginBottom: 3 },
-  hintText: { fontSize: 12, lineHeight: 16.5, color: '#5c574b', paddingRight: 12 },
+  hintText: { fontSize: 12, lineHeight: 16.5, color: '#5c574b', paddingRight: 14 },
   scroll: { flex: 1 },
   content: { paddingBottom: 40 },
   emptyGoalCard: {
