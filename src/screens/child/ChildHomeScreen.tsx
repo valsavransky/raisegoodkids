@@ -19,10 +19,13 @@
 //
 // Weekly Expected items deliberately do NOT appear on the trail itself — a
 // small "Today" / "This Week" toggle swaps the trail out for a real
-// chore-x-day habit-tracker grid instead of stacking both on one screen.
-// The grid holds Daily items and Gigs (DailyGridSection) — both are
-// genuinely per-day things, so a week-at-a-glance grid fits them the same
-// way. Weekly items get their own block instead (WeeklyStopSection): a
+// chore-x-day grid instead of stacking both on one screen. "This Week"
+// itself further splits into Daily / Gigs / Weekly sub-tabs (weekSubTab) —
+// they used to stack as three sections on one screen, which ran very long
+// for a household with a lot of gigs; one category visible at a time keeps
+// the screen a flat length no matter how many items get added. Daily items
+// and Gigs share DailyGridSection's day-by-day grid (both are genuinely
+// per-day things); Weekly items get their own block (WeeklyStopSection): a
 // weekly item only ever needs ONE completion, on any day, so a row of seven
 // mostly-empty grid cells read as if six days were still outstanding — a
 // big Trail-style stop plus a status caption ("Done Thursday" / "Anytime
@@ -135,7 +138,7 @@ function Sparkle({ color, size, style, delay }: { color: string; size: number; s
 // different treatment (see WeeklyStopSection below), since "any one day
 // this week" doesn't fit a day-by-day grid the way "every day" does.
 function DailyGridSection({
-  title,
+  emptyLabel,
   items,
   weekDates,
   todayStr,
@@ -145,7 +148,7 @@ function DailyGridSection({
   color,
   ringColor,
 }: {
-  title: string;
+  emptyLabel: string;
   items: { id: string; name: string }[];
   weekDates: string[];
   todayStr: string;
@@ -155,10 +158,15 @@ function DailyGridSection({
   color: string;
   ringColor: string;
 }) {
-  if (items.length === 0) return null;
+  if (items.length === 0) {
+    return (
+      <View style={styles.gridSection}>
+        <Text style={styles.emptyTabText}>{emptyLabel}</Text>
+      </View>
+    );
+  }
   return (
     <View style={styles.gridSection}>
-      <Text style={styles.gridSectionTitle}>{title}</Text>
       <View style={styles.gridHeaderRow}>
         <View style={styles.gridLabelCol} />
         {weekDates.map((d, i) => (
@@ -225,10 +233,15 @@ function WeeklyStopSection({
   isExpectedDoneToday: (id: string) => boolean;
   onPressStop: (itemId: string) => void;
 }) {
-  if (items.length === 0) return null;
+  if (items.length === 0) {
+    return (
+      <View style={styles.gridSection}>
+        <Text style={styles.emptyTabText}>No weekly items yet — add some in Settings.</Text>
+      </View>
+    );
+  }
   return (
     <View style={styles.gridSection}>
-      <Text style={styles.gridSectionTitle}>Weekly</Text>
       {items.map((item) => {
         const completion = weekDates
           .map((d) => expectedCompletions.find((c) => c.expectedItemId === item.id && c.date === d))
@@ -365,6 +378,12 @@ export function ChildHomeScreen() {
   } = useAppData();
 
   const [view, setView] = useState<'today' | 'week'>('today');
+  // "This Week" sub-tabs — Daily/Gigs/Weekly used to stack as three
+  // sections on one screen, which ran very long for a household with a lot
+  // of gigs (a 9-gig household hits 9 full grid rows before Weekly even
+  // starts). One category visible at a time keeps the screen a flat,
+  // predictable length no matter how many items get added later.
+  const [weekSubTab, setWeekSubTab] = useState<'daily' | 'gigs' | 'weekly'>('daily');
 
   const [focusedAt, setFocusedAt] = useState(() => Date.now());
   useFocusEffect(
@@ -427,6 +446,10 @@ export function ChildHomeScreen() {
   const trailHeight = points.length > 0 ? FIRST_Y + (points.length - 1) * STEP_Y + 70 : 0;
   const gigsDoneToday = gigs.some((gig) => gigCompletionStatusToday(gig.id) === 'approved');
   const gigsDoneCount = gigs.filter((gig) => gigCompletionStatusToday(gig.id) === 'approved').length;
+  // isExpectedDoneToday, for a weekly item, already means "satisfied
+  // somewhere this week" (see isExpectedItemSatisfied) — reused here for
+  // the Weekly sub-tab's count badge.
+  const weeklyDoneCount = weeklyItems.filter((item) => isExpectedDoneToday(item.id)).length;
 
   const avatarTranslate = useRef(new Animated.ValueXY({ x: avatarPoint.x, y: avatarPoint.y })).current;
   useEffect(() => {
@@ -670,36 +693,72 @@ export function ChildHomeScreen() {
 
         {view === 'week' && (
           <View style={styles.weeklyPanel}>
-            <DailyGridSection
-              title="Daily"
-              items={dailyItems}
-              weekDates={weekDates}
-              todayStr={todayStr}
-              isDoneOn={dailyIsDoneOn}
-              isTappableOn={dailyIsTappableOn}
-              onPressCell={handleExpectedPress}
-              color={colors.expected}
-              ringColor="#B7D9D3"
-            />
-            <DailyGridSection
-              title="Gigs"
-              items={gigs}
-              weekDates={weekDates}
-              todayStr={todayStr}
-              isDoneOn={gigIsDoneOn}
-              isTappableOn={gigIsTappableOn}
-              onPressCell={handleGigPressById}
-              color={colors.gigs}
-              ringColor="#E9CB9A"
-            />
-            <WeeklyStopSection
-              items={weeklyItems}
-              weekDates={weekDates}
-              todayStr={todayStr}
-              expectedCompletions={expectedCompletions}
-              isExpectedDoneToday={isExpectedDoneToday}
-              onPressStop={handleExpectedPress}
-            />
+            <View style={styles.weekSubTabRow}>
+              <Pressable
+                onPress={() => setWeekSubTab('daily')}
+                style={[styles.weekSubTab, weekSubTab === 'daily' && { backgroundColor: colors.expected }]}
+              >
+                <Text style={[styles.weekSubTabText, weekSubTab === 'daily' && styles.weekSubTabTextActive]}>Daily</Text>
+                <Text style={[styles.weekSubTabCount, weekSubTab === 'daily' && styles.weekSubTabTextActive]}>
+                  {done}/{total}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setWeekSubTab('gigs')}
+                style={[styles.weekSubTab, weekSubTab === 'gigs' && { backgroundColor: colors.gigs }]}
+              >
+                <Text style={[styles.weekSubTabText, weekSubTab === 'gigs' && styles.weekSubTabTextActive]}>Gigs</Text>
+                <Text style={[styles.weekSubTabCount, weekSubTab === 'gigs' && styles.weekSubTabTextActive]}>
+                  {gigsDoneCount}/{gigs.length}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setWeekSubTab('weekly')}
+                style={[styles.weekSubTab, weekSubTab === 'weekly' && { backgroundColor: colors.expected }]}
+              >
+                <Text style={[styles.weekSubTabText, weekSubTab === 'weekly' && styles.weekSubTabTextActive]}>Weekly</Text>
+                <Text style={[styles.weekSubTabCount, weekSubTab === 'weekly' && styles.weekSubTabTextActive]}>
+                  {weeklyDoneCount}/{weeklyItems.length}
+                </Text>
+              </Pressable>
+            </View>
+
+            {weekSubTab === 'daily' && (
+              <DailyGridSection
+                emptyLabel="No daily Expected items yet — add some in Settings."
+                items={dailyItems}
+                weekDates={weekDates}
+                todayStr={todayStr}
+                isDoneOn={dailyIsDoneOn}
+                isTappableOn={dailyIsTappableOn}
+                onPressCell={handleExpectedPress}
+                color={colors.expected}
+                ringColor="#B7D9D3"
+              />
+            )}
+            {weekSubTab === 'gigs' && (
+              <DailyGridSection
+                emptyLabel="No gigs yet — add some in Settings."
+                items={gigs}
+                weekDates={weekDates}
+                todayStr={todayStr}
+                isDoneOn={gigIsDoneOn}
+                isTappableOn={gigIsTappableOn}
+                onPressCell={handleGigPressById}
+                color={colors.gigs}
+                ringColor="#E9CB9A"
+              />
+            )}
+            {weekSubTab === 'weekly' && (
+              <WeeklyStopSection
+                items={weeklyItems}
+                weekDates={weekDates}
+                todayStr={todayStr}
+                expectedCompletions={expectedCompletions}
+                isExpectedDoneToday={isExpectedDoneToday}
+                onPressStop={handleExpectedPress}
+              />
+            )}
           </View>
         )}
       </ScrollView>
@@ -834,15 +893,19 @@ const styles = StyleSheet.create({
   doneStatsRow: { flexDirection: 'row', justifyContent: 'center', gap: 20, paddingHorizontal: 20, marginBottom: 8 },
   doneStatText: { fontSize: 13, fontWeight: '700' },
   weeklyPanel: { paddingHorizontal: 20, paddingTop: 4 },
-  gridSection: { marginBottom: 24 },
-  gridSectionTitle: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#8a8578',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 10,
+  weekSubTabRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  weekSubTab: {
+    flex: 1,
+    alignItems: 'center',
+    borderRadius: 10,
+    paddingVertical: 8,
+    backgroundColor: '#F3EEE2',
   },
+  weekSubTabText: { fontSize: 12.5, fontWeight: '800', color: '#8a8578' },
+  weekSubTabCount: { fontSize: 10.5, fontWeight: '600', color: '#8a8578', marginTop: 1, opacity: 0.85 },
+  weekSubTabTextActive: { color: '#FFFFFF' },
+  emptyTabText: { fontSize: 13, color: '#8a8578', textAlign: 'center', paddingVertical: 20, lineHeight: 19 },
+  gridSection: { marginBottom: 24 },
   gridHeaderRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   gridLabelCol: { width: 128, flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
   gridLabelIcon: { marginTop: 1 },
