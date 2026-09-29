@@ -27,6 +27,7 @@ import {
   ReminderDiagnostics,
 } from '../../services/dailyReminder';
 import { timeStringToDate, dateToTimeString, formatTime12h } from '../../utils/time';
+import { track } from '../../services/analytics';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'NotificationSettings'>;
@@ -55,6 +56,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
   }, []);
 
   const apply = async (next: ReminderSettings) => {
+    if (next.enabled !== settings.enabled) track(next.enabled ? 'reminder_enabled' : 'reminder_disabled');
     setSettings(next);
     await saveReminderSettings(next);
     await syncDailyReminder({

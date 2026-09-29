@@ -15,12 +15,14 @@ import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { useSetup, DraftExpectedItem, makeLocalId } from '../../context/SetupContext';
 import { getContentLibraryForGrade } from '../../data/contentLibrary';
+import { useTrackSetupStep } from '../../hooks/useTrackScreen';
 import { colors } from '../../theme/colors';
 import { childFirstName, gradeLabel } from '../../utils/setupCopy';
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'ExpectedSetup'>;
 
 export function ExpectedSetupScreen({ navigation }: Props) {
+  useTrackSetupStep('expected');
   const insets = useSafeAreaInsets();
   const { childProfile, expectedItems, setExpectedItems } = useSetup();
   const [addModalVisible, setAddModalVisible] = useState(false);

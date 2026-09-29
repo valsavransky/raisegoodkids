@@ -11,6 +11,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { useSetup, DraftGig, makeLocalId } from '../../context/SetupContext';
 import { getContentLibraryForGrade, SuggestedGig } from '../../data/contentLibrary';
 import { GigEffortTier } from '../../types/models';
+import { useTrackSetupStep } from '../../hooks/useTrackScreen';
 import { colors } from '../../theme/colors';
 import { DEFAULT_GIG_EFFORT_VALUES as GIG_DEFAULTS } from '../../utils/gigValue';
 import { childFirstName, gradeLabel } from '../../utils/setupCopy';
@@ -24,6 +25,7 @@ const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
 type Props = NativeStackScreenProps<SetupStackParamList, 'GigsSetup'>;
 
 export function GigsSetupScreen({ navigation }: Props) {
+  useTrackSetupStep('gigs');
   const insets = useSafeAreaInsets();
   const setup = useSetup();
   const { childProfile, gigs, setGigs } = setup;

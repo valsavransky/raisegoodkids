@@ -12,12 +12,15 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { useAuth } from '../../context/AuthContext';
+import { useTrackSetupStep } from '../../hooks/useTrackScreen';
+import { track } from '../../services/analytics';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'Login'>;
 type Status = 'idle' | 'loading' | 'error';
 
 export function LoginScreen({ navigation }: Props) {
+  useTrackSetupStep('login_email');
   const insets = useSafeAreaInsets();
   const { login } = useAuth();
   const [email, setEmail] = useState('');
@@ -38,6 +41,7 @@ export function LoginScreen({ navigation }: Props) {
       // If this account has data, AppDataContext's reconcile effect adopts
       // it the moment it sees the new token and the app swaps away from
       // the setup wizard on its own; otherwise setup continues normally.
+      track('signed_in', { method: 'email_login' });
       navigation.replace('ChildProfile');
     } else {
       setStatus('error');

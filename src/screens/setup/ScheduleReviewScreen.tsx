@@ -28,6 +28,7 @@ import {
   suggestExpectedItemForEvent,
   placeholderForCategory,
 } from '../../data/practiceSuggestions';
+import { useTrackSetupStep } from '../../hooks/useTrackScreen';
 import { colors } from '../../theme/colors';
 import { formatShortDate } from '../../utils/date';
 
@@ -55,6 +56,7 @@ type Props = NativeStackScreenProps<SetupStackParamList, 'ScheduleReview'>;
 type SuggestionStatus = 'pending' | 'added' | 'dismissed';
 
 export function ScheduleReviewScreen({ navigation }: Props) {
+  useTrackSetupStep('schedule_review');
   const insets = useSafeAreaInsets();
   const { childProfile, scheduleEvents, setScheduleEvents, expectedItems, setExpectedItems } = useSetup();
   const [suggestionStatus, setSuggestionStatus] = useState<Record<string, SuggestionStatus>>({});

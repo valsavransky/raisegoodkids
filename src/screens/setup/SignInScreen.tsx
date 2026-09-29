@@ -18,12 +18,15 @@ import { BrandHeader } from '../../components/BrandHeader';
 import { GoogleLogo } from '../../components/GoogleLogo';
 import { useAuth } from '../../context/AuthContext';
 import { isGoogleSignInConfigured, useGoogleSignInRequest, getIdToken } from '../../services/googleIdentityAuth';
+import { useTrackSetupStep } from '../../hooks/useTrackScreen';
+import { track } from '../../services/analytics';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'SignIn'>;
 type Status = 'idle' | 'loading' | 'error';
 
 export function SignInScreen({ navigation }: Props) {
+  useTrackSetupStep('sign_in');
   const insets = useSafeAreaInsets();
   const { loginWithGoogle } = useAuth();
   const configured = isGoogleSignInConfigured();
@@ -50,6 +53,7 @@ export function SignInScreen({ navigation }: Props) {
         // effect adopts it the moment it sees the new token and the app
         // swaps out of the setup wizard on its own; otherwise this just
         // continues setup normally with a real identity from the start.
+        track('signed_in', { method: 'google' });
         navigation.replace('ChildProfile');
       } else {
         setStatus('error');

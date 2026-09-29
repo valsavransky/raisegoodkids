@@ -12,11 +12,13 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { FuturePercentagePicker } from '../../components/FuturePercentagePicker';
 import { useSetup } from '../../context/SetupContext';
 import { useAppData } from '../../context/AppDataContext';
+import { useTrackSetupStep } from '../../hooks/useTrackScreen';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'FutureFundSetup'>;
 
 export function FutureFundSetupScreen({ navigation }: Props) {
+  useTrackSetupStep('future_fund');
   const insets = useSafeAreaInsets();
   const setup = useSetup();
   const { completeSetup } = useAppData();

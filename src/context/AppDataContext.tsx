@@ -30,6 +30,7 @@ import { computeExpectedStreak } from '../utils/streak';
 import { isExpectedItemSatisfied } from '../utils/expectedItemStatus';
 import { computeGigPercentage, DEFAULT_GIG_EFFORT_VALUES } from '../utils/gigValue';
 import { clearDailyReminder } from '../services/dailyReminder';
+import { track } from '../services/analytics';
 import { SETTINGS_HINT_SEEN_KEY, MONEY_HINT_SEEN_KEY } from '../utils/settingsHints';
 import { STREAK_THRESHOLDS, GIG_MILESTONE_THRESHOLDS, FUTURE_FUND_THRESHOLDS, getBadgeCatalogEntry } from '../data/badgeCatalog';
 
@@ -409,6 +410,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const completeSetup: AppDataContextValue['completeSetup'] = (draft) => {
     const childId = makeId('child');
+    track('setup_completed', {
+      grade: draft.childProfile.grade ?? 'none',
+      expected_count: draft.expectedItems.filter((i) => i.active).length,
+      gig_count: draft.gigs.filter((g) => g.active).length,
+      schedule_events: draft.scheduleEvents.length,
+      future_fund_percent: draft.futureFundPercentage ?? 0,
+    });
     setChildProfile({
       id: childId,
       parentAccountId: 'local-parent',
@@ -493,6 +501,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       ...extra,
     };
     setBadges((prev) => [...prev, badge]);
+    track('badge_earned', { badge: catalogId });
   };
 
   const markExpectedDone = (expectedItemId: string): MarkExpectedDoneResult => {
@@ -542,6 +551,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       awardBadge('weekly_expected_done');
       newBadgeCatalogId = 'weekly_expected_done';
     }
+    track('expected_checked', { frequency: item.frequency });
+    if (allDoneToday) track('all_expected_done');
     return { newBadgeCatalogId, allDoneToday, allWeeklyDoneThisWeek };
   };
 
@@ -757,6 +768,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
     // Same muting rule as the badge popups above — the goal-achieved
     // celebration takes precedence over "all gigs done" in the same tap.
+    track('gig_completed', { effort_tier: gig.effortTier });
+    if (achievedGoal) track('goal_achieved');
     return { achievedGoal, newBadgeCatalogId, allGigsDoneToday: achievedGoal ? false : allGigsDoneToday };
   };
 
@@ -765,6 +778,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   };
 
   const updateFutureFundPercentage = (percentage: number) => {
+    track('future_fund_set', { percent: percentage, from: 'settings' });
     setFutureFund((prev) => (prev ? { ...prev, percentage } : prev));
   };
 
@@ -832,6 +846,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
    * button itself before real users launch — at that point account
    * recovery via Google should always work exactly like this. */
   const resetAllData = async () => {
+    track('reset_all_data');
     // The server clear has to actually land *before* local state flips to
     // null — clearing local state first re-renders straight into the setup
     // wizard (childProfile === null), and a parent moving fast enough to

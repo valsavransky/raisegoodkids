@@ -11,6 +11,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { useSetup } from '../../context/SetupContext';
+import { useTrackSetupStep } from '../../hooks/useTrackScreen';
 import { colors } from '../../theme/colors';
 import { childPossessive } from '../../utils/setupCopy';
 import { isGoogleCalendarConfigured, useGoogleAuthRequest, storeTokensFromAuthResult } from '../../services/googleAuth';
@@ -18,6 +19,7 @@ import { isGoogleCalendarConfigured, useGoogleAuthRequest, storeTokensFromAuthRe
 type Props = NativeStackScreenProps<SetupStackParamList, 'ScheduleImport'>;
 
 export function ScheduleImportScreen({ navigation }: Props) {
+  useTrackSetupStep('schedule');
   const { childProfile } = useSetup();
   const [connecting, setConnecting] = useState(false);
   const configured = isGoogleCalendarConfigured();

@@ -19,6 +19,7 @@ import { guessCategoryForTitle } from '../../data/practiceSuggestions';
 import { getValidAccessToken } from '../../services/googleAuth';
 import { fetchImportableEvents, ImportedScheduleEvent } from '../../services/googleCalendarApi';
 import { CADENCE_LABELS } from '../../types/models';
+import { track } from '../../services/analytics';
 import { colors } from '../../theme/colors';
 import { formatShortDate } from '../../utils/date';
 
@@ -157,6 +158,7 @@ export function ImportGoogleCalendarEventsScreen({ route, navigation }: Props) {
         source: 'google_calendar',
       });
     });
+    track('calendar_imported', { count: selected.length, where: 'settings' });
     navigation.popToTop();
   };
 

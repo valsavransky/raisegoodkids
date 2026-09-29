@@ -9,6 +9,8 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { useAuth } from '../../context/AuthContext';
+import { useTrackSetupStep } from '../../hooks/useTrackScreen';
+import { track } from '../../services/analytics';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'SignUpEmail'>;
@@ -17,6 +19,7 @@ type Status = 'idle' | 'saving' | 'error';
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
 
 export function SignUpEmailScreen({ navigation }: Props) {
+  useTrackSetupStep('sign_up_email');
   const insets = useSafeAreaInsets();
   const { claimAccount } = useAuth();
   const [email, setEmail] = useState('');
@@ -50,6 +53,7 @@ export function SignUpEmailScreen({ navigation }: Props) {
     setStatus('saving');
     const result = await claimAccount(email.trim(), password);
     if (result.ok) {
+      track('signed_in', { method: 'email_signup' });
       navigation.replace('ChildProfile');
     } else {
       setStatus('error');

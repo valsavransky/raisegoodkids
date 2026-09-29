@@ -18,6 +18,7 @@ import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { signOut as signOutOfGoogle } from '../../services/googleAuth';
 import { loadReminderSettings, hasNotificationPermission } from '../../services/dailyReminder';
 import { formatTime12h } from '../../utils/time';
+import { isAnalyticsEnabled, setAnalyticsEnabled } from '../../services/analytics';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
@@ -27,6 +28,10 @@ export function SettingsScreen({ navigation }: Props) {
   const { childProfile, parentName, resetAllData, soundEnabled, setSoundEnabled, futureFund } = useAppData();
   const { isAutoAccount, accountEmail } = useAuth();
   const [reminderSubtitle, setReminderSubtitle] = useState('Off');
+  const [shareUsage, setShareUsage] = useState(true);
+  React.useEffect(() => {
+    isAnalyticsEnabled().then(setShareUsage);
+  }, []);
   // Re-read on every return to this screen, since the reminder is edited on
   // its own sub-screen.
   useFocusEffect(
@@ -132,6 +137,21 @@ export function SettingsScreen({ navigation }: Props) {
           <Switch
             value={soundEnabled}
             onValueChange={setSoundEnabled}
+            trackColor={{ true: colors.expected }}
+          />
+        </View>
+        <View style={styles.row}>
+          <Text style={styles.rowIcon}>📊</Text>
+          <View style={styles.rowInfo}>
+            <Text style={styles.rowLabel}>Share anonymous usage</Text>
+            <Text style={styles.rowSubtitle}>Helps improve the app. Never includes names or personal details.</Text>
+          </View>
+          <Switch
+            value={shareUsage}
+            onValueChange={(value) => {
+              setShareUsage(value);
+              setAnalyticsEnabled(value);
+            }}
             trackColor={{ true: colors.expected }}
           />
         </View>

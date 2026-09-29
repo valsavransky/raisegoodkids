@@ -39,6 +39,7 @@ import { AppHeader } from '../../components/AppHeader';
 import { Confetti } from '../../components/Confetti';
 import { CATEGORY_EMOJI, GoalIdea, guessGoalCategory, suggestGoalIdeas } from '../../data/goalIdeas';
 import { classifyGoalCategory } from '../../services/api';
+import { track } from '../../services/analytics';
 import { colors } from '../../theme/colors';
 import { estimateGigsToGo } from '../../utils/gigValue';
 
@@ -187,6 +188,7 @@ export function GoalPickerScreen() {
         (draftIdea && draftIdea.name === name ? draftIdea.category : undefined) ??
         guessGoalCategory(name) ??
         (token ? (await classifyGoalCategory(token, name)) ?? undefined : undefined);
+      track('goal_added', { source: draftIdea && draftIdea.name === name ? 'suggested' : 'custom', has_photo: !!draftPhotoUri });
       addGoal(name, cost, category, draftPhotoUri);
       return;
     }

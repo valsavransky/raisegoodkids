@@ -31,6 +31,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { Logo } from '../../components/Logo';
+import { useTrackSetupStep } from '../../hooks/useTrackScreen';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'Welcome'>;
@@ -54,6 +55,7 @@ const SLIDES: Slide[] = [
 const SLIDE_DISTANCE = 24;
 
 export function WelcomeScreen({ navigation }: Props) {
+  useTrackSetupStep('welcome');
   const insets = useSafeAreaInsets();
   const [slideIndex, setSlideIndex] = useState(0);
   const fade = useRef(new Animated.Value(1)).current;

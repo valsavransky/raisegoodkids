@@ -57,6 +57,7 @@ import { TaskIcon } from '../../components/icons/TaskIcons';
 import { guessTaskIcon } from '../../data/taskIcons';
 import { scheduleEventsForToday, formatEventTimeRange, TodayScheduleEvent } from '../../data/schedule';
 import { playSound } from '../../services/sound';
+import { track } from '../../services/analytics';
 import { colors } from '../../theme/colors';
 import { todayString, startOfWeek, addDays, localDateOf } from '../../utils/date';
 import { SETTINGS_HINT_SEEN_KEY, MONEY_HINT_SEEN_KEY } from '../../utils/settingsHints';
@@ -628,7 +629,10 @@ export function ChildHomeScreen() {
             </Pressable>
             {expectedItems.length > 0 && (
               <Pressable
-                onPress={() => setView('week')}
+                onPress={() => {
+                  setView('week');
+                  track('week_view_opened');
+                }}
                 style={[styles.toggleTab, view === 'week' && styles.toggleTabActive]}
               >
                 <Text style={[styles.toggleTabText, view === 'week' && styles.toggleTabTextActive]}>This Week</Text>

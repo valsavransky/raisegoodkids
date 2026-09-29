@@ -27,6 +27,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { useSetup } from '../../context/SetupContext';
 import { GRADE_OPTIONS } from '../../data/contentLibrary';
 import { AVATAR_OPTIONS } from '../../data/avatars';
+import { useTrackSetupStep } from '../../hooks/useTrackScreen';
 import { colors } from '../../theme/colors';
 import { toLocalDateString } from '../../utils/date';
 
@@ -49,6 +50,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 type Props = NativeStackScreenProps<SetupStackParamList, 'ChildProfile'>;
 
 export function ChildProfileScreen({ navigation }: Props) {
+  useTrackSetupStep('child_profile');
   const insets = useSafeAreaInsets();
   const { childProfile, setChildProfile } = useSetup();
   const [showPicker, setShowPicker] = useState(false);

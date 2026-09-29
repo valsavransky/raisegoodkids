@@ -24,5 +24,20 @@ export async function runMigrations(): Promise<void> {
       data JSONB NOT NULL,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
+
+    -- Anonymous usage events (see events.ts). install_id is a random id the
+    -- app generates for itself; nothing here links back to a user or child.
+    CREATE TABLE IF NOT EXISTS events (
+      id BIGSERIAL PRIMARY KEY,
+      install_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      props JSONB NOT NULL DEFAULT '{}',
+      client_ts TIMESTAMPTZ NOT NULL,
+      received_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      app_version TEXT,
+      platform TEXT
+    );
+    CREATE INDEX IF NOT EXISTS events_name_received_idx ON events (name, received_at);
+    CREATE INDEX IF NOT EXISTS events_install_received_idx ON events (install_id, received_at);
   `);
 }
