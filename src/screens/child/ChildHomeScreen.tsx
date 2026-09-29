@@ -59,6 +59,7 @@ import { scheduleEventsForToday, formatEventTimeRange, TodayScheduleEvent } from
 import { playSound } from '../../services/sound';
 import { colors } from '../../theme/colors';
 import { todayString, startOfWeek, addDays } from '../../utils/date';
+import { estimateGigsToGo } from '../../utils/gigValue';
 import { SETTINGS_HINT_SEEN_KEY, MONEY_HINT_SEEN_KEY } from '../../utils/settingsHints';
 
 const CATEGORY_ICONS: Record<ScheduleEventCategory, string> = {
@@ -453,6 +454,27 @@ export function ChildHomeScreen() {
   // the Weekly sub-tab's count badge.
   const weeklyDoneCount = weeklyItems.filter((item) => isExpectedDoneToday(item.id)).length;
 
+  const firstName = childProfile?.name?.trim().split(/\s+/)[0] ?? '';
+  const nameSuffix = firstName ? `, ${firstName}` : '';
+  // One line that says what's next — and, without any lecture, that gigs
+  // come after Expected.
+  const coachMessage = (() => {
+    const hasGigs = gigs.length > 0;
+    if (hasGigs && gigsDoneCount === gigs.length && done === total) return `All done today${nameSuffix}! 🎉`;
+    if (total === 0) return hasGigs ? `Pick a gig${nameSuffix}! 🪙` : '';
+    if (done === total) return hasGigs ? 'Expected done! Pick a gig 🪙' : `Expected done${nameSuffix}! 🎉`;
+    if (done === 0) return `Ready when you are${nameSuffix}!`;
+    const left = total - done;
+    return hasGigs ? `${left} to go, then it's gig time 🪙` : `${left} to go!`;
+  })();
+  const goalPercent = goal ? Math.min(goalProgressPercentage(goal.id), 100) : 0;
+  const gigsToGo = goal
+    ? estimateGigsToGo(
+        100 - goalPercent,
+        gigs.filter((g) => g.active).map((g) => gigPreviewPercentage(g)).filter((pct): pct is number => pct !== null)
+      )
+    : 0;
+
   const avatarTranslate = useRef(new Animated.ValueXY({ x: avatarPoint.x, y: avatarPoint.y })).current;
   useEffect(() => {
     Animated.spring(avatarTranslate, {
@@ -477,7 +499,13 @@ export function ChildHomeScreen() {
   };
 
   const handleGigPress = (gig: Gig) => {
-    if (!goal) return;
+    if (!goal) {
+      Alert.alert('Pick a goal first!', 'Gigs add progress toward a goal. Pick one to get started.', [
+        { text: 'Not now', style: 'cancel' },
+        { text: 'Pick a goal', onPress: () => navigation.navigate('Goal') },
+      ]);
+      return;
+    }
     const activeGoalId = goal.id;
     const startGig = () => {
       celebrateGig();
@@ -549,9 +577,11 @@ export function ChildHomeScreen() {
                 <Text style={styles.goalName}>{goal.name}</Text>
               </View>
               <View style={styles.progressBarTrack}>
-                <View style={[styles.progressBarFill, { width: `${Math.min(goalProgressPercentage(goal.id), 100)}%` }]} />
+                <View style={[styles.progressBarFill, { width: `${goalPercent}%` }]} />
               </View>
-              <Text style={styles.goalProgressText}>{Math.min(goalProgressPercentage(goal.id), 100)}% there</Text>
+              <Text style={styles.goalProgressText}>
+                {goalPercent}% there{gigsToGo > 0 ? ` · about ${gigsToGo} gig${gigsToGo === 1 ? '' : 's'} to go` : ''}
+              </Text>
             </View>
           )}
         </View>
@@ -582,14 +612,18 @@ export function ChildHomeScreen() {
 
         {view === 'today' && (
           <View style={styles.doneStatsRow}>
-            <Text style={[styles.doneStatText, { color: colors.expected }]}>{done} of {total} Expected</Text>
-            <Text style={[styles.doneStatText, { color: colors.gigs }]}>{gigsDoneCount} of {gigs.length} Gigs</Text>
+            {total > 0 && (
+              <Text style={[styles.doneStatText, { color: colors.expected }]}>{done} of {total} Expected</Text>
+            )}
+            {gigs.length > 0 && (
+              <Text style={[styles.doneStatText, { color: colors.gigs }]}>{gigsDoneCount} of {gigs.length} Gigs</Text>
+            )}
           </View>
         )}
 
         {view === 'today' && todaysEvents.length > 0 && (
           <View style={styles.scheduleStrip}>
-            <Text style={styles.scheduleDayLabel}>{todayLabel}</Text>
+            <Text style={styles.scheduleDayLabel}>Today · {todayLabel}</Text>
             {todaysEvents.map((event: TodayScheduleEvent) => (
               <View
                 key={event.id}
@@ -613,6 +647,18 @@ export function ChildHomeScreen() {
                 )}
               </View>
             ))}
+          </View>
+        )}
+
+        {view === 'today' && stops.length > 0 && coachMessage !== '' && (
+          <Text style={styles.coachMessage}>{coachMessage}</Text>
+        )}
+
+        {view === 'today' && stops.length === 0 && (
+          <View style={styles.emptyToday}>
+            <Text style={styles.emptyTodayIcon}>🌱</Text>
+            <Text style={styles.emptyTodayTitle}>Nothing to do yet!</Text>
+            <Text style={styles.emptyTodayNote}>Grown-up: add Expected activities and gigs in Settings.</Text>
           </View>
         )}
 
@@ -683,8 +729,8 @@ export function ChildHomeScreen() {
                   >
                     <TaskIcon name={guessTaskIcon(stop.name)} size={22} color={iconColor} />
                   </Pressable>
-                  <View style={[styles.stopLabelWrap, { left: point.x - 52, top: point.y + 32 }]}>
-                    <Text style={styles.stopLabel}>{stop.name}</Text>
+                  <View style={[styles.stopLabelWrap, { left: point.x - 62, top: point.y + 32 }]}>
+                    <Text style={styles.stopLabel} numberOfLines={2}>{stop.name}</Text>
                     {stop.kind === 'gig' && stop.percentage !== null && (
                       <Text style={styles.stopAmount}>+{stop.percentage}%</Text>
                     )}
@@ -895,10 +941,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stopLabelWrap: { position: 'absolute', width: 104, alignItems: 'center' },
-  stopLabel: { fontWeight: '700', fontSize: 11, color: '#5c574b', textAlign: 'center', lineHeight: 14 },
+  stopLabelWrap: { position: 'absolute', width: 124, alignItems: 'center' },
+  stopLabel: { fontWeight: '700', fontSize: 12, color: '#5c574b', textAlign: 'center', lineHeight: 15 },
   stopAmount: { fontWeight: '800', fontSize: 10, color: '#B96A08', marginTop: 1 },
   doneStatsRow: { flexDirection: 'row', justifyContent: 'center', gap: 20, paddingHorizontal: 20, marginBottom: 8 },
+  coachMessage: { fontSize: 15, fontWeight: '800', color: '#5c574b', textAlign: 'center', paddingHorizontal: 20, marginBottom: 4 },
+  emptyToday: { alignItems: 'center', paddingHorizontal: 32, paddingVertical: 40, gap: 6 },
+  emptyTodayIcon: { fontSize: 40 },
+  emptyTodayTitle: { fontSize: 18, fontWeight: '800', color: '#5c574b' },
+  emptyTodayNote: { fontSize: 13, color: '#8a8578', textAlign: 'center', lineHeight: 18 },
   doneStatText: { fontSize: 13, fontWeight: '700' },
   weeklyPanel: { paddingHorizontal: 20, paddingTop: 4 },
   weekSubTabRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
