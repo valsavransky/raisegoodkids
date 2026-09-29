@@ -43,11 +43,11 @@ interface Slide {
 const SLIDES: Slide[] = [
   {
     icon: '🌱',
-    body: 'Raise a kid who gets it — that real work earns real reward, not a lecture about money.',
+    body: "We get it: raising a responsible kid who understands the importance of consistency, responsibility and hard work is the hardest job there is. But we've made it easy.",
   },
   {
     icon: '🎯',
-    body: "Chores are simply expected. Extra work is a gig that earns progress toward a goal they pick — teaching them to save first, then spend what they've actually earned.",
+    body: 'Being a well-rounded, responsible kid is expected. Want something special, like the latest toy, or a special experience? Extra work is a gig that earns progress toward a goal they pick.',
   },
 ];
 
