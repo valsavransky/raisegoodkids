@@ -16,9 +16,11 @@ import { AvatarGlyph } from './AvatarGlyph';
 import { colors } from '../theme/colors';
 
 interface ScreenHeaderProps {
-  title: string;
-  step: number;
-  totalSteps: number;
+  /** Omitted on the pre-setup account screens (sign in / sign up / log in),
+   * which sit before step 1. */
+  title?: string;
+  step?: number;
+  totalSteps?: number;
   onBack?: () => void;
   /** Shown as a small tappable chip (avatar + first name) once the
    * child's name has been entered — omitted on the Child Profile step
@@ -62,13 +64,17 @@ export function ScreenHeader({
         )}
       </View>
 
-      <View style={styles.progressRow}>
-        {Array.from({ length: totalSteps }).map((_, i) => (
-          <View key={i} style={[styles.progressSegment, i < step && styles.progressSegmentFilled]} />
-        ))}
-      </View>
+      {step != null && totalSteps != null && (
+        <View style={styles.progressRow}>
+          {Array.from({ length: totalSteps }).map((_, i) => (
+            <View key={i} style={[styles.progressSegment, i < step && styles.progressSegmentFilled]} />
+          ))}
+        </View>
+      )}
 
-      <Text style={[styles.title, titleMarginTop != null && { marginTop: titleMarginTop }]}>{title}</Text>
+      {title != null && (
+        <Text style={[styles.title, titleMarginTop != null && { marginTop: titleMarginTop }]}>{title}</Text>
+      )}
     </View>
   );
 }

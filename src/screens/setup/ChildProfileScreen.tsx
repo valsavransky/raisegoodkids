@@ -1,4 +1,5 @@
-// Screen 4: parent setup, step 1 of 3 — child profile.
+// Screen 4: parent setup, step 1 of 5 — child profile. Avatar, name and
+// grade are required; birthday and the At home details are optional.
 //
 // Progressive disclosure: a brand-new user only sees Avatar + Name at
 // first — Birthday, Grade, and the At Home toggles reveal themselves (with
@@ -58,8 +59,8 @@ export function ChildProfileScreen({ navigation }: Props) {
     : null;
 
   const canContinue = useMemo(
-    () => childProfile.name.trim().length > 0 && childProfile.birthday.length > 0,
-    [childProfile.name, childProfile.birthday]
+    () => childProfile.name.trim().length > 0 && !!childProfile.grade,
+    [childProfile.name, childProfile.grade]
   );
 
   const detailsUnlocked = childProfile.name.trim().length > 0;
@@ -93,10 +94,7 @@ export function ChildProfileScreen({ navigation }: Props) {
         contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}
         keyboardShouldPersistTaps="handled"
       >
-      <ScreenHeader title="Add a child" step={1} totalSteps={4} titleMarginTop={28} />
-      <Pressable onPress={() => navigation.navigate('Login')} style={styles.loginLink}>
-        <Text style={styles.loginLinkText}>Already set up Merit before? Log in</Text>
-      </Pressable>
+      <ScreenHeader title="Add a child" step={1} totalSteps={5} titleMarginTop={28} />
 
       <Text style={styles.label}>Avatar</Text>
       <View style={styles.avatarRow}>
@@ -124,7 +122,26 @@ export function ChildProfileScreen({ navigation }: Props) {
 
       {detailsUnlocked && (
         <>
-          <Text style={styles.label}>Birthday</Text>
+          <Text style={styles.label}>Grade in school</Text>
+          <Text style={styles.helperText}>
+            We use this to suggest age-appropriate responsibilities and gigs later in setup.
+          </Text>
+          <View style={styles.chipRow}>
+            {GRADE_OPTIONS.map((grade) => {
+              const selected = childProfile.grade === grade;
+              return (
+                <Pressable
+                  key={grade}
+                  onPress={() => setChildProfile({ grade })}
+                  style={[styles.chip, selected && styles.chipSelected]}
+                >
+                  <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{grade}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <Text style={styles.label}>Birthday (optional)</Text>
           <Pressable style={styles.input} onPress={openPicker}>
             <Text style={formattedBirthday ? styles.dateText : styles.datePlaceholder}>
               {formattedBirthday ?? 'Select birthday'}
@@ -163,26 +180,7 @@ export function ChildProfileScreen({ navigation }: Props) {
             </Modal>
           )}
 
-          <Text style={styles.label}>Grade in school (optional)</Text>
-          <Text style={styles.helperText}>
-            We use this to suggest age-appropriate responsibilities and gigs later in setup.
-          </Text>
-          <View style={styles.chipRow}>
-            {GRADE_OPTIONS.map((grade) => {
-              const selected = childProfile.grade === grade;
-              return (
-                <Pressable
-                  key={grade}
-                  onPress={() => setChildProfile({ grade: selected ? undefined : grade })}
-                  style={[styles.chip, selected && styles.chipSelected]}
-                >
-                  <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{grade}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          <Text style={styles.label}>At home</Text>
+          <Text style={styles.label}>At home (optional)</Text>
           <Text style={styles.helperText}>
             A couple of household details help us suggest the right Expected items and gigs later (like
             feeding a pet or raking leaves).
@@ -276,8 +274,6 @@ export function ChildProfileScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 20, paddingBottom: 40 },
-  loginLink: { alignSelf: 'flex-start', marginTop: 4, marginBottom: 4 },
-  loginLinkText: { fontSize: 13, color: colors.expected, fontWeight: '600' },
   label: { fontSize: 15, fontWeight: '600', color: colors.text, marginTop: 20, marginBottom: 8 },
   helperText: { fontSize: 13, color: colors.textMuted, marginBottom: 12 },
   input: {

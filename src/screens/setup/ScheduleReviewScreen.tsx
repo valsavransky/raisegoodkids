@@ -155,14 +155,12 @@ export function ScheduleReviewScreen({ navigation }: Props) {
       <ScreenHeader
         title="Review schedule"
         step={2}
-        totalSteps={4}
+        totalSteps={5}
         onBack={() => navigation.goBack()}
         childName={childProfile.name}
         childAvatarId={childProfile.avatarId}
         onPressProfile={() => navigation.navigate('ChildProfile')}
       />
-
-      <Text style={styles.helperText}>Anything not tagged counts as free time for gigs.</Text>
 
       <FlatList
         style={styles.list}
@@ -345,7 +343,6 @@ export function ScheduleReviewScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  helperText: { fontSize: 13, color: colors.textMuted, paddingHorizontal: 20, marginBottom: 8 },
   list: { flex: 1 },
   listContent: { paddingHorizontal: 20, paddingBottom: 12 },
   emptyText: { fontSize: 14, color: colors.textMuted, textAlign: 'center', marginTop: 24 },

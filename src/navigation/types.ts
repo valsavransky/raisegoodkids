@@ -1,6 +1,7 @@
 export type SetupStackParamList = {
   Welcome: undefined;
   SignIn: undefined;
+  SignUpEmail: undefined;
   ChildProfile: undefined;
   Login: undefined;
   ScheduleImport: undefined;
@@ -9,6 +10,7 @@ export type SetupStackParamList = {
   ScheduleReview: undefined;
   ExpectedSetup: undefined;
   GigsSetup: undefined;
+  FutureFundSetup: undefined;
 };
 
 export type MainTabParamList = {

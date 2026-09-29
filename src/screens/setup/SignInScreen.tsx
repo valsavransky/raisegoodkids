@@ -6,14 +6,15 @@
 // setup as normal from here with a real identity from the start instead of
 // needing "Secure your account" later.
 //
-// Google only, on purpose (no email/password form here) — that recovery
-// path still exists via "Already set up Merit before? Log in" on the next
-// screen for anyone who'd rather type credentials.
+// Two options, centered: Google, or email (SignUpEmailScreen, which also
+// links to the email log-in screen for a returning parent). No progress bar
+// — account creation sits before step 1.
 import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { GoogleLogo } from '../../components/GoogleLogo';
 import { useAuth } from '../../context/AuthContext';
 import { isGoogleSignInConfigured, useGoogleSignInRequest, getIdToken } from '../../services/googleIdentityAuth';
 import { colors } from '../../theme/colors';
@@ -62,38 +63,32 @@ export function SignInScreen({ navigation }: Props) {
     promptAsync();
   };
 
-  const skip = () => navigation.replace('ChildProfile');
-
   return (
     <View style={styles.screen}>
-      <ScreenHeader title="Sign in" step={1} totalSteps={4} onBack={() => navigation.goBack()} />
+      <ScreenHeader onBack={() => navigation.goBack()} />
       <View style={styles.content}>
-        <Text style={styles.explanation}>
-          Sign in with Google to keep your data backed up under your own account from the start — or skip and set up
-          fresh, you can always secure an account later from Settings.
-        </Text>
-
-        {configured ? (
+        {configured && (
           <Pressable
-            style={styles.primaryButton}
+            style={styles.googleButton}
             onPress={handlePress}
             disabled={!request || status === 'loading'}
           >
             {status === 'loading' ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={colors.text} />
             ) : (
-              <Text style={styles.primaryButtonText}>Continue with Google</Text>
+              <>
+                <GoogleLogo size={20} />
+                <Text style={styles.googleButtonText}>Sign in with Google</Text>
+              </>
             )}
           </Pressable>
-        ) : (
-          <Text style={styles.notConfiguredNote}>Google sign-in isn't set up for this build yet.</Text>
         )}
 
-        {status === 'error' && <Text style={styles.errorText}>{error}</Text>}
-
-        <Pressable style={styles.secondaryButton} onPress={skip}>
-          <Text style={styles.secondaryButtonText}>Skip — set up fresh</Text>
+        <Pressable style={styles.emailButton} onPress={() => navigation.navigate('SignUpEmail')}>
+          <Text style={styles.emailButtonText}>Sign up with email</Text>
         </Pressable>
+
+        {status === 'error' && <Text style={styles.errorText}>{error}</Text>}
       </View>
     </View>
   );
@@ -101,24 +96,27 @@ export function SignInScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { flex: 1, paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center' },
-  explanation: {
-    fontSize: 15,
-    color: colors.textMuted,
-    textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 22,
+  content: { flex: 1, paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center', gap: 14, paddingBottom: 80 },
+  googleButton: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingVertical: 15,
   },
-  primaryButton: {
+  googleButtonText: { color: colors.text, fontSize: 16, fontWeight: '700' },
+  emailButton: {
     width: '100%',
     backgroundColor: colors.expected,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
   },
-  primaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  notConfiguredNote: { fontSize: 13, color: colors.textMuted, textAlign: 'center' },
-  errorText: { color: colors.danger, fontSize: 13, fontWeight: '600', textAlign: 'center', marginTop: 16 },
-  secondaryButton: { marginTop: 16, paddingVertical: 12 },
-  secondaryButtonText: { color: colors.text, fontSize: 15, fontWeight: '600' },
+  emailButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  errorText: { color: colors.danger, fontSize: 13, fontWeight: '600', textAlign: 'center' },
 });

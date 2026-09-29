@@ -323,14 +323,16 @@ export function GoalPickerScreen() {
               <Text style={styles.addButtonText}>+ Add a new goal</Text>
             </Pressable>
 
-            {futureFund && (
+            {futureFund && (futureFund.percentage > 0 || futureFund.balance > 0) && (
               <View style={styles.futureFundCard}>
                 <View style={styles.futureFundHeaderRow}>
                   <Text style={styles.futureFundIcon}>📈</Text>
                   <Text style={styles.futureFundTitle}>Future Fund</Text>
                 </View>
                 <Text style={styles.futureFundSubtitle}>
-                  {futureFund.percentage}% of every gig goes here first — building toward a real investment account.
+                  {futureFund.percentage > 0
+                    ? `${futureFund.percentage}% of every gig goes here first — building toward a real investment account.`
+                    : 'Building toward a real investment account.'}
                 </Text>
                 <Text style={styles.futureFundAmount}>${balance.toFixed(2)} saved</Text>
                 <View style={styles.futureFundProgressTrack}>

@@ -24,6 +24,7 @@ import { getValidAccessToken } from '../../services/googleAuth';
 import { fetchImportableEvents, ImportedScheduleEvent } from '../../services/googleCalendarApi';
 import { CADENCE_LABELS } from '../../types/models';
 import { colors } from '../../theme/colors';
+import { childFirstName } from '../../utils/setupCopy';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const IMPORT_WINDOW_DAYS = 8 * 7; // ~8 weeks — enough to see a recurring weekday pattern
@@ -173,7 +174,7 @@ export function GoogleCalendarEventsScreen({ route, navigation }: Props) {
       <ScreenHeader
         title="Calendar events"
         step={2}
-        totalSteps={4}
+        totalSteps={5}
         onBack={() => navigation.goBack()}
         childName={childProfile.name}
         childAvatarId={childProfile.avatarId}
@@ -181,8 +182,8 @@ export function GoogleCalendarEventsScreen({ route, navigation }: Props) {
       />
       <Text style={styles.helperText}>
         {nameFiltered
-          ? `Pre-selected recurring events that mention ${childProfile.name.trim().split(/\s+/)[0] || 'your child'} — toggle any others worth tracking too.`
-          : 'Select the ones worth tracking — they\'ll be added to your schedule.'}
+          ? `Add pre-selected recurring events that mention ${childFirstName(childProfile.name)}. Feel free to add any others you want to track.`
+          : 'Add pre-selected recurring events. Feel free to add any others you want to track.'}
       </Text>
       {error && <Text style={styles.errorText}>{error}</Text>}
       {loading ? (

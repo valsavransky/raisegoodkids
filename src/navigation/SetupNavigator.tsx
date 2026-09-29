@@ -11,6 +11,8 @@ import { GoogleCalendarEventsScreen } from '../screens/setup/GoogleCalendarEvent
 import { ScheduleReviewScreen } from '../screens/setup/ScheduleReviewScreen';
 import { ExpectedSetupScreen } from '../screens/setup/ExpectedSetupScreen';
 import { GigsSetupScreen } from '../screens/setup/GigsSetupScreen';
+import { SignUpEmailScreen } from '../screens/setup/SignUpEmailScreen';
+import { FutureFundSetupScreen } from '../screens/setup/FutureFundSetupScreen';
 
 const Stack = createNativeStackNavigator<SetupStackParamList>();
 
@@ -19,6 +21,7 @@ export function SetupNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="SignIn" component={SignInScreen} />
+      <Stack.Screen name="SignUpEmail" component={SignUpEmailScreen} />
       <Stack.Screen name="ChildProfile" component={ChildProfileScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="ScheduleImport" component={ScheduleImportScreen} />
@@ -27,6 +30,7 @@ export function SetupNavigator() {
       <Stack.Screen name="ScheduleReview" component={ScheduleReviewScreen} />
       <Stack.Screen name="ExpectedSetup" component={ExpectedSetupScreen} />
       <Stack.Screen name="GigsSetup" component={GigsSetupScreen} />
+      <Stack.Screen name="FutureFundSetup" component={FutureFundSetupScreen} />
     </Stack.Navigator>
   );
 }

@@ -12,6 +12,7 @@ import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { useSetup } from '../../context/SetupContext';
 import { colors } from '../../theme/colors';
+import { childPossessive } from '../../utils/setupCopy';
 import { isGoogleCalendarConfigured, useGoogleAuthRequest, storeTokensFromAuthResult } from '../../services/googleAuth';
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'ScheduleImport'>;
@@ -67,7 +68,7 @@ export function ScheduleImportScreen({ navigation }: Props) {
       <ScreenHeader
         title="Set up schedule"
         step={2}
-        totalSteps={4}
+        totalSteps={5}
         onBack={() => navigation.goBack()}
         childName={childProfile.name}
         childAvatarId={childProfile.avatarId}
@@ -77,8 +78,8 @@ export function ScheduleImportScreen({ navigation }: Props) {
       <View style={styles.content}>
         <Text style={styles.icon}>📅</Text>
         <Text style={styles.explanation}>
-          Knowing school, sports, music, and extracurriculars helps us suggest a realistic amount of
-          Expected items and Gigs.
+          Pull in {childPossessive(childProfile.name)} weekly activities to help us suggest Expected items for them
+          to track.
         </Text>
 
         <Pressable style={styles.primaryButton} onPress={handleConnect} disabled={connecting}>

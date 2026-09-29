@@ -1,10 +1,7 @@
-// Setup wizard entry point for a parent who already secured an account on
-// another device (or is reinstalling) — offers logging into that existing
-// account instead of the default silent auto-create-a-new-account path.
-// Only reachable from the sign-up screen, before any local child
-// profile exists, so a successful login's data-adopt in AppDataContext's
-// reconcile effect can never clobber real local progress (see its
-// `!childProfile` guard).
+// "Sign up with email" — turns the silent auto-account AuthContext already
+// created into a real email + password account (same claimAccount call as
+// Settings → Account's "Secure my account"), then continues setup. A
+// returning parent can jump to the email log-in screen instead.
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,30 +11,45 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { useAuth } from '../../context/AuthContext';
 import { colors } from '../../theme/colors';
 
-type Props = NativeStackScreenProps<SetupStackParamList, 'Login'>;
-type Status = 'idle' | 'loading' | 'error';
+type Props = NativeStackScreenProps<SetupStackParamList, 'SignUpEmail'>;
+type Status = 'idle' | 'saving' | 'error';
 
-export function LoginScreen({ navigation }: Props) {
+const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
+
+export function SignUpEmailScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { login } = useAuth();
+  const { claimAccount } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState('');
 
+  const edit = (setter: (v: string) => void) => (text: string) => {
+    setter(text);
+    setStatus('idle');
+  };
+
   const submit = async () => {
-    if (!email.trim() || !password) {
+    if (!EMAIL_PATTERN.test(email.trim())) {
       setStatus('error');
-      setError('Enter your email and password.');
+      setError('Enter a valid email address.');
       return;
     }
-    setStatus('loading');
-    const result = await login(email.trim(), password);
+    if (password.length < 8) {
+      setStatus('error');
+      setError('Password must be at least 8 characters.');
+      return;
+    }
+    if (password !== confirm) {
+      setStatus('error');
+      setError('Passwords don’t match.');
+      return;
+    }
+    setStatus('saving');
+    const result = await claimAccount(email.trim(), password);
     if (result.ok) {
-      // If this account has data, AppDataContext's reconcile effect adopts
-      // it the moment it sees the new token and the app swaps away from
-      // the setup wizard on its own; otherwise setup continues normally.
       navigation.replace('ChildProfile');
     } else {
       setStatus('error');
@@ -47,7 +59,7 @@ export function LoginScreen({ navigation }: Props) {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.screen}>
-      <ScreenHeader title="Log in with email" onBack={() => navigation.goBack()} />
+      <ScreenHeader title="Sign up with email" onBack={() => navigation.goBack()} />
       <View style={[styles.content, { paddingBottom: 40 + insets.bottom }]}>
         <TextInput
           style={styles.input}
@@ -57,30 +69,35 @@ export function LoginScreen({ navigation }: Props) {
           keyboardType="email-address"
           textContentType="emailAddress"
           value={email}
-          onChangeText={(t) => {
-            setEmail(t);
-            setStatus('idle');
-          }}
+          onChangeText={edit(setEmail)}
         />
         <View style={styles.passwordFieldWrap}>
           <TextInput
             style={styles.input}
-            placeholder="Password"
+            placeholder="Password (8+ characters)"
             secureTextEntry={!showPassword}
-            textContentType="password"
+            textContentType="newPassword"
             value={password}
-            onChangeText={(t) => {
-              setPassword(t);
-              setStatus('idle');
-            }}
+            onChangeText={edit(setPassword)}
           />
           <Pressable style={styles.passwordToggle} onPress={() => setShowPassword((v) => !v)} hitSlop={8}>
             <Text style={styles.linkAction}>{showPassword ? 'Hide' : 'Show'}</Text>
           </Pressable>
         </View>
+        <TextInput
+          style={styles.input}
+          placeholder="Confirm password"
+          secureTextEntry={!showPassword}
+          textContentType="newPassword"
+          value={confirm}
+          onChangeText={edit(setConfirm)}
+        />
         {status === 'error' && <Text style={styles.errorText}>{error}</Text>}
-        <Pressable style={styles.submitButton} onPress={submit} disabled={status === 'loading'}>
-          <Text style={styles.submitButtonText}>{status === 'loading' ? 'Logging in…' : 'Log in'}</Text>
+        <Pressable style={styles.submitButton} onPress={submit} disabled={status === 'saving'}>
+          <Text style={styles.submitButtonText}>{status === 'saving' ? 'Signing up…' : 'Sign up'}</Text>
+        </Pressable>
+        <Pressable style={styles.loginLink} onPress={() => navigation.navigate('Login')}>
+          <Text style={styles.linkAction}>Already have an account? Log in with email</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -102,7 +119,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   passwordFieldWrap: { position: 'relative', justifyContent: 'center' },
-  passwordToggle: { position: 'absolute', right: 14 },
+  passwordToggle: { position: 'absolute', right: 14, top: 15 },
   linkAction: { color: colors.expected, fontSize: 13, fontWeight: '700' },
   errorText: { color: colors.danger, fontSize: 13, fontWeight: '600', marginBottom: 12 },
   submitButton: {
@@ -113,4 +130,5 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   submitButtonText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  loginLink: { alignItems: 'center', marginTop: 20 },
 });

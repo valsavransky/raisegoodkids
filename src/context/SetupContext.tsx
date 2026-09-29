@@ -1,4 +1,4 @@
-// Holds in-progress state across the 3-step parent setup wizard (screens
+// Holds in-progress state across the 5-step parent setup wizard (screens
 // 4-7 in docs/screens-and-flows.md). Nothing here is persisted yet — there's
 // no backend/storage layer in this build. On "Finish setup" a consumer can
 // read this state and assign real ids once persistence exists.
@@ -63,6 +63,10 @@ interface SetupContextValue {
 
   gigs: DraftGig[];
   setGigs: (gigs: DraftGig[]) => void;
+
+  /** 0 = Future Fund off (the default) — see FutureFundSetupScreen. */
+  futureFundPercentage: number;
+  setFutureFundPercentage: (percentage: number) => void;
 }
 
 const SetupContext = createContext<SetupContextValue | undefined>(undefined);
@@ -79,6 +83,7 @@ export function SetupProvider({ children }: { children: ReactNode }) {
   const [scheduleEvents, setScheduleEvents] = useState<DraftScheduleEvent[]>([]);
   const [expectedItems, setExpectedItems] = useState<DraftExpectedItem[]>([]);
   const [gigs, setGigs] = useState<DraftGig[]>([]);
+  const [futureFundPercentage, setFutureFundPercentage] = useState(0);
 
   const setChildProfile = (fields: Partial<DraftChildProfile>) => {
     setChildProfileState((prev) => ({ ...prev, ...fields }));
@@ -95,6 +100,8 @@ export function SetupProvider({ children }: { children: ReactNode }) {
         setExpectedItems,
         gigs,
         setGigs,
+        futureFundPercentage,
+        setFutureFundPercentage,
       }}
     >
       {children}

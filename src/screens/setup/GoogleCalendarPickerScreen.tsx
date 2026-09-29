@@ -12,6 +12,7 @@ import { MOCK_CALENDARS } from '../../data/mockGoogleCalendar';
 import { getValidAccessToken, signOut } from '../../services/googleAuth';
 import { fetchCalendarList, GoogleCalendarSummary, GoogleApiError } from '../../services/googleCalendarApi';
 import { colors } from '../../theme/colors';
+import { childPossessive } from '../../utils/setupCopy';
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'GoogleCalendarPicker'>;
 
@@ -57,13 +58,15 @@ export function GoogleCalendarPickerScreen({ navigation }: Props) {
       <ScreenHeader
         title="Choose a calendar"
         step={2}
-        totalSteps={4}
+        totalSteps={5}
         onBack={() => navigation.goBack()}
         childName={childProfile.name}
         childAvatarId={childProfile.avatarId}
         onPressProfile={() => navigation.navigate('ChildProfile')}
       />
-      <Text style={styles.helperText}>Pick the calendar that has school, sports, music, and extracurriculars on it.</Text>
+      <Text style={styles.helperText}>
+        Choose a calendar to import {childPossessive(childProfile.name)} extracurriculars like sports, music or classes.
+      </Text>
       {error && <Text style={styles.errorText}>{error}</Text>}
       {loading ? (
         <View style={styles.centered}>

@@ -31,7 +31,9 @@ import { computeGigPercentage, DEFAULT_GIG_EFFORT_VALUES } from '../utils/gigVal
 import { SETTINGS_HINT_SEEN_KEY, MONEY_HINT_SEEN_KEY } from '../utils/settingsHints';
 import { STREAK_THRESHOLDS, GIG_MILESTONE_THRESHOLDS, FUTURE_FUND_THRESHOLDS, getBadgeCatalogEntry } from '../data/badgeCatalog';
 
-const DEFAULT_FUTURE_FUND_PERCENTAGE = 10;
+// Future Fund is opt-in: 0% (off) until a parent picks a percentage, during
+// setup's optional last step or later in Settings → Future Fund.
+const DEFAULT_FUTURE_FUND_PERCENTAGE = 0;
 const STORAGE_KEY = '@merit/appData/v1';
 
 interface PersistedAppData {
@@ -113,6 +115,7 @@ interface AppDataContextValue {
     scheduleEvents: DraftScheduleEvent[];
     expectedItems: DraftExpectedItem[];
     gigs: DraftGig[];
+    futureFundPercentage?: number;
   }) => void;
 
   /** Fixes a real gap: nothing after initial setup could correct a typo'd
@@ -409,7 +412,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setFutureFund({
       id: makeId('futureFund'),
       childProfileId: childId,
-      percentage: DEFAULT_FUTURE_FUND_PERCENTAGE,
+      percentage: draft.futureFundPercentage ?? DEFAULT_FUTURE_FUND_PERCENTAGE,
       balance: 0,
       // Lowered from the vision doc's $100 example to $50 so the milestone
       // is reachable in testing without needing dozens of gigs.

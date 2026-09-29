@@ -2,11 +2,11 @@
 import { Goal, GigEffortTier, GigEffortValues } from '../types/models';
 
 /** Starting point shown in setup and used until a parent changes them in
- * Manage Expected & Gigs — see AppDataContext's gigEffortValues. */
+ * Settings → Gigs → Gig values — see AppDataContext's gigEffortValues. */
 export const DEFAULT_GIG_EFFORT_VALUES: GigEffortValues = {
-  quick: 5,
-  medium: 10,
-  big_job: 15,
+  quick: 2,
+  medium: 5,
+  big_job: 10,
 };
 
 /**

@@ -92,7 +92,7 @@ export function SettingsScreen({ navigation }: Props) {
           <Text style={styles.rowIcon}>📈</Text>
           <View style={styles.rowInfo}>
             <Text style={styles.rowLabel}>Future Fund</Text>
-            <Text style={styles.rowSubtitle}>{futureFund?.percentage ?? 10}% of every gig</Text>
+            <Text style={styles.rowSubtitle}>{futureFund && futureFund.percentage > 0 ? `${futureFund.percentage}% of every gig` : 'Off'}</Text>
           </View>
           <Text style={styles.chevron}>{'›'}</Text>
         </Pressable>

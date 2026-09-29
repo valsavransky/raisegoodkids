@@ -16,6 +16,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { useSetup, DraftExpectedItem, makeLocalId } from '../../context/SetupContext';
 import { getContentLibraryForGrade } from '../../data/contentLibrary';
 import { colors } from '../../theme/colors';
+import { childFirstName, gradeLabel } from '../../utils/setupCopy';
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'ExpectedSetup'>;
 
@@ -91,7 +92,7 @@ export function ExpectedSetupScreen({ navigation }: Props) {
       <ScreenHeader
         title="Expected"
         step={3}
-        totalSteps={4}
+        totalSteps={5}
         onBack={() => navigation.goBack()}
         childName={childProfile.name}
         childAvatarId={childProfile.avatarId}
@@ -99,11 +100,14 @@ export function ExpectedSetupScreen({ navigation }: Props) {
       />
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.introText}>Expected chores are unpaid — they're about consistency, not cash.</Text>
+        <Text style={styles.introText}>
+          Set up expected activities for {childFirstName(childProfile.name)} to build consistency of being a
+          responsible part of the household.
+        </Text>
 
         <Text style={styles.helperText}>
-          {library
-            ? `Suggestions below are typical for ${childProfile.grade} grade. Toggle off what doesn't apply, or add your own.`
+          {library && childProfile.grade
+            ? `Suggestions below are typical for ${gradeLabel(childProfile.grade)}. Remove what doesn't apply and feel free to add your own!`
             : "We don't have grade-specific suggestions yet — add items below."}
         </Text>
 

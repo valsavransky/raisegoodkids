@@ -9,10 +9,11 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { useSetup, DraftGig, makeLocalId } from '../../context/SetupContext';
-import { useAppData } from '../../context/AppDataContext';
 import { getContentLibraryForGrade, SuggestedGig } from '../../data/contentLibrary';
 import { GigEffortTier } from '../../types/models';
 import { colors } from '../../theme/colors';
+import { DEFAULT_GIG_EFFORT_VALUES as GIG_DEFAULTS } from '../../utils/gigValue';
+import { childFirstName, gradeLabel } from '../../utils/setupCopy';
 
 const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
   { value: 'quick', label: 'Quick' },
@@ -26,7 +27,6 @@ export function GigsSetupScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const setup = useSetup();
   const { childProfile, gigs, setGigs } = setup;
-  const { completeSetup } = useAppData();
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [draftName, setDraftName] = useState('');
   const [draftEffortTier, setDraftEffortTier] = useState<GigEffortTier>('quick');
@@ -99,7 +99,7 @@ export function GigsSetupScreen({ navigation }: Props) {
       <ScreenHeader
         title="Gigs"
         step={4}
-        totalSteps={4}
+        totalSteps={5}
         onBack={() => navigation.goBack()}
         childName={childProfile.name}
         childAvatarId={childProfile.avatarId}
@@ -107,11 +107,15 @@ export function GigsSetupScreen({ navigation }: Props) {
       />
 
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.introText}>Gigs are optional, paid work that counts toward a goal they're saving for.</Text>
+        <Text style={styles.introText}>
+          Gigs are optional jobs that count toward a goal {childFirstName(childProfile.name)} can set. Gigs have 3
+          sizes: quick, medium or big jobs. We set a default value for these jobs (${GIG_DEFAULTS.quick}, ${GIG_DEFAULTS.medium}, ${GIG_DEFAULTS.big_job}), but you
+          can change them anytime in Settings &gt; Gigs &gt; Gig values.
+        </Text>
 
         <Text style={styles.helperText}>
-          {library
-            ? `Suggestions below are typical for ${childProfile.grade} grade. Toggle off what doesn't apply, or add your own.`
+          {library && childProfile.grade
+            ? `Suggestions below are typical for ${gradeLabel(childProfile.grade)}. Remove what doesn't apply and feel free to add your own!`
             : "We don't have grade-specific suggestions yet — add items below."}
         </Text>
 
@@ -148,16 +152,9 @@ export function GigsSetupScreen({ navigation }: Props) {
 
       <Pressable
         style={[styles.finishButton, { marginBottom: 20 + insets.bottom }]}
-        onPress={() =>
-          completeSetup({
-            childProfile: setup.childProfile,
-            scheduleEvents: setup.scheduleEvents,
-            expectedItems: setup.expectedItems,
-            gigs: setup.gigs,
-          })
-        }
+        onPress={() => navigation.navigate('FutureFundSetup')}
       >
-        <Text style={styles.finishButtonText}>Finish setup</Text>
+        <Text style={styles.finishButtonText}>Continue</Text>
       </Pressable>
 
       <Modal visible={addModalVisible} animationType="slide" transparent onRequestClose={() => setAddModalVisible(false)}>
