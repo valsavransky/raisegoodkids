@@ -84,8 +84,7 @@ const STEP_Y = 78;
 // Tall enough that the avatar — which floats above the first point by
 // AVATAR_SIZE + 26 (see avatarWrap's marginTop) — stays fully inside the
 // trail area instead of overlapping the label/toggle row above it.
-// (Includes a 28px band above the first stop for the section header.)
-const FIRST_Y = 128;
+const FIRST_Y = 100;
 const AVATAR_SIZE = 72;
 const STOP_SIZE = 50;
 
@@ -431,7 +430,6 @@ export function ChildHomeScreen() {
     })),
   ];
 
-  const expectedStopCount = dailyItems.length;
   const points = stops.map((_, i) => trailPointAt(i));
   const doneCount = stops.filter((s) => s.done).length;
   const shownProgress = Math.max(doneCount, stops.length > 0 ? 1 : 0);
@@ -455,10 +453,6 @@ export function ChildHomeScreen() {
   const weeklyDoneCount = weeklyItems.filter((item) => isExpectedDoneToday(item.id)).length;
 
   const goalPercent = goal ? Math.min(goalProgressPercentage(goal.id), 100) : 0;
-  const expectedDoneStops = dailyItems.filter((item) => isExpectedDoneToday(item.id)).length;
-  const expectedHeaderLabel = `EXPECTED · ${expectedDoneStops} of ${dailyItems.length}${
-    expectedDoneStops === dailyItems.length ? ' ✓' : ''
-  }`;
 
   const avatarTranslate = useRef(new Animated.ValueXY({ x: avatarPoint.x, y: avatarPoint.y })).current;
   useEffect(() => {
@@ -629,11 +623,6 @@ export function ChildHomeScreen() {
 
         {view === 'today' && stops.length > 0 && (
           <View style={[styles.trailArea, { height: trailHeight }]}>
-            {expectedStopCount > 0 && (
-              <View style={[styles.sectionHeader, { top: 4 }]} pointerEvents="none">
-                <Text style={[styles.sectionHeaderText, { color: colors.expected }]}>{expectedHeaderLabel}</Text>
-              </View>
-            )}
             <Svg width={TRAIL_WIDTH} height={trailHeight} style={StyleSheet.absoluteFill}>
               <Path d={pathThrough(points)} stroke="#E7DCC7" strokeWidth={7} fill="none" strokeLinecap="round" strokeLinejoin="round" />
               <Path
@@ -881,19 +870,6 @@ const styles = StyleSheet.create({
   scheduleTitleNext: { fontWeight: '800', color: '#B96A08' },
   scheduleTitlePast: { color: colors.textMuted, fontWeight: '500' },
   scheduleTime: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
-  // The Expected header, on a solid chip. (Gigs get no header — their amber
-  // color already sets them apart.)
-  sectionHeader: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
-  sectionHeaderText: {
-    fontSize: 11.5,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-    backgroundColor: '#FFF8F0',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 10,
-    overflow: 'hidden',
-  },
   trailArea: { width: TRAIL_WIDTH, alignSelf: 'center', marginTop: 10 },
   avatarWrap: {
     position: 'absolute',
