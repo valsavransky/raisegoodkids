@@ -41,7 +41,7 @@
 // live-ticking clock — precise enough for a glance-at-it-during-check-in
 // use case, without the battery/complexity cost of a real-time timer.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, Pressable, ScrollView, Alert, StyleSheet, Image, Animated } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert, StyleSheet, Image, Animated, LayoutAnimation } from 'react-native';
 import Svg, { Path, Defs, Pattern, Rect, Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -86,6 +86,10 @@ const STEP_Y = 78;
 // trail area instead of overlapping the label/toggle row above it.
 const FIRST_Y = 100;
 const AVATAR_SIZE = 72;
+// The avatar floats above the current stop, so the trail reserves that
+// headroom above the first stop. Once the avatar has moved on, the headroom is
+// just empty space, so the trail slides up by this much (see compactTop).
+const HEADROOM_TRIM = 55;
 const STOP_SIZE = 50;
 
 type TrailStop =
@@ -486,6 +490,16 @@ export function ChildHomeScreen() {
     }, [])
   );
 
+  // Only the first stop needs headroom for the avatar; after that, trim it.
+  const compactTop = stops.length > 0 && avatarIdx > 0;
+  const wasCompact = useRef(compactTop);
+  useEffect(() => {
+    if (wasCompact.current !== compactTop) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      wasCompact.current = compactTop;
+    }
+  }, [compactTop]);
+
   const avatarTranslate = useRef(new Animated.ValueXY({ x: avatarPoint.x, y: avatarPoint.y })).current;
   useEffect(() => {
     Animated.spring(avatarTranslate, {
@@ -664,7 +678,7 @@ export function ChildHomeScreen() {
 
         {view === 'today' && stops.length > 0 && (
           <View
-            style={[styles.trailArea, { height: trailHeight }]}
+            style={[styles.trailArea, { height: trailHeight }, compactTop && { marginTop: 10 - HEADROOM_TRIM }]}
             onLayout={(e) => setTrailTop(e.nativeEvent.layout.y)}
           >
             <Svg width={TRAIL_WIDTH} height={trailHeight} style={StyleSheet.absoluteFill}>
