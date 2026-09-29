@@ -18,7 +18,7 @@ import * as Notifications from 'expo-notifications';
 const SETTINGS_KEY = 'merit.dailyReminder.v1';
 const CHANNEL_ID = 'daily-reminder';
 const ID_PREFIX = 'daily-reminder-';
-const DAYS_AHEAD = 3;
+const DAYS_AHEAD = 7;
 
 export const DEFAULT_REMINDER_TIME = '18:00';
 
