@@ -454,6 +454,38 @@ export function ChildHomeScreen() {
 
   const goalPercent = goal ? Math.min(goalProgressPercentage(goal.id), 100) : 0;
 
+  // Keep the avatar (which marks the next thing to do) on screen: a long
+  // trail can leave it below the fold, which reads as "nothing's happening".
+  // Scrolls on landing (no animation), when the avatar moves, and when
+  // switching back to Today, but only if it isn't already comfortably visible.
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollY = useRef(0);
+  const [viewportHeight, setViewportHeight] = useState(0);
+  const [trailTop, setTrailTop] = useState<number | null>(null);
+  const hasAutoScrolled = useRef(false);
+  const [focusTick, setFocusTick] = useState(0);
+  useEffect(() => {
+    if (view !== 'today' || trailTop === null || viewportHeight === 0 || stops.length === 0) return;
+    const avatarTop = trailTop + avatarPoint.y - AVATAR_SIZE - 26;
+    const avatarBottom = trailTop + avatarPoint.y + 70; // through the stop and its label
+    const visibleTop = scrollY.current;
+    const visibleBottom = scrollY.current + viewportHeight;
+    if (avatarTop >= visibleTop && avatarBottom <= visibleBottom) {
+      hasAutoScrolled.current = true;
+      return;
+    }
+    scrollRef.current?.scrollTo({ y: Math.max(0, avatarTop - 24), animated: hasAutoScrolled.current });
+    hasAutoScrolled.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, trailTop, viewportHeight, avatarPoint.x, avatarPoint.y, stops.length, focusTick]);
+  // Coming back to this tab: re-check (the effect above only reruns on change).
+  useFocusEffect(
+    useCallback(() => {
+      hasAutoScrolled.current = false;
+      setFocusTick((n) => n + 1);
+    }, [])
+  );
+
   const avatarTranslate = useRef(new Animated.ValueXY({ x: avatarPoint.x, y: avatarPoint.y })).current;
   useEffect(() => {
     Animated.spring(avatarTranslate, {
@@ -562,7 +594,16 @@ export function ChildHomeScreen() {
         </View>
       </View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        onLayout={(e) => setViewportHeight(e.nativeEvent.layout.height)}
+        onScroll={(e) => {
+          scrollY.current = e.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={16}
+      >
         <View style={styles.viewToggleRow}>
           <View style={styles.toggleTabs}>
             <Pressable
@@ -622,7 +663,10 @@ export function ChildHomeScreen() {
         )}
 
         {view === 'today' && stops.length > 0 && (
-          <View style={[styles.trailArea, { height: trailHeight }]}>
+          <View
+            style={[styles.trailArea, { height: trailHeight }]}
+            onLayout={(e) => setTrailTop(e.nativeEvent.layout.y)}
+          >
             <Svg width={TRAIL_WIDTH} height={trailHeight} style={StyleSheet.absoluteFill}>
               <Path d={pathThrough(points)} stroke="#E7DCC7" strokeWidth={7} fill="none" strokeLinecap="round" strokeLinejoin="round" />
               <Path
