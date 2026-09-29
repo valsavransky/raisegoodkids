@@ -6,6 +6,7 @@
 // wizard on restart is a minor inconvenience, unlike losing days of
 // accumulated progress.
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
 import { fetchData, saveData } from '../services/api';
@@ -34,6 +35,40 @@ import { STREAK_THRESHOLDS, GIG_MILESTONE_THRESHOLDS, FUTURE_FUND_THRESHOLDS, ge
 // Future Fund is opt-in: 0% (off) until a parent picks a percentage, during
 // setup's optional last step or later in Settings → Future Fund.
 const DEFAULT_FUTURE_FUND_PERCENTAGE = 0;
+
+const EMPTY_APP_DATA: PersistedAppData = {
+  parentName: null,
+  childProfile: null,
+  scheduleEvents: [],
+  expectedItems: [],
+  expectedCompletions: [],
+  gigs: [],
+  gigCompletions: [],
+  goals: [],
+  futureFund: null,
+  gigEffortValues: DEFAULT_GIG_EFFORT_VALUES,
+  badges: [],
+  soundEnabled: true,
+};
+
+/** Wipes an account's server-side data and confirms it's really gone.
+ * Tries a real delete (PUT null) first; a server that predates that support
+ * rejects it (the column was NOT NULL), so fall back to overwriting with an
+ * empty blob, which reconcile treats as "nothing to adopt". */
+async function clearServerData(token: string): Promise<boolean> {
+  try {
+    try {
+      await saveData(token, null);
+    } catch {
+      await saveData(token, EMPTY_APP_DATA);
+    }
+    const { data } = await fetchData(token);
+    return !data || !(data as PersistedAppData).childProfile;
+  } catch (e) {
+    console.warn('Failed to clear server app data', e);
+    return false;
+  }
+}
 const STORAGE_KEY = '@merit/appData/v1';
 
 interface PersistedAppData {
@@ -266,7 +301,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     (async () => {
       try {
         const { data: serverData } = await fetchData(token);
-        if (serverData && !childProfile) {
+        // Requires an actual child profile — an emptied-out blob (what a
+        // reset leaves behind) has nothing to adopt and must not clobber
+        // the fresh setup wizard.
+        if ((serverData as PersistedAppData | null)?.childProfile && !childProfile) {
           const data = serverData as PersistedAppData;
           setParentName(data.parentName ?? null);
           setChildProfile(data.childProfile);
@@ -788,10 +826,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     // could trigger a reconcile that re-fetches the not-yet-cleared server
     // data, undoing the reset. Awaiting it first closes that race.
     if (token) {
-      try {
-        await saveData(token, null);
-      } catch (e) {
-        console.warn('Failed to clear server app data', e);
+      const cleared = await clearServerData(token);
+      if (!cleared) {
+        // Signing back in would restore whatever is still on the server, so
+        // don't pretend the reset worked — stop and say so.
+        Alert.alert(
+          'Reset stopped',
+          "Couldn't clear your cloud backup, so signing back in would bring this data back. Check your connection and try again."
+        );
+        return;
       }
     }
     await AsyncStorage.removeItem(STORAGE_KEY);

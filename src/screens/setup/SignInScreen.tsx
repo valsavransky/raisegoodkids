@@ -13,7 +13,8 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
-import { ScreenHeader } from '../../components/ScreenHeader';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BrandHeader } from '../../components/BrandHeader';
 import { GoogleLogo } from '../../components/GoogleLogo';
 import { useAuth } from '../../context/AuthContext';
 import { isGoogleSignInConfigured, useGoogleSignInRequest, getIdToken } from '../../services/googleIdentityAuth';
@@ -23,6 +24,7 @@ type Props = NativeStackScreenProps<SetupStackParamList, 'SignIn'>;
 type Status = 'idle' | 'loading' | 'error';
 
 export function SignInScreen({ navigation }: Props) {
+  const insets = useSafeAreaInsets();
   const { loginWithGoogle } = useAuth();
   const configured = isGoogleSignInConfigured();
   const [request, response, promptAsync] = useGoogleSignInRequest();
@@ -64,8 +66,15 @@ export function SignInScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={styles.screen}>
-      <ScreenHeader onBack={() => navigation.goBack()} />
+    <View style={[styles.screen, { paddingTop: insets.top + 32, paddingBottom: 24 + insets.bottom }]}>
+      <Pressable
+        onPress={() => navigation.goBack()}
+        hitSlop={12}
+        style={[styles.backButton, { top: insets.top + 12 }]}
+      >
+        <Text style={styles.backArrow}>{'←'}</Text>
+      </Pressable>
+      <BrandHeader />
       <View style={styles.content}>
         {configured && (
           <Pressable
@@ -95,8 +104,10 @@ export function SignInScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
-  content: { flex: 1, paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center', gap: 14, paddingBottom: 80 },
+  screen: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 28 },
+  backButton: { position: 'absolute', left: 20 },
+  backArrow: { fontSize: 20, color: colors.text },
+  content: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },
   googleButton: {
     width: '100%',
     flexDirection: 'row',

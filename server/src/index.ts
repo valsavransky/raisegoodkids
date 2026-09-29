@@ -30,6 +30,13 @@ app.put('/data', requireAuth, async (req: AuthedRequest, res) => {
     res.status(400).json({ error: 'Missing data' });
     return;
   }
+  if (data === null) {
+    // "Reset all data" — the column is NOT NULL, so a null has to remove the
+    // row instead of being written to it.
+    await pool.query('DELETE FROM app_data WHERE user_id = $1', [req.userId]);
+    res.json({ ok: true });
+    return;
+  }
   await pool.query(
     `INSERT INTO app_data (user_id, data, updated_at)
      VALUES ($1, $2, now())
