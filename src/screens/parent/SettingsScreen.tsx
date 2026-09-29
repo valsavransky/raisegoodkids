@@ -27,7 +27,7 @@ export function SettingsScreen({ navigation }: Props) {
   const confirmResetAllData = () => {
     Alert.alert(
       'Reset all data',
-      'This deletes everything — the child profile, schedule, Expected items, gigs, goals, badges, and Future Fund balance — including your cloud backup, if this account is synced. It also fully disconnects this account, so signing back in with Google starts a brand new one instead of recovering this data. This cannot be undone.',
+      'This deletes everything — the child profile, schedule, Expected activities, gigs, goals, badges, and Future Fund balance — including your cloud backup, if this account is synced. It also fully disconnects this account, so signing back in with Google starts a brand new one instead of recovering this data. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Reset', style: 'destructive', onPress: () => resetAllData() },
@@ -70,7 +70,7 @@ export function SettingsScreen({ navigation }: Props) {
         <Pressable onPress={() => navigation.navigate('ExpectedItemsSettings')} style={styles.row}>
           <Text style={styles.rowIcon}>🤝</Text>
           <View style={styles.rowInfo}>
-            <Text style={styles.rowLabel}>Expected Items</Text>
+            <Text style={styles.rowLabel}>Expected Activities</Text>
           </View>
           <Text style={styles.chevron}>{'›'}</Text>
         </Pressable>

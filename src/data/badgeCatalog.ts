@@ -3,7 +3,7 @@
 // small and revise with real usage than over-author guesses up front.
 //
 // ASSUMPTION FLAGGED FOR CONFIRMATION: streak/milestone thresholds below
-// (3/7/14/30 day streaks, 1/5/20 gigs, $50/$100/$250 Future Fund) aren't
+// (1/3/7/14/30 day streaks, 1/5/20 gigs, $50/$100/$250 Future Fund) aren't
 // specified anywhere in the docs — picked as reasonable defaults. Review
 // before treating as final.
 //
@@ -31,10 +31,11 @@ export interface BadgeCatalogEntry {
   color: string;
 }
 
-// Icons escalate in "prestige" within each family (streak: spark → star →
-// gem → crown) rather than reusing one icon at every tier, so a glance at
+// Icons escalate in "prestige" within each family (streak: spark → heart →
+// star → gem → crown) rather than reusing one icon at every tier, so a glance at
 // the shelf tells you which badges are the bigger deal.
 export const BADGE_CATALOG: BadgeCatalogEntry[] = [
+  { catalogId: 'streak_1', type: 'streak', title: '1-Day Streak', subtitle: 'Expected badge earned', icon: '✨', color: colors.expected },
   { catalogId: 'streak_3', type: 'streak', title: '3-Day Streak', subtitle: 'Expected badge earned', icon: HeartHandshakeIcon, color: colors.expected },
   { catalogId: 'streak_7', type: 'streak', title: '7-Day Streak', subtitle: 'Expected badge earned', icon: '🌟', color: colors.expected },
   { catalogId: 'streak_14', type: 'streak', title: '14-Day Streak', subtitle: 'Expected badge earned', icon: '💎', color: colors.expected },
@@ -55,6 +56,7 @@ export function getBadgeCatalogEntry(catalogId: string): BadgeCatalogEntry | und
 }
 
 export const STREAK_THRESHOLDS: { days: number; catalogId: string }[] = [
+  { days: 1, catalogId: 'streak_1' },
   { days: 3, catalogId: 'streak_3' },
   { days: 7, catalogId: 'streak_7' },
   { days: 14, catalogId: 'streak_14' },

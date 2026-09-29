@@ -22,6 +22,7 @@ import { SettingsSubHeader } from '../../components/SettingsSubHeader';
 import { ScheduleEventModal, ScheduleEventDraft, BLANK_SCHEDULE_EVENT_DRAFT } from '../../components/ScheduleEventModal';
 import { formatTimeRange12h } from '../../utils/time';
 import { colors } from '../../theme/colors';
+import { formatShortDate } from '../../utils/date';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ScheduleSettings'>;
 
@@ -124,7 +125,7 @@ export function ScheduleScreen({ navigation }: Props) {
         contentContainerStyle={styles.listContent}
         sections={sections}
         keyExtractor={(item) => item.id}
-        ListEmptyComponent={<Text style={styles.emptyText}>No schedule events yet.</Text>}
+        ListEmptyComponent={<Text style={styles.emptyText}>No schedule events yet. Add school, sports or music so we can suggest Expected activities.</Text>}
         renderSectionHeader={({ section }) => <Text style={styles.sectionHeader}>{section.title}</Text>}
         renderItem={({ item }) => (
           <Pressable style={styles.eventRow} onPress={() => openEditModal(item)}>
@@ -136,7 +137,7 @@ export function ScheduleScreen({ navigation }: Props) {
                     <Text style={styles.cadenceTagText}>{CADENCE_LABELS[item.cadence ?? 'weekly']}</Text>
                   </View>
                 )}
-                {item.date && !item.recurring && <Text style={styles.eventMeta}>{item.date}</Text>}
+                {item.date && !item.recurring && <Text style={styles.eventMeta}>{formatShortDate(item.date)}</Text>}
                 {formatTimeRange12h(item.startTime, item.endTime) && (
                   <Text style={styles.eventMeta}>{formatTimeRange12h(item.startTime, item.endTime)}</Text>
                 )}

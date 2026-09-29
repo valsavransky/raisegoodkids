@@ -24,6 +24,7 @@ import { getValidAccessToken } from '../../services/googleAuth';
 import { fetchImportableEvents, ImportedScheduleEvent } from '../../services/googleCalendarApi';
 import { CADENCE_LABELS } from '../../types/models';
 import { colors } from '../../theme/colors';
+import { formatShortDate } from '../../utils/date';
 import { childFirstName } from '../../utils/setupCopy';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -56,7 +57,7 @@ function describeEvent(event: ImportedScheduleEvent): string {
     const days = (event.daysOfWeek ?? []).map((d) => DAY_LABELS[d]).join('/');
     return [days, time].filter(Boolean).join(' ');
   }
-  return [event.date, time].filter(Boolean).join(' ');
+  return [event.date ? formatShortDate(event.date) : '', time].filter(Boolean).join(' ');
 }
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'GoogleCalendarEvents'>;

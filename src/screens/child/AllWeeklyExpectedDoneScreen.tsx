@@ -47,8 +47,8 @@ export function AllWeeklyExpectedDoneScreen({ route, navigation }: Props) {
         <HeartHandshakeIcon size={72} />
       </Animated.View>
 
-      <Text style={styles.title}>Weekly tasks: done!</Text>
-      <Text style={styles.subtitle}>Great job wrapping up this week's Expected tasks!</Text>
+      <Text style={styles.title}>Weekly activities: done!</Text>
+      <Text style={styles.subtitle}>Great job wrapping up this week's Expected activities!</Text>
 
       {badge && (
         <View style={styles.badgeCallout}>

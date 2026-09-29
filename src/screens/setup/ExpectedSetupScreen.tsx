@@ -138,7 +138,7 @@ export function ExpectedSetupScreen({ navigation }: Props) {
           </>
         )}
         <Pressable style={styles.addLink} onPress={openAddModal}>
-          <Text style={styles.addLinkText}>+ Add custom Expected item</Text>
+          <Text style={styles.addLinkText}>+ Add custom Expected activity</Text>
         </Pressable>
       </ScrollView>
 
@@ -153,7 +153,7 @@ export function ExpectedSetupScreen({ navigation }: Props) {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <Pressable style={styles.modalBackdrop} onPress={() => setAddModalVisible(false)}>
           <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
-            <Text style={styles.modalTitle}>Add Expected item</Text>
+            <Text style={styles.modalTitle}>Add Expected activity</Text>
             <TextInput style={styles.input} placeholder="Name" value={draftName} onChangeText={setDraftName} />
             <View style={styles.effortRow}>
               {(['daily', 'weekly'] as const).map((freq) => {

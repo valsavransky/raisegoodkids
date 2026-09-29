@@ -263,7 +263,7 @@ function WeeklyStopSection({
             <View style={styles.stopBody}>
               <Text style={styles.stopName}>{item.name}</Text>
               <Text style={[styles.stopStatus, done && styles.stopStatusDone]}>
-                {done ? `Done ${doneDayName}` : 'Anytime this week · tap to do today'}
+                {done ? `Done ${doneDayName}` : 'This week · tap to do'}
               </Text>
             </View>
           </Pressable>
@@ -298,8 +298,8 @@ function WeeklyStopSection({
 type HintStage = 'none' | 'settings' | 'money';
 
 const HINT_COPY: Record<Exclude<HintStage, 'none'>, string> = {
-  settings: 'Tap the profile chip anytime to edit gigs, chores, or values.',
-  money: 'Gig dollar values and Future Fund % are automatically set — go to Settings to edit these any time.',
+  settings: 'Tap the profile chip anytime to edit Expected activities, gigs, or values.',
+  money: 'Gigs start at $2 / $5 / $10 and Future Fund is off. Change either anytime in Settings.',
 };
 
 function SettingsHintBadge({ onNavigateToSettings }: { onNavigateToSettings: () => void }) {
@@ -496,8 +496,8 @@ export function ChildHomeScreen() {
     }
     Alert.alert(
       'Still some Expected left today',
-      `${childProfile?.name ?? 'Your child'} still has ${total - done} Expected item${
-        total - done === 1 ? '' : 's'
+      `${childProfile?.name ?? 'Your child'} still has ${total - done} Expected activit${
+        total - done === 1 ? 'y' : 'ies'
       } left today. Let them start a gig anyway?`,
       [
         { text: 'Not yet', style: 'cancel' },
@@ -575,7 +575,9 @@ export function ChildHomeScreen() {
               </Pressable>
             )}
           </View>
-          {view === 'today' && <Text style={styles.streakText}>{streak}-day streak</Text>}
+          {view === 'today' && (
+              <Text style={styles.streakText}>{streak > 0 ? `${streak}-day streak` : 'Start your streak!'}</Text>
+            )}
         </View>
 
         {view === 'today' && (
@@ -727,7 +729,7 @@ export function ChildHomeScreen() {
 
             {weekSubTab === 'daily' && (
               <DailyGridSection
-                emptyLabel="No daily Expected items yet — add some in Settings."
+                emptyLabel="No daily Expected activities yet — add some in Settings."
                 items={dailyItems}
                 weekDates={weekDates}
                 todayStr={todayStr}

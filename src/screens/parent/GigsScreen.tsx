@@ -12,6 +12,7 @@ import { useAppData } from '../../context/AppDataContext';
 import { useSaveConfirmation } from '../../hooks/useSaveConfirmation';
 import { Gig, GigEffortTier, GigEffortValues } from '../../types/models';
 import { colors } from '../../theme/colors';
+import { DEFAULT_GIG_EFFORT_VALUES } from '../../utils/gigValue';
 
 const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
   { value: 'quick', label: 'Quick' },
@@ -83,7 +84,7 @@ export function GigsScreen({ navigation }: Props) {
   };
 
   const confirmDelete = (gig: Gig) => {
-    Alert.alert('Remove gig', `Remove "${gig.name}"?`, [
+    Alert.alert('Remove gig', `Remove "${gig.name}"? Progress it already earned toward a goal stays.`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: () => deleteGig(gig.id) },
     ]);
@@ -130,7 +131,7 @@ export function GigsScreen({ navigation }: Props) {
         ) : (
           <>
             <Text style={styles.helper}>
-              How much each effort tier is worth — this determines how much goal progress a gig earns.
+              {`How much each gig size is worth toward a goal. Defaults are $${DEFAULT_GIG_EFFORT_VALUES.quick}, $${DEFAULT_GIG_EFFORT_VALUES.medium} and $${DEFAULT_GIG_EFFORT_VALUES.big_job}. If Future Fund is on, its share comes off first and the rest counts toward the goal.`}
             </Text>
             {EFFORT_TIERS.map((tier) => (
               <View key={tier.value} style={styles.gigValueRow}>

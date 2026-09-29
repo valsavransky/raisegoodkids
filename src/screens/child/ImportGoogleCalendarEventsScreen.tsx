@@ -20,6 +20,7 @@ import { getValidAccessToken } from '../../services/googleAuth';
 import { fetchImportableEvents, ImportedScheduleEvent } from '../../services/googleCalendarApi';
 import { CADENCE_LABELS } from '../../types/models';
 import { colors } from '../../theme/colors';
+import { formatShortDate } from '../../utils/date';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const IMPORT_WINDOW_DAYS = 8 * 7; // ~8 weeks — enough to see a recurring weekday pattern
@@ -51,7 +52,7 @@ function describeEvent(event: ImportedScheduleEvent): string {
     const days = (event.daysOfWeek ?? []).map((d) => DAY_LABELS[d]).join('/');
     return [days, time].filter(Boolean).join(' ');
   }
-  return [event.date, time].filter(Boolean).join(' ');
+  return [event.date ? formatShortDate(event.date) : '', time].filter(Boolean).join(' ');
 }
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ImportGoogleCalendarEvents'>;

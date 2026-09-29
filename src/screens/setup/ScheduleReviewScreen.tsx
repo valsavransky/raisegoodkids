@@ -29,6 +29,7 @@ import {
   placeholderForCategory,
 } from '../../data/practiceSuggestions';
 import { colors } from '../../theme/colors';
+import { formatShortDate } from '../../utils/date';
 
 const CATEGORIES: { value: ScheduleEventCategory; label: string }[] = [
   { value: 'school', label: 'School' },
@@ -46,7 +47,7 @@ function describeSchedule(event: DraftScheduleEvent): string {
     const days = (event.daysOfWeek ?? []).map((d) => DAY_LABELS[d]).join('/');
     return [days, time].filter(Boolean).join(' ');
   }
-  return [event.date, time].filter(Boolean).join(' ');
+  return [event.date ? formatShortDate(event.date) : '', time].filter(Boolean).join(' ');
 }
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'ScheduleReview'>;
@@ -333,7 +334,7 @@ export function ScheduleReviewScreen({ navigation }: Props) {
                 return (
                   <View style={styles.suggestionCard}>
                     <Text style={styles.suggestionText}>
-                      Add a related Expected item for "{item.title}"?
+                      Add a related Expected activity for "{item.title}"?
                     </Text>
                     <TextInput
                       style={styles.suggestionInput}

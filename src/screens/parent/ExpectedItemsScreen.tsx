@@ -46,7 +46,7 @@ export function ExpectedItemsScreen({ navigation }: Props) {
   };
 
   const confirmDelete = (item: ExpectedItem) => {
-    Alert.alert('Remove Expected item', `Remove "${item.name}"?`, [
+    Alert.alert('Remove Expected activity', `Remove "${item.name}"? It comes off every day going forward.`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: () => deleteExpectedItem(item.id) },
     ]);
@@ -54,11 +54,11 @@ export function ExpectedItemsScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <SettingsSubHeader title="Expected Items" onBack={() => navigation.goBack()} />
+      <SettingsSubHeader title="Expected Activities" onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
         <Text style={styles.helper}>
-          Unpaid, non-negotiable responsibilities that come with being part of the family.
+          Everyday responsibilities that build good habits. These are unpaid.
         </Text>
 
         {expectedItems.filter((item) => item.frequency === 'daily').length > 0 && (
@@ -112,7 +112,7 @@ export function ExpectedItemsScreen({ navigation }: Props) {
           </>
         )}
         <Pressable style={styles.addLink} onPress={openAdd}>
-          <Text style={styles.addLinkText}>+ Add Expected item</Text>
+          <Text style={styles.addLinkText}>+ Add Expected activity</Text>
         </Pressable>
       </ScrollView>
 
@@ -120,7 +120,7 @@ export function ExpectedItemsScreen({ navigation }: Props) {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <Pressable style={styles.modalBackdrop} onPress={() => setModalMode(null)}>
             <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
-              <Text style={styles.modalTitle}>{modalMode?.editingId ? 'Edit' : 'Add'} Expected item</Text>
+              <Text style={styles.modalTitle}>{modalMode?.editingId ? 'Edit' : 'Add'} Expected activity</Text>
               <TextInput style={styles.input} placeholder="Name" value={draftName} onChangeText={setDraftName} />
               <View style={styles.chipRow}>
                 {(['daily', 'weekly'] as const).map((freq) => {

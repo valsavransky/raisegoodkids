@@ -182,7 +182,7 @@ export function ChildProfileScreen({ navigation }: Props) {
 
           <Text style={styles.label}>At home (optional)</Text>
           <Text style={styles.helperText}>
-            A couple of household details help us suggest the right Expected items and gigs later (like
+            A couple of household details help us suggest the right Expected activities and gigs later (like
             feeding a pet or raking leaves).
           </Text>
 
