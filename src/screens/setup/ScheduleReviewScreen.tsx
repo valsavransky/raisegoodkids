@@ -1,4 +1,11 @@
-// Screen 6: parent setup, step 2 of 3 (continued) — schedule review/tagging.
+// Screen 6: parent setup, step 2 of 5 (continued) — schedule review/tagging.
+//
+// Each event is a collapsed one-line row (title, when, category pill); tap it
+// to open the category chips, practice/game picker and Expected-item
+// suggestion. A collapsed row with a ready suggestion shows a one-tap
+// "+ Add …" chip, so the common case never needs to open anything. Events
+// still sitting in the silent "other" category start open, since they're the
+// ones that need a decision.
 // The convergence point for both the "connect calendar" and "skip" paths
 // from screen 5; today only the skip path feeds events in (manually added
 // here), since calendar import isn't wired up yet.
@@ -59,6 +66,9 @@ export function ScheduleReviewScreen({ navigation }: Props) {
   // (a one-off event, not a daily/weekly habit). Not persisted on the
   // event itself since it only ever affects whether a suggestion shows.
   const [sportsIsPractice, setSportsIsPractice] = useState<Record<string, boolean>>({});
+  // Explicit open/closed per row; unset rows default to open only while
+  // still uncategorized ("other").
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [modalVisible, setModalVisible] = useState(false);
   const [draft, setDraft] = useState<ScheduleEventDraft>(BLANK_SCHEDULE_EVENT_DRAFT);
 
@@ -174,19 +184,58 @@ export function ScheduleReviewScreen({ navigation }: Props) {
             status === 'pending' && categoryTriggersSuggestion(item.category, sportsIsPractice[item.localId]);
           const suggestion = showSuggestion ? suggestExpectedItemForEvent(item.title, item.category) : null;
 
+          const isOpen = expanded[item.localId] ?? item.category === 'other';
+          const unsorted = item.category === 'other';
+          const categoryLabel = CATEGORIES.find((c) => c.value === item.category)?.label ?? 'Other';
+          const quickAdd = suggestion && !suggestion.isGeneric ? suggestion : null;
+
           return (
-            <View style={[styles.eventRow, item.category === 'other' && styles.eventRowUnsorted]}>
-              <View style={styles.eventInfo}>
-                <Text style={styles.eventTitle}>{item.title}</Text>
-                <View style={styles.eventMetaRow}>
-                  {item.recurring && (
-                    <View style={styles.cadenceTag}>
-                      <Text style={styles.cadenceTagText}>{CADENCE_LABELS[item.cadence ?? 'weekly']}</Text>
-                    </View>
-                  )}
-                  <Text style={styles.eventRecurrence}>{describeSchedule(item)}</Text>
+            <View style={[styles.eventRow, unsorted && styles.eventRowUnsorted]}>
+              <Pressable
+                style={styles.eventHeader}
+                onPress={() => setExpanded((prev) => ({ ...prev, [item.localId]: !isOpen }))}
+              >
+                <View style={styles.eventInfo}>
+                  <Text style={styles.eventTitle}>{item.title}</Text>
+                  <View style={styles.eventMetaRow}>
+                    {item.recurring && (
+                      <View style={styles.cadenceTag}>
+                        <Text style={styles.cadenceTagText}>{CADENCE_LABELS[item.cadence ?? 'weekly']}</Text>
+                      </View>
+                    )}
+                    <Text style={styles.eventRecurrence}>{describeSchedule(item)}</Text>
+                  </View>
                 </View>
-              </View>
+                <View style={[styles.categoryPill, unsorted && styles.categoryPillUnsorted]}>
+                  <Text style={[styles.categoryPillText, unsorted && styles.categoryPillTextUnsorted]}>
+                    {unsorted ? 'Pick a type' : categoryLabel}
+                  </Text>
+                </View>
+                <Text style={[styles.chevron, isOpen && styles.chevronOpen]}>{'›'}</Text>
+              </Pressable>
+
+              {!isOpen && status === 'added' && (
+                <Text style={styles.collapsedAdded}>✓ Added "{addedSuggestionNames[item.localId]}" to Expected</Text>
+              )}
+              {!isOpen && quickAdd && (
+                <Pressable
+                  style={styles.quickAddChip}
+                  onPress={() =>
+                    acceptSuggestion(
+                      quickAdd.name,
+                      item.localId,
+                      suggestionFrequency[item.localId] ?? quickAdd.defaultFrequency,
+                      Number(suggestionDuration[item.localId] ?? quickAdd.defaultDurationMinutes) || 0,
+                      item.title
+                    )
+                  }
+                >
+                  <Text style={styles.quickAddChipText}>+ Add "{quickAdd.name}"</Text>
+                </Pressable>
+              )}
+
+              {isOpen && (
+              <View style={styles.eventBody}>
               <View style={styles.categoryRow}>
                 {CATEGORIES.map((category) => {
                   const selected = item.category === category.value;
@@ -313,6 +362,8 @@ export function ScheduleReviewScreen({ navigation }: Props) {
                   </View>
                 );
               })()}
+              </View>
+              )}
             </View>
           );
         }}
@@ -364,7 +415,32 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     borderColor: colors.gigs,
   },
-  eventInfo: { marginBottom: 10 },
+  eventHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  eventBody: { marginTop: 12 },
+  eventInfo: { flex: 1, minWidth: 0 },
+  categoryPill: {
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 10,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  categoryPillUnsorted: { backgroundColor: '#FDF0DE', borderColor: colors.gigs },
+  categoryPillText: { fontSize: 11, fontWeight: '800', color: colors.text },
+  categoryPillTextUnsorted: { color: '#B36200' },
+  chevron: { fontSize: 18, color: colors.textMuted, width: 12, textAlign: 'center' },
+  chevronOpen: { transform: [{ rotate: '90deg' }] },
+  quickAddChip: {
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    backgroundColor: colors.successBackground,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  quickAddChipText: { fontSize: 12, fontWeight: '800', color: colors.expected },
+  collapsedAdded: { marginTop: 8, fontSize: 12, color: colors.expected, fontWeight: '700' },
   eventTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
   eventMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' },
   eventRecurrence: { fontSize: 13, color: colors.textMuted },
