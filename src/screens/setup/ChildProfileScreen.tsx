@@ -28,6 +28,7 @@ import { useSetup } from '../../context/SetupContext';
 import { GRADE_OPTIONS } from '../../data/contentLibrary';
 import { AVATAR_OPTIONS } from '../../data/avatars';
 import { colors } from '../../theme/colors';
+import { toLocalDateString } from '../../utils/date';
 
 function eightYearsAgo(): Date {
   const d = new Date();
@@ -79,11 +80,11 @@ export function ChildProfileScreen({ navigation }: Props) {
 
   const handleAndroidChange = (_event: DateTimePickerChangeEvent, selectedDate: Date) => {
     setShowPicker(false);
-    setChildProfile({ birthday: selectedDate.toISOString().slice(0, 10) });
+    setChildProfile({ birthday: toLocalDateString(selectedDate) });
   };
 
   const confirmIOSDate = () => {
-    setChildProfile({ birthday: tempDate.toISOString().slice(0, 10) });
+    setChildProfile({ birthday: toLocalDateString(tempDate) });
     setShowPicker(false);
   };
 

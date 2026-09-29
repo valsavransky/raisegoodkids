@@ -25,7 +25,7 @@ import {
 } from '../types/models';
 import { DraftChildProfile, DraftScheduleEvent, DraftExpectedItem, DraftGig } from './SetupContext';
 import { makeId } from '../utils/id';
-import { todayString } from '../utils/date';
+import { todayString, localDateOf } from '../utils/date';
 import { computeExpectedStreak } from '../utils/streak';
 import { isExpectedItemSatisfied } from '../utils/expectedItemStatus';
 import { computeGigPercentage, DEFAULT_GIG_EFFORT_VALUES } from '../utils/gigValue';
@@ -610,7 +610,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const todaysApprovedGigCount = (goalId: string): number => {
     const today = todayString();
     return gigCompletions.filter(
-      (c) => c.goalId === goalId && c.status === 'approved' && (c.approvedAt ?? c.markedDoneAt).slice(0, 10) === today
+      (c) => c.goalId === goalId && c.status === 'approved' && localDateOf(c.approvedAt ?? c.markedDoneAt) === today
     ).length;
   };
 
@@ -621,7 +621,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setGigCompletions((prev) =>
       prev.map((c) => {
         if (c.goalId !== fromGoalId || c.status !== 'approved') return c;
-        if ((c.approvedAt ?? c.markedDoneAt).slice(0, 10) !== today) return c;
+        if (localDateOf(c.approvedAt ?? c.markedDoneAt) !== today) return c;
         const gig = gigs.find((g) => g.id === c.gigId);
         if (!gig) return c;
         const percentageAwarded = computeGigPercentage(gig.effortTier, toGoal, futureFund.percentage, gigEffortValues);
@@ -675,7 +675,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const gigCompletionStatusToday = (gigId: string): GigCompletion['status'] | null => {
     const today = todayString();
     const completion = gigCompletions.find(
-      (c) => c.gigId === gigId && c.markedDoneAt.slice(0, 10) === today
+      (c) => c.gigId === gigId && localDateOf(c.markedDoneAt) === today
     );
     return completion?.status ?? null;
   };
@@ -713,7 +713,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const today = todayString();
     const activeGigs = gigs.filter((g) => g.active);
     const allGigsDoneToday = activeGigs.every((g) =>
-      updatedCompletions.some((c) => c.gigId === g.id && c.markedDoneAt.slice(0, 10) === today)
+      updatedCompletions.some((c) => c.gigId === g.id && localDateOf(c.markedDoneAt) === today)
     );
 
     const priorProgress = goalProgressPercentage(goal.id);

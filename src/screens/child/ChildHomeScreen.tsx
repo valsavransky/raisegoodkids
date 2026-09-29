@@ -58,7 +58,7 @@ import { guessTaskIcon } from '../../data/taskIcons';
 import { scheduleEventsForToday, formatEventTimeRange, TodayScheduleEvent } from '../../data/schedule';
 import { playSound } from '../../services/sound';
 import { colors } from '../../theme/colors';
-import { todayString, startOfWeek, addDays } from '../../utils/date';
+import { todayString, startOfWeek, addDays, localDateOf } from '../../utils/date';
 import { estimateGigsToGo } from '../../utils/gigValue';
 import { SETTINGS_HINT_SEEN_KEY, MONEY_HINT_SEEN_KEY } from '../../utils/settingsHints';
 
@@ -540,7 +540,7 @@ export function ChildHomeScreen() {
     expectedCompletions.some((c) => c.expectedItemId === itemId && c.date === date);
   const dailyIsTappableOn = (itemId: string, date: string) => date === todayStr && !dailyIsDoneOn(itemId, date);
   const gigIsDoneOn = (gigId: string, date: string) =>
-    gigCompletions.some((c) => c.gigId === gigId && c.status === 'approved' && c.markedDoneAt.slice(0, 10) === date);
+    gigCompletions.some((c) => c.gigId === gigId && c.status === 'approved' && localDateOf(c.markedDoneAt) === date);
   const gigIsTappableOn = (gigId: string, date: string) => date === todayStr && gigCompletionStatusToday(gigId) === null;
   const handleGigPressById = (gigId: string) => {
     const gig = gigs.find((g) => g.id === gigId);

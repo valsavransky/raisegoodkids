@@ -16,6 +16,7 @@ import { useSaveConfirmation } from '../../hooks/useSaveConfirmation';
 import { GRADE_OPTIONS } from '../../data/contentLibrary';
 import { AVATAR_OPTIONS } from '../../data/avatars';
 import { colors } from '../../theme/colors';
+import { toLocalDateString } from '../../utils/date';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EditProfile'>;
 
@@ -64,11 +65,11 @@ export function EditProfileScreen({ navigation }: Props) {
 
   const handleAndroidChange = (_event: DateTimePickerChangeEvent, selectedDate: Date) => {
     setShowPicker(false);
-    setBirthday(selectedDate.toISOString().slice(0, 10));
+    setBirthday(toLocalDateString(selectedDate));
   };
 
   const confirmIOSDate = () => {
-    setBirthday(tempDate.toISOString().slice(0, 10));
+    setBirthday(toLocalDateString(tempDate));
     setShowPicker(false);
   };
 

@@ -6,26 +6,17 @@ import { useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 import { useAppData } from '../context/AppDataContext';
 import { syncDailyReminder } from '../services/dailyReminder';
-import { todayString } from '../utils/date';
-
-function localDateString(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+import { todayString, localDateOf } from '../utils/date';
 
 /** True if anything (an Expected activity or a gig) has been checked off today. */
 export function isSomethingDoneToday(
   expectedCompletions: { date: string }[],
   gigCompletions: { markedDoneAt: string }[]
 ): boolean {
-  const now = new Date();
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-  // Expected completions are dated with the app's own "today" string; gigs
-  // carry a full timestamp. Check both notions of today so a reminder never
-  // fires on a day the child has already done something.
-  const dates = new Set([todayString(), localDateString(now)]);
+  const today = todayString();
   return (
-    expectedCompletions.some((c) => dates.has(c.date)) ||
-    gigCompletions.some((c) => new Date(c.markedDoneAt).getTime() >= startOfToday)
+    expectedCompletions.some((c) => c.date === today) ||
+    gigCompletions.some((c) => localDateOf(c.markedDoneAt) === today)
   );
 }
 
