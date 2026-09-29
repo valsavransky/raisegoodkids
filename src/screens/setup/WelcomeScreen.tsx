@@ -43,11 +43,11 @@ interface Slide {
 const SLIDES: Slide[] = [
   {
     icon: '🌱',
-    body: "We get it: raising a responsible kid who understands the importance of consistency, responsibility and hard work is the hardest job there is. But we've made it easy.",
+    body: 'Raising responsible kids is hard. Merit makes it simple.',
   },
   {
     icon: '🎯',
-    body: 'Being a well-rounded, responsible kid is expected. Want something special, like the latest toy, or a special experience? Extra work is a gig that earns progress toward a goal they pick.',
+    body: 'Expected activities build good habits. Optional gigs earn something they choose, like a toy or an experience.',
   },
 ];
 

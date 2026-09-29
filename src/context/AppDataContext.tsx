@@ -54,19 +54,27 @@ const EMPTY_APP_DATA: PersistedAppData = {
 /** Wipes an account's server-side data and confirms it's really gone.
  * Tries a real delete (PUT null) first; a server that predates that support
  * rejects it (the column was NOT NULL), so fall back to overwriting with an
- * empty blob, which reconcile treats as "nothing to adopt". */
-async function clearServerData(token: string): Promise<boolean> {
+ * empty blob, which reconcile treats as "nothing to adopt". Returns null on
+ * success, or a short description of the step that failed. */
+async function clearServerData(token: string): Promise<string | null> {
+  const describe = (e: unknown) => (e instanceof Error ? e.message : String(e));
   try {
+    await saveData(token, null);
+  } catch (nullError) {
     try {
-      await saveData(token, null);
-    } catch {
       await saveData(token, EMPTY_APP_DATA);
+    } catch (blobError) {
+      return `Server rejected the clear (${describe(nullError)}; then ${describe(blobError)}).`;
     }
+  }
+  try {
     const { data } = await fetchData(token);
-    return !data || !(data as PersistedAppData).childProfile;
+    if (data && (data as PersistedAppData).childProfile) {
+      return 'The server still returned your child profile after clearing.';
+    }
+    return null;
   } catch (e) {
-    console.warn('Failed to clear server app data', e);
-    return false;
+    return `Couldn't confirm the clear (${describe(e)}).`;
   }
 }
 const STORAGE_KEY = '@merit/appData/v1';
@@ -248,6 +256,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   // triggers a fresh reconcile against the new token instead of being
   // silently skipped.
   const reconciledTokenRef = useRef<string | null>(null);
+  // True while Reset all data is clearing the server copy — see resetAllData.
+  const resettingRef = useRef(false);
   const [parentName, setParentName] = useState<string | null>(null);
   const [childProfile, setChildProfile] = useState<ChildProfile | null>(null);
   const [scheduleEvents, setScheduleEvents] = useState<ScheduleEvent[]>([]);
@@ -365,7 +375,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data)).catch((e) =>
       console.warn('Failed to persist app data', e)
     );
-    if (token && hasReconciled) {
+    if (token && hasReconciled && !resettingRef.current) {
       saveData(token, data).catch((e) => console.warn('Failed to sync app data to server', e));
     }
   }, [
@@ -826,13 +836,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     // could trigger a reconcile that re-fetches the not-yet-cleared server
     // data, undoing the reset. Awaiting it first closes that race.
     if (token) {
-      const cleared = await clearServerData(token);
-      if (!cleared) {
+      // Holds off the ordinary persist-on-change push for the duration, so a
+      // stray full-data sync can't land after the clear and undo it.
+      resettingRef.current = true;
+      const failure = await clearServerData(token);
+      resettingRef.current = false;
+      if (failure) {
         // Signing back in would restore whatever is still on the server, so
         // don't pretend the reset worked — stop and say so.
         Alert.alert(
           'Reset stopped',
-          "Couldn't clear your cloud backup, so signing back in would bring this data back. Check your connection and try again."
+          `Couldn't clear your cloud backup, so signing back in would bring this data back.\n\n${failure}`
         );
         return;
       }
