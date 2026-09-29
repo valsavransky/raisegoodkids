@@ -1,11 +1,13 @@
-// Preset chips (Off / 5 / 10 / 15%) plus a custom-percentage field — shared
+// An on/off switch, and (only while on) preset chips (5 / 10 / 15%) plus a
+// custom-percentage field — shared
 // by setup's optional Future Fund step and Settings → Future Fund so the two
-// stay identical. Holds no state of its own; the parent owns the draft string.
-import React from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet } from 'react-native';
+// stay identical. The parent owns the draft percentage string ("0" = off).
+import React, { useState } from 'react';
+import { View, Text, TextInput, Pressable, Switch, StyleSheet } from 'react-native';
 import { colors } from '../theme/colors';
 
-const PRESETS = [0, 5, 10, 15];
+const PRESETS = [5, 10, 15];
+const DEFAULT_WHEN_ON = '10';
 
 interface Props {
   draft: string;
@@ -13,44 +15,75 @@ interface Props {
 }
 
 export function FuturePercentagePicker({ draft, onChangeDraft }: Props) {
+  // Held locally so typing "0" in the custom field doesn't flip the switch
+  // off mid-edit; starts on only if a percentage is already set.
+  const [enabled, setEnabled] = useState(parseFloat(draft) > 0);
   const selectedPreset = PRESETS.find((p) => String(p) === draft);
+
+  const toggle = (on: boolean) => {
+    setEnabled(on);
+    onChangeDraft(on ? (parseFloat(draft) > 0 ? draft : DEFAULT_WHEN_ON) : '0');
+  };
 
   return (
     <View>
-      <View style={styles.presetRow}>
-        {PRESETS.map((preset) => {
-          const selected = selectedPreset === preset;
-          return (
-            <Pressable
-              key={preset}
-              onPress={() => onChangeDraft(String(preset))}
-              style={[styles.presetChip, selected && styles.presetChipSelected]}
-            >
-              <Text style={[styles.presetChipText, selected && styles.presetChipTextSelected]}>
-                {preset === 0 ? 'Off' : `${preset}%`}
-              </Text>
-            </Pressable>
-          );
-        })}
+      <View style={styles.toggleRow}>
+        <Text style={styles.rowLabel}>Turn on Future Fund</Text>
+        <Switch
+          value={enabled}
+          onValueChange={toggle}
+          trackColor={{ true: colors.futureFund }}
+        />
       </View>
 
-      <View style={styles.row}>
-        <Text style={styles.rowLabel}>Custom percentage</Text>
-        <View style={styles.inputWrap}>
-          <TextInput
-            style={styles.input}
-            keyboardType="decimal-pad"
-            value={draft}
-            onChangeText={(text) => onChangeDraft(text.replace(/[^0-9.]/g, ''))}
-          />
-          <Text style={styles.percentSign}>%</Text>
-        </View>
-      </View>
+      {enabled && (
+        <>
+          <View style={styles.presetRow}>
+            {PRESETS.map((preset) => {
+              const selected = selectedPreset === preset;
+              return (
+                <Pressable
+                  key={preset}
+                  onPress={() => onChangeDraft(String(preset))}
+                  style={[styles.presetChip, selected && styles.presetChipSelected]}
+                >
+                  <Text style={[styles.presetChipText, selected && styles.presetChipTextSelected]}>{preset}%</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>Custom percentage</Text>
+            <View style={styles.inputWrap}>
+              <TextInput
+                style={styles.input}
+                keyboardType="decimal-pad"
+                value={draft}
+                onChangeText={(text) => onChangeDraft(text.replace(/[^0-9.]/g, ''))}
+              />
+              <Text style={styles.percentSign}>%</Text>
+            </View>
+          </View>
+        </>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  toggleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: colors.surface,
+    marginBottom: 16,
+  },
   presetRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   presetChip: {
     flex: 1,

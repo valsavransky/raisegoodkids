@@ -205,19 +205,22 @@ export function suggestGoalIdeas(
   };
   const seed = daySeed();
 
-  if (existingGoals.length === 0) {
-    const categories = seededShuffle(CATEGORY_ORDER, seed);
+  // One idea per category, categories shuffled per day — the "spread" used
+  // when there's nothing to key off yet, and to top up a short list.
+  const diversePicks = (count: number, exclude: Set<string>): GoalIdea[] => {
     const picks: GoalIdea[] = [];
-    for (const category of categories) {
-      if (picks.length >= limit) break;
+    for (const category of seededShuffle(CATEGORY_ORDER, seed)) {
+      if (picks.length >= count) break;
       const options = seededShuffle(
-        GOAL_IDEAS.filter((idea) => idea.category === category && isEligible(idea)),
+        GOAL_IDEAS.filter((idea) => idea.category === category && isEligible(idea) && !exclude.has(idea.name)),
         seed + hashString(category)
       );
       if (options[0]) picks.push(options[0]);
     }
     return picks;
-  }
+  };
+
+  if (existingGoals.length === 0) return diversePicks(limit, new Set());
 
   const lastGoal = existingGoals[existingGoals.length - 1];
   let topCategory = lastGoal.category ?? guessGoalCategory(lastGoal.name);
@@ -232,8 +235,16 @@ export function suggestGoalIdeas(
       topCategory = [...categoryCounts.entries()].sort((a, b) => b[1] - a[1])[0][0];
     }
   }
-  if (!topCategory) return [];
+  // A goal whose category couldn't be worked out (a custom or brand-name
+  // goal) used to leave this empty; fall back to the same spread as a
+  // brand-new household so suggestions never disappear.
+  if (!topCategory) return diversePicks(limit, new Set());
 
-  const matching = GOAL_IDEAS.filter((idea) => idea.category === topCategory && isEligible(idea));
-  return seededShuffle(matching, seed + hashString(topCategory)).slice(0, limit);
+  const matching = seededShuffle(
+    GOAL_IDEAS.filter((idea) => idea.category === topCategory && isEligible(idea)),
+    seed + hashString(topCategory)
+  ).slice(0, limit);
+  if (matching.length >= limit) return matching;
+  // Category nearly used up — fill the rest from other categories.
+  return [...matching, ...diversePicks(limit - matching.length, new Set(matching.map((i) => i.name)))];
 }

@@ -73,6 +73,10 @@ export function ScheduleReviewScreen({ navigation }: Props) {
   const [draft, setDraft] = useState<ScheduleEventDraft>(BLANK_SCHEDULE_EVENT_DRAFT);
 
   const updateCategory = (localId: string, category: ScheduleEventCategory) => {
+    // Picking a type must not collapse the row (an "other" row is open only
+    // by default, and leaving "other" would flip that default) — the parent
+    // is mid-edit and next needs the suggestion that just appeared.
+    setExpanded((prev) => ({ ...prev, [localId]: true }));
     setScheduleEvents(
       scheduleEvents.map((event) => (event.localId === localId ? { ...event, category } : event))
     );

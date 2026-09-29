@@ -72,6 +72,8 @@ export function GoalPickerScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState('');
+  // The suggested idea the add modal was opened from, if any.
+  const [draftIdea, setDraftIdea] = useState<GoalIdea | null>(null);
   const [draftCost, setDraftCost] = useState('');
   const [draftPhotoUri, setDraftPhotoUri] = useState<string | undefined>(undefined);
 
@@ -125,6 +127,7 @@ export function GoalPickerScreen() {
   };
 
   const openAddModal = () => {
+    setDraftIdea(null);
     setEditingGoalId(null);
     setDraftName('');
     setDraftCost('');
@@ -133,6 +136,7 @@ export function GoalPickerScreen() {
   };
 
   const openAddModalFromIdea = (idea: GoalIdea) => {
+    setDraftIdea(idea);
     setEditingGoalId(null);
     setDraftName(idea.name);
     setDraftCost(String(idea.typicalCost));
@@ -171,7 +175,12 @@ export function GoalPickerScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       // Keyword match is instant and free — only fall back to asking Claude
       // (a network round trip) when it misses, e.g. a brand name like "Needo".
-      const category = guessGoalCategory(name) ?? (token ? (await classifyGoalCategory(token, name)) ?? undefined : undefined);
+      // A picked suggestion already knows its category (unless the parent
+      // renamed it), which keeps "Suggested for you" flowing afterwards.
+      const category =
+        (draftIdea && draftIdea.name === name ? draftIdea.category : undefined) ??
+        guessGoalCategory(name) ??
+        (token ? (await classifyGoalCategory(token, name)) ?? undefined : undefined);
       addGoal(name, cost, category, draftPhotoUri);
       return;
     }

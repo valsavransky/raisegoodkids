@@ -52,7 +52,7 @@ export function FutureFundSettingsScreen({ navigation }: Props) {
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
         <Text style={styles.helper}>
           The share of every gig that goes to the Future Fund first, before the rest counts toward their goal —
-          shown to your child right on the Goal tab. Choose Off to turn it off.
+          shown to your child right on the Goal tab. Use the switch to turn it off.
         </Text>
 
         <FuturePercentagePicker draft={draft} onChangeDraft={editDraft} />
