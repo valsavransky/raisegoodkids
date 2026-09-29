@@ -79,8 +79,11 @@ export function GoalPickerScreen() {
 
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  const [milestoneExpanded, setMilestoneExpanded] = useState(true);
-  const [contributionModalVisible, setContributionModalVisible] = useState(false);
+  // The "For grown-ups" sheet: the investing explainer, then (via "I moved
+  // money") the contribution log — one modal, two views, so there's never a
+  // second Modal presented on top of the first.
+  const [grownUpsVisible, setGrownUpsVisible] = useState(false);
+  const [grownUpsMode, setGrownUpsMode] = useState<'info' | 'log'>('info');
   const [contributionAmount, setContributionAmount] = useState('');
 
   const active = activeGoal();
@@ -191,7 +194,7 @@ export function GoalPickerScreen() {
     const amount = parseFloat(contributionAmount);
     if (Number.isNaN(amount) || amount <= 0) return;
     recordFutureFundContribution(amount);
-    setContributionModalVisible(false);
+    setGrownUpsVisible(false);
     setContributionAmount('');
   };
 
@@ -340,8 +343,8 @@ export function GoalPickerScreen() {
                 </View>
                 <Text style={styles.futureFundSubtitle}>
                   {futureFund.percentage > 0
-                    ? `${futureFund.percentage}% of every gig goes here first — building toward a real investment account.`
-                    : 'Building toward a real investment account.'}
+                    ? `${futureFund.percentage}% of every gig goes here first.`
+                    : 'Money saved for your future.'}
                 </Text>
                 <Text style={styles.futureFundAmount}>${balance.toFixed(2)} saved</Text>
                 <View style={styles.futureFundProgressTrack}>
@@ -351,42 +354,28 @@ export function GoalPickerScreen() {
                   ${balance.toFixed(0)} of ${threshold} milestone
                 </Text>
 
-                {milestoneReached && (
-                  <View style={styles.milestoneSection}>
-                    {milestoneExpanded ? (
-                      <>
-                        <Text style={styles.milestoneHeading}>Worth thinking about investing this</Text>
-                        <View style={styles.milestoneCard}>
-                          <Text style={styles.milestoneCardTitle}>Custodial Roth IRA</Text>
-                          <Text style={styles.milestoneCardBody}>
-                            Requires earned income — gig earnings may qualify.
-                          </Text>
-                        </View>
-                        <View style={styles.milestoneCard}>
-                          <Text style={styles.milestoneCardTitle}>Custodial brokerage account</Text>
-                          <Text style={styles.milestoneCardBody}>More flexible, no earned-income requirement.</Text>
-                        </View>
-                        <Text style={styles.milestoneDisclaimer}>
-                          This is general information, not financial advice. Consider talking with a financial professional.
-                        </Text>
-                        <View style={styles.milestoneActions}>
-                          <Pressable onPress={() => setMilestoneExpanded(false)}>
-                            <Text style={styles.linkAction}>Remind me later</Text>
-                          </Pressable>
-                          <Pressable onPress={() => setContributionModalVisible(true)}>
-                            <Text style={[styles.linkAction, { color: colors.futureFund }]}>I moved money</Text>
-                          </Pressable>
-                        </View>
-                      </>
-                    ) : (
-                      <Pressable onPress={() => setMilestoneExpanded(true)}>
-                        <Text style={[styles.linkAction, { color: colors.futureFund }]}>
-                          You've hit ${threshold} — tap to see investing options
-                        </Text>
-                      </Pressable>
-                    )}
-                  </View>
-                )}
+                <View style={styles.futureFundKidNote}>
+                  <Text style={styles.futureFundKidNoteText}>
+                    {milestoneReached
+                      ? `You hit $${threshold}! 🎉 Ask a grown-up what to do with it.`
+                      : balance > 0
+                        ? `Keep going! $${(threshold - balance).toFixed(0)} to go until your milestone. 🌱`
+                        : 'Every gig you finish adds to it! 🌱'}
+                  </Text>
+                </View>
+
+                <View style={styles.grownUpsRow}>
+                  <Text style={styles.grownUpsHint}>Ready to move money?</Text>
+                  <Pressable
+                    style={styles.grownUpsPill}
+                    onPress={() => {
+                      setGrownUpsMode('info');
+                      setGrownUpsVisible(true);
+                    }}
+                  >
+                    <Text style={styles.grownUpsPillText}>For grown-ups</Text>
+                  </Pressable>
+                </View>
               </View>
             )}
           </>
@@ -453,31 +442,62 @@ export function GoalPickerScreen() {
       </Modal>
 
       <Modal
-        visible={contributionModalVisible}
+        visible={grownUpsVisible}
         animationType="slide"
         transparent
-        onRequestClose={() => setContributionModalVisible(false)}
+        onRequestClose={() => setGrownUpsVisible(false)}
       >
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setContributionModalVisible(false)}>
+          <Pressable style={styles.modalBackdrop} onPress={() => setGrownUpsVisible(false)}>
           <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
-            <Text style={styles.modalTitle}>Log a contribution</Text>
-            <Text style={styles.futureFundSubtitle}>How much did you move to the real account?</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Amount ($)"
-              keyboardType="decimal-pad"
-              value={contributionAmount}
-              onChangeText={setContributionAmount}
-            />
-            <View style={styles.modalActions}>
-              <Pressable style={styles.modalCancelButton} onPress={() => setContributionModalVisible(false)}>
-                <Text style={styles.modalCancelText}>Cancel</Text>
-              </Pressable>
-              <Pressable style={[styles.modalAddButton, { backgroundColor: colors.futureFund }]} onPress={confirmContribution}>
-                <Text style={styles.modalAddText}>Log it</Text>
-              </Pressable>
-            </View>
+            {grownUpsMode === 'info' ? (
+              <>
+                <Text style={styles.modalTitle}>For grown-ups</Text>
+                <Text style={styles.milestoneHeading}>Worth thinking about investing this</Text>
+                <View style={styles.milestoneCard}>
+                  <Text style={styles.milestoneCardTitle}>Custodial Roth IRA</Text>
+                  <Text style={styles.milestoneCardBody}>Requires earned income — gig earnings may qualify.</Text>
+                </View>
+                <View style={styles.milestoneCard}>
+                  <Text style={styles.milestoneCardTitle}>Custodial brokerage account</Text>
+                  <Text style={styles.milestoneCardBody}>More flexible, no earned-income requirement.</Text>
+                </View>
+                <Text style={styles.milestoneDisclaimer}>
+                  This is general information, not financial advice. Consider talking with a financial professional.
+                </Text>
+                <View style={styles.modalActions}>
+                  <Pressable style={styles.modalCancelButton} onPress={() => setGrownUpsVisible(false)}>
+                    <Text style={styles.modalCancelText}>Close</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.modalAddButton, { backgroundColor: colors.futureFund }]}
+                    onPress={() => setGrownUpsMode('log')}
+                  >
+                    <Text style={styles.modalAddText}>I moved money</Text>
+                  </Pressable>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.modalTitle}>Log a contribution</Text>
+                <Text style={styles.futureFundSubtitle}>How much did you move to the real account?</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Amount ($)"
+                  keyboardType="decimal-pad"
+                  value={contributionAmount}
+                  onChangeText={setContributionAmount}
+                />
+                <View style={styles.modalActions}>
+                  <Pressable style={styles.modalCancelButton} onPress={() => setGrownUpsMode('info')}>
+                    <Text style={styles.modalCancelText}>Back</Text>
+                  </Pressable>
+                  <Pressable style={[styles.modalAddButton, { backgroundColor: colors.futureFund }]} onPress={confirmContribution}>
+                    <Text style={styles.modalAddText}>Log it</Text>
+                  </Pressable>
+                </View>
+              </>
+            )}
           </Pressable>
           </Pressable>
         </KeyboardAvoidingView>
@@ -561,13 +581,17 @@ const styles = StyleSheet.create({
   futureFundProgressTrack: { height: 8, borderRadius: 4, backgroundColor: '#E3DBFF', overflow: 'hidden' },
   futureFundProgressFill: { height: 8, borderRadius: 4, backgroundColor: colors.futureFund },
   futureFundProgressCaption: { fontSize: 12, color: colors.textMuted, marginTop: 6, fontWeight: '600' },
-  milestoneSection: { marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.futureFund },
+  futureFundKidNote: { backgroundColor: '#F1EBFF', borderRadius: 10, padding: 10, marginTop: 10 },
+  futureFundKidNoteText: { fontSize: 13, fontWeight: '700', color: '#5B34C7', lineHeight: 18 },
+  grownUpsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 },
+  grownUpsHint: { fontSize: 12, color: colors.textMuted },
+  grownUpsPill: { borderWidth: 1, borderColor: colors.futureFund, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 5 },
+  grownUpsPillText: { fontSize: 12, fontWeight: '800', color: colors.futureFund },
   milestoneHeading: { fontSize: 14, fontWeight: '700', color: colors.text, marginBottom: 10 },
   milestoneCard: { backgroundColor: colors.background, borderRadius: 10, padding: 12, marginBottom: 8 },
   milestoneCardTitle: { fontSize: 13, fontWeight: '700', color: colors.text },
   milestoneCardBody: { fontSize: 12, color: colors.textMuted, marginTop: 2, lineHeight: 16 },
   milestoneDisclaimer: { fontSize: 11, color: colors.textMuted, fontStyle: 'italic', marginTop: 4, marginBottom: 10, lineHeight: 15 },
-  milestoneActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalCard: { backgroundColor: colors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
   modalTitle: { fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 16 },

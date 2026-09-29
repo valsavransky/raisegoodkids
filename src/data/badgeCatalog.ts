@@ -27,6 +27,8 @@ export interface BadgeCatalogEntry {
   type: BadgeType;
   title: string;
   subtitle: string;
+  /** Kid-facing "how to earn it" line, shown on the badge shelf's detail sheet. */
+  requirement: string;
   icon: BadgeIcon;
   color: string;
 }
@@ -35,20 +37,20 @@ export interface BadgeCatalogEntry {
 // star → gem → crown) rather than reusing one icon at every tier, so a glance at
 // the shelf tells you which badges are the bigger deal.
 export const BADGE_CATALOG: BadgeCatalogEntry[] = [
-  { catalogId: 'streak_1', type: 'streak', title: '1-Day Streak', subtitle: 'Expected badge earned', icon: '✨', color: colors.expected },
-  { catalogId: 'streak_3', type: 'streak', title: '3-Day Streak', subtitle: 'Expected badge earned', icon: HeartHandshakeIcon, color: colors.expected },
-  { catalogId: 'streak_7', type: 'streak', title: '7-Day Streak', subtitle: 'Expected badge earned', icon: '🌟', color: colors.expected },
-  { catalogId: 'streak_14', type: 'streak', title: '14-Day Streak', subtitle: 'Expected badge earned', icon: '💎', color: colors.expected },
-  { catalogId: 'streak_30', type: 'streak', title: '30-Day Streak', subtitle: 'Expected badge earned', icon: '👑', color: colors.expected },
-  { catalogId: 'weekly_expected_done', type: 'weekly_complete', title: 'Weekly All-Star', subtitle: 'Expected badge earned', icon: '🗓️', color: colors.expected },
-  { catalogId: 'gig_milestone_1', type: 'gig_milestone', title: 'First Gig', subtitle: 'Gig badge earned', icon: '🪙', color: colors.gigs },
-  { catalogId: 'gig_milestone_5', type: 'gig_milestone', title: '5 Gigs Done', subtitle: 'Gig badge earned', icon: '💰', color: colors.gigs },
-  { catalogId: 'gig_milestone_20', type: 'gig_milestone', title: '20 Gigs Done', subtitle: 'Gig badge earned', icon: '🎖️', color: colors.gigs },
-  { catalogId: 'big_job_done', type: 'big_job_done', title: 'Big Job Done', subtitle: 'Gig badge earned', icon: '🦸', color: colors.gigs },
-  { catalogId: 'goal_achieved', type: 'goal_achieved', title: 'Goal Achieved', subtitle: 'You reached a goal', icon: '🏆', color: colors.gigs },
-  { catalogId: 'future_fund_50', type: 'future_fund_milestone', title: '$50 Saved', subtitle: 'Future Fund badge earned', icon: '🌱', color: colors.futureFund },
-  { catalogId: 'future_fund_100', type: 'future_fund_milestone', title: '$100 Saved', subtitle: 'Future Fund badge earned', icon: '🪴', color: colors.futureFund },
-  { catalogId: 'future_fund_250', type: 'future_fund_milestone', title: '$250 Saved', subtitle: 'Future Fund badge earned', icon: '🌳', color: colors.futureFund },
+  { catalogId: 'streak_1', requirement: 'Finish all your Expected activities in one day.', type: 'streak', title: '1-Day Streak', subtitle: 'Expected badge earned', icon: '✨', color: colors.expected },
+  { catalogId: 'streak_3', requirement: 'Finish all your Expected activities 3 days in a row.', type: 'streak', title: '3-Day Streak', subtitle: 'Expected badge earned', icon: HeartHandshakeIcon, color: colors.expected },
+  { catalogId: 'streak_7', requirement: 'Finish all your Expected activities 7 days in a row.', type: 'streak', title: '7-Day Streak', subtitle: 'Expected badge earned', icon: '🌟', color: colors.expected },
+  { catalogId: 'streak_14', requirement: 'Finish all your Expected activities 14 days in a row.', type: 'streak', title: '14-Day Streak', subtitle: 'Expected badge earned', icon: '💎', color: colors.expected },
+  { catalogId: 'streak_30', requirement: 'Finish all your Expected activities 30 days in a row.', type: 'streak', title: '30-Day Streak', subtitle: 'Expected badge earned', icon: '👑', color: colors.expected },
+  { catalogId: 'weekly_expected_done', requirement: 'Finish every weekly activity in one week.', type: 'weekly_complete', title: 'Weekly All-Star', subtitle: 'Expected badge earned', icon: '🗓️', color: colors.expected },
+  { catalogId: 'gig_milestone_1', requirement: 'Finish your first gig.', type: 'gig_milestone', title: 'First Gig', subtitle: 'Gig badge earned', icon: '🪙', color: colors.gigs },
+  { catalogId: 'gig_milestone_5', requirement: 'Finish 5 gigs.', type: 'gig_milestone', title: '5 Gigs Done', subtitle: 'Gig badge earned', icon: '💰', color: colors.gigs },
+  { catalogId: 'gig_milestone_20', requirement: 'Finish 20 gigs.', type: 'gig_milestone', title: '20 Gigs Done', subtitle: 'Gig badge earned', icon: '🎖️', color: colors.gigs },
+  { catalogId: 'big_job_done', requirement: 'Finish a big job gig.', type: 'big_job_done', title: 'Big Job Done', subtitle: 'Gig badge earned', icon: '🦸', color: colors.gigs },
+  { catalogId: 'goal_achieved', requirement: 'Get a goal to 100%.', type: 'goal_achieved', title: 'Goal Achieved', subtitle: 'You reached a goal', icon: '🏆', color: colors.gigs },
+  { catalogId: 'future_fund_50', requirement: 'Save $50 in your Future Fund.', type: 'future_fund_milestone', title: '$50 Saved', subtitle: 'Future Fund badge earned', icon: '🌱', color: colors.futureFund },
+  { catalogId: 'future_fund_100', requirement: 'Save $100 in your Future Fund.', type: 'future_fund_milestone', title: '$100 Saved', subtitle: 'Future Fund badge earned', icon: '🪴', color: colors.futureFund },
+  { catalogId: 'future_fund_250', requirement: 'Save $250 in your Future Fund.', type: 'future_fund_milestone', title: '$250 Saved', subtitle: 'Future Fund badge earned', icon: '🌳', color: colors.futureFund },
 ];
 
 export function getBadgeCatalogEntry(catalogId: string): BadgeCatalogEntry | undefined {
