@@ -19,12 +19,29 @@ app.use('/goals', goalsRouter);
 // AppDataContext.tsx), stored as one JSONB column per account — mirrors
 // how the client already treats it as a single unit, just synced instead
 // of only on-device.
+// Express 4 doesn't catch a rejected promise from an async handler, and an
+// unhandled rejection takes the whole process down (every request 502s until
+// Railway restarts it) — so a database error here has to become a 500.
 app.get('/data', requireAuth, async (req: AuthedRequest, res) => {
-  const result = await pool.query('SELECT data FROM app_data WHERE user_id = $1', [req.userId]);
-  res.json({ data: result.rows[0]?.data ?? null });
+  try {
+    const result = await pool.query('SELECT data FROM app_data WHERE user_id = $1', [req.userId]);
+    res.json({ data: result.rows[0]?.data ?? null });
+  } catch (err) {
+    console.error('GET /data failed', err);
+    res.status(500).json({ error: 'Could not load data' });
+  }
 });
 
 app.put('/data', requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    await handlePut(req, res);
+  } catch (err) {
+    console.error('PUT /data failed', err);
+    res.status(500).json({ error: 'Could not save data' });
+  }
+});
+
+async function handlePut(req: AuthedRequest, res: express.Response) {
   const { data } = req.body ?? {};
   if (data === undefined) {
     res.status(400).json({ error: 'Missing data' });
@@ -44,7 +61,7 @@ app.put('/data', requireAuth, async (req: AuthedRequest, res) => {
     [req.userId, data]
   );
   res.json({ ok: true });
-});
+}
 
 const port = Number(process.env.PORT) || 3000;
 

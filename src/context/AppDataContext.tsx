@@ -51,31 +51,33 @@ const EMPTY_APP_DATA: PersistedAppData = {
   soundEnabled: true,
 };
 
-/** Wipes an account's server-side data and confirms it's really gone.
- * Tries a real delete (PUT null) first; a server that predates that support
- * rejects it (the column was NOT NULL), so fall back to overwriting with an
- * empty blob, which reconcile treats as "nothing to adopt". Returns null on
- * success, or a short description of the step that failed. */
+/** Wipes an account's server-side data and confirms it's really gone, by
+ * overwriting it with an empty blob (which reconcile treats as "nothing to
+ * adopt"). Deliberately not a null write: older deployed servers crash on
+ * that. Retries once, since a just-restarted server can 502 briefly. Returns
+ * null on success, or a short description of the step that failed. */
 async function clearServerData(token: string): Promise<string | null> {
   const describe = (e: unknown) => (e instanceof Error ? e.message : String(e));
-  try {
-    await saveData(token, null);
-  } catch (nullError) {
+  const attempt = async (): Promise<string | null> => {
     try {
       await saveData(token, EMPTY_APP_DATA);
-    } catch (blobError) {
-      return `Server rejected the clear (${describe(nullError)}; then ${describe(blobError)}).`;
+    } catch (e) {
+      return `Server rejected the clear (${describe(e)}).`;
     }
-  }
-  try {
-    const { data } = await fetchData(token);
-    if (data && (data as PersistedAppData).childProfile) {
-      return 'The server still returned your child profile after clearing.';
+    try {
+      const { data } = await fetchData(token);
+      if (data && (data as PersistedAppData).childProfile) {
+        return 'The server still returned your child profile after clearing.';
+      }
+      return null;
+    } catch (e) {
+      return `Couldn't confirm the clear (${describe(e)}).`;
     }
-    return null;
-  } catch (e) {
-    return `Couldn't confirm the clear (${describe(e)}).`;
-  }
+  };
+  const first = await attempt();
+  if (first === null) return null;
+  await new Promise((resolve) => setTimeout(resolve, 3000));
+  return attempt();
 }
 const STORAGE_KEY = '@merit/appData/v1';
 
