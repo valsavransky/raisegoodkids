@@ -40,6 +40,7 @@ import { Confetti } from '../../components/Confetti';
 import { CATEGORY_EMOJI, GoalIdea, guessGoalCategory, suggestGoalIdeas } from '../../data/goalIdeas';
 import { classifyGoalCategory } from '../../services/api';
 import { colors } from '../../theme/colors';
+import { estimateGigsToGo } from '../../utils/gigValue';
 
 type GoalPickerNavigationProp = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Goal'>,
@@ -61,6 +62,8 @@ export function GoalPickerScreen() {
     updateGoal,
     deleteGoal,
     goalProgressPercentage,
+    gigs,
+    gigPreviewPercentage,
     todaysApprovedGigCount,
     moveTodaysGigProgressToGoal,
     futureFund,
@@ -203,6 +206,10 @@ export function GoalPickerScreen() {
 
     if (item.status === 'active') {
       const progress = goalProgressPercentage(item.id);
+      const gigsToGo = estimateGigsToGo(
+        100 - Math.min(progress, 100),
+        gigs.filter((gig) => gig.active).map((gig) => gigPreviewPercentage(gig)).filter((pct): pct is number => pct !== null)
+      );
       return (
         <View style={[styles.goalRow, styles.goalRowActive]}>
           <View style={styles.goalRowTop}>
@@ -217,6 +224,10 @@ export function GoalPickerScreen() {
           <View style={styles.progressBarTrack}>
             <View style={[styles.progressBarFill, { width: `${Math.min(progress, 100)}%` }]} />
           </View>
+          <Text style={styles.activeProgressText}>
+            {Math.min(progress, 100)}% there
+            {gigsToGo > 0 ? ` · about ${gigsToGo} gig${gigsToGo === 1 ? '' : 's'} to go` : ''}
+          </Text>
         </View>
       );
     }
@@ -522,6 +533,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     backgroundColor: colors.surface,
   },
+  activeProgressText: { fontSize: 12.5, color: '#B96A08', fontWeight: '700', marginTop: 8 },
   goalRowActive: { borderColor: colors.gigs, borderWidth: 2 },
   goalRowAchieved: { borderColor: colors.gigs, borderStyle: 'dashed' },
   goalRowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

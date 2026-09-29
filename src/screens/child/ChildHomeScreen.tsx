@@ -59,7 +59,6 @@ import { scheduleEventsForToday, formatEventTimeRange, TodayScheduleEvent } from
 import { playSound } from '../../services/sound';
 import { colors } from '../../theme/colors';
 import { todayString, startOfWeek, addDays, localDateOf } from '../../utils/date';
-import { estimateGigsToGo } from '../../utils/gigValue';
 import { SETTINGS_HINT_SEEN_KEY, MONEY_HINT_SEEN_KEY } from '../../utils/settingsHints';
 
 const CATEGORY_ICONS: Record<ScheduleEventCategory, string> = {
@@ -85,7 +84,12 @@ const STEP_Y = 78;
 // Tall enough that the avatar — which floats above the first point by
 // AVATAR_SIZE + 26 (see avatarWrap's marginTop) — stays fully inside the
 // trail area instead of overlapping the label/toggle row above it.
-const FIRST_Y = 100;
+// (Includes a 28px band above the first stop for the section header.)
+const FIRST_Y = 128;
+// Extra vertical space before the first Gig stop, so the "Gigs" section header
+// sits on the path between the Expected and Gig stops instead of on top of a
+// stop label.
+const SECTION_GAP = 44;
 const AVATAR_SIZE = 72;
 const STOP_SIZE = 50;
 
@@ -93,8 +97,8 @@ type TrailStop =
   | { kind: 'expected'; id: string; name: string; done: boolean }
   | { kind: 'gig'; id: string; name: string; percentage: number | null; done: boolean };
 
-function trailPointAt(index: number): { x: number; y: number } {
-  return { x: COLUMN_X[index % 2], y: FIRST_Y + index * STEP_Y };
+function trailPointAt(index: number, afterSectionGap = false): { x: number; y: number } {
+  return { x: COLUMN_X[index % 2], y: FIRST_Y + index * STEP_Y + (afterSectionGap ? SECTION_GAP : 0) };
 }
 
 function pathThrough(points: { x: number; y: number }[]): string {
@@ -395,7 +399,6 @@ export function ChildHomeScreen() {
     }, [])
   );
   const todaysEvents = useMemo(() => scheduleEventsForToday(scheduleEvents), [scheduleEvents, focusedAt]);
-  const todayLabel = useMemo(() => new Date().toLocaleDateString(undefined, { weekday: 'long' }), [focusedAt]);
   const todayStr = useMemo(() => todayString(), [focusedAt]);
   const weekDates = useMemo(() => {
     const start = startOfWeek(todayStr);
@@ -432,7 +435,9 @@ export function ChildHomeScreen() {
     })),
   ];
 
-  const points = stops.map((_, i) => trailPointAt(i));
+  const expectedStopCount = dailyItems.length;
+  const hasBothSections = expectedStopCount > 0 && gigs.length > 0;
+  const points = stops.map((_, i) => trailPointAt(i, hasBothSections && i >= expectedStopCount));
   const doneCount = stops.filter((s) => s.done).length;
   const shownProgress = Math.max(doneCount, stops.length > 0 ? 1 : 0);
   // The colored (done) portion of the path is teal through the Expected
@@ -446,7 +451,7 @@ export function ChildHomeScreen() {
   const showGigProgress = shownProgress > expectedCount && stops.length > expectedCount;
   const avatarIdx = Math.min(doneCount, Math.max(points.length - 1, 0));
   const avatarPoint = points[avatarIdx] ?? trailPointAt(0);
-  const trailHeight = points.length > 0 ? FIRST_Y + (points.length - 1) * STEP_Y + 70 : 0;
+  const trailHeight = points.length > 0 ? points[points.length - 1].y + 70 : 0;
   const gigsDoneToday = gigs.some((gig) => gigCompletionStatusToday(gig.id) === 'approved');
   const gigsDoneCount = gigs.filter((gig) => gigCompletionStatusToday(gig.id) === 'approved').length;
   // isExpectedDoneToday, for a weekly item, already means "satisfied
@@ -454,26 +459,14 @@ export function ChildHomeScreen() {
   // the Weekly sub-tab's count badge.
   const weeklyDoneCount = weeklyItems.filter((item) => isExpectedDoneToday(item.id)).length;
 
-  const firstName = childProfile?.name?.trim().split(/\s+/)[0] ?? '';
-  const nameSuffix = firstName ? `, ${firstName}` : '';
-  // One line that says what's next — and, without any lecture, that gigs
-  // come after Expected.
-  const coachMessage = (() => {
-    const hasGigs = gigs.length > 0;
-    if (hasGigs && gigsDoneCount === gigs.length && done === total) return `All done today${nameSuffix}! 🎉`;
-    if (total === 0) return hasGigs ? `Pick a gig${nameSuffix}! 🪙` : '';
-    if (done === total) return hasGigs ? 'Expected done! Pick a gig 🪙' : `Expected done${nameSuffix}! 🎉`;
-    if (done === 0) return `Ready when you are${nameSuffix}!`;
-    const left = total - done;
-    return hasGigs ? `${left} to go, then it's gig time 🪙` : `${left} to go!`;
-  })();
   const goalPercent = goal ? Math.min(goalProgressPercentage(goal.id), 100) : 0;
-  const gigsToGo = goal
-    ? estimateGigsToGo(
-        100 - goalPercent,
-        gigs.filter((g) => g.active).map((g) => gigPreviewPercentage(g)).filter((pct): pct is number => pct !== null)
-      )
-    : 0;
+  const expectedDoneStops = dailyItems.filter((item) => isExpectedDoneToday(item.id)).length;
+  const gigsHeaderLabel = `GIGS · ${gigsDoneCount} of ${gigs.length}${
+    gigsUnlocked && gigsDoneCount === 0 ? ' · pick one 🪙' : ''
+  }`;
+  const expectedHeaderLabel = `EXPECTED · ${expectedDoneStops} of ${dailyItems.length}${
+    expectedDoneStops === dailyItems.length ? ' ✓' : ''
+  }`;
 
   const avatarTranslate = useRef(new Animated.ValueXY({ x: avatarPoint.x, y: avatarPoint.y })).current;
   useEffect(() => {
@@ -572,16 +565,12 @@ export function ChildHomeScreen() {
             </Pressable>
           ) : (
             <View style={styles.goalCard}>
-              <View style={styles.goalTitleRow}>
-                {goal.photoUri && <Image source={{ uri: goal.photoUri }} style={styles.goalPhoto} />}
-                <Text style={styles.goalName}>{goal.name}</Text>
-              </View>
+              {goal.photoUri && <Image source={{ uri: goal.photoUri }} style={styles.goalPhoto} />}
+              <Text style={styles.goalName} numberOfLines={1}>{goal.name}</Text>
               <View style={styles.progressBarTrack}>
                 <View style={[styles.progressBarFill, { width: `${goalPercent}%` }]} />
               </View>
-              <Text style={styles.goalProgressText}>
-                {goalPercent}% there{gigsToGo > 0 ? ` · about ${gigsToGo} gig${gigsToGo === 1 ? '' : 's'} to go` : ''}
-              </Text>
+              <Text style={styles.goalProgressText}>{goalPercent}%</Text>
             </View>
           )}
         </View>
@@ -610,20 +599,8 @@ export function ChildHomeScreen() {
             )}
         </View>
 
-        {view === 'today' && (
-          <View style={styles.doneStatsRow}>
-            {total > 0 && (
-              <Text style={[styles.doneStatText, { color: colors.expected }]}>{done} of {total} Expected</Text>
-            )}
-            {gigs.length > 0 && (
-              <Text style={[styles.doneStatText, { color: colors.gigs }]}>{gigsDoneCount} of {gigs.length} Gigs</Text>
-            )}
-          </View>
-        )}
-
         {view === 'today' && todaysEvents.length > 0 && (
           <View style={styles.scheduleStrip}>
-            <Text style={styles.scheduleDayLabel}>Today · {todayLabel}</Text>
             {todaysEvents.map((event: TodayScheduleEvent) => (
               <View
                 key={event.id}
@@ -650,10 +627,6 @@ export function ChildHomeScreen() {
           </View>
         )}
 
-        {view === 'today' && stops.length > 0 && coachMessage !== '' && (
-          <Text style={styles.coachMessage}>{coachMessage}</Text>
-        )}
-
         {view === 'today' && stops.length === 0 && (
           <View style={styles.emptyToday}>
             <Text style={styles.emptyTodayIcon}>🌱</Text>
@@ -664,6 +637,16 @@ export function ChildHomeScreen() {
 
         {view === 'today' && stops.length > 0 && (
           <View style={[styles.trailArea, { height: trailHeight }]}>
+            <View style={[styles.sectionHeader, { top: 4 }]} pointerEvents="none">
+              <Text style={[styles.sectionHeaderText, { color: expectedStopCount > 0 ? colors.expected : colors.gigs }]}>
+                {expectedStopCount > 0 ? expectedHeaderLabel : gigsHeaderLabel}
+              </Text>
+            </View>
+            {hasBothSections && (
+              <View style={[styles.sectionHeader, { top: points[expectedStopCount].y - 56 }]} pointerEvents="none">
+                <Text style={[styles.sectionHeaderText, { color: colors.gigs }]}>{gigsHeaderLabel}</Text>
+              </View>
+            )}
             <Svg width={TRAIL_WIDTH} height={trailHeight} style={StyleSheet.absoluteFill}>
               <Path d={pathThrough(points)} stroke="#E7DCC7" strokeWidth={7} fill="none" strokeLinecap="round" strokeLinejoin="round" />
               <Path
@@ -875,13 +858,13 @@ const styles = StyleSheet.create({
   emptyGoalIcon: { fontSize: 20 },
   emptyGoalText: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
   emptyGoalChevron: { fontSize: 22, fontWeight: '700', color: '#FFFFFF' },
-  goalCard: { backgroundColor: '#FDF1E2', borderRadius: 20, padding: 16, marginBottom: 4 },
-  goalTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 11 },
-  goalPhoto: { width: 36, height: 36, borderRadius: 9 },
-  goalName: { fontSize: 16, fontWeight: '800', color: colors.text },
-  progressBarTrack: { height: 9, borderRadius: 999, backgroundColor: '#F7DFC0', overflow: 'hidden' },
-  progressBarFill: { height: 9, borderRadius: 999, backgroundColor: colors.gigs },
-  goalProgressText: { fontSize: 12.5, color: '#B96A08', marginTop: 7, fontWeight: '600' },
+  // One slim line: photo (if any), name, a short progress bar, and the percent.
+  goalCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FDF1E2', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14, marginBottom: 4 },
+  goalPhoto: { width: 28, height: 28, borderRadius: 7 },
+  goalName: { flex: 1, fontSize: 14, fontWeight: '800', color: colors.text },
+  progressBarTrack: { width: 72, height: 7, borderRadius: 999, backgroundColor: '#F7DFC0', overflow: 'hidden' },
+  progressBarFill: { height: 7, borderRadius: 999, backgroundColor: colors.gigs },
+  goalProgressText: { fontSize: 12.5, color: '#B96A08', fontWeight: '800', minWidth: 32, textAlign: 'right' },
   viewToggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -897,14 +880,6 @@ const styles = StyleSheet.create({
   toggleTabTextActive: { color: '#FFFFFF' },
   streakText: { fontSize: 12.5, color: colors.expected, fontWeight: '700' },
   scheduleStrip: { paddingHorizontal: 20, marginBottom: 6 },
-  scheduleDayLabel: {
-    fontSize: 11.5,
-    fontWeight: '700',
-    color: colors.textMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 6,
-  },
   scheduleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -919,6 +894,19 @@ const styles = StyleSheet.create({
   scheduleTitleNext: { fontWeight: '800', color: '#B96A08' },
   scheduleTitlePast: { color: colors.textMuted, fontWeight: '500' },
   scheduleTime: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
+  // Section headers sit on a solid chip so they read cleanly where they
+  // cross the trail's connecting line.
+  sectionHeader: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
+  sectionHeaderText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    backgroundColor: '#FFF8F0',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
   trailArea: { width: TRAIL_WIDTH, alignSelf: 'center', marginTop: 10 },
   avatarWrap: {
     position: 'absolute',
@@ -944,13 +932,10 @@ const styles = StyleSheet.create({
   stopLabelWrap: { position: 'absolute', width: 124, alignItems: 'center' },
   stopLabel: { fontWeight: '700', fontSize: 12, color: '#5c574b', textAlign: 'center', lineHeight: 15 },
   stopAmount: { fontWeight: '800', fontSize: 10, color: '#B96A08', marginTop: 1 },
-  doneStatsRow: { flexDirection: 'row', justifyContent: 'center', gap: 20, paddingHorizontal: 20, marginBottom: 8 },
-  coachMessage: { fontSize: 15, fontWeight: '800', color: '#5c574b', textAlign: 'center', paddingHorizontal: 20, marginBottom: 4 },
   emptyToday: { alignItems: 'center', paddingHorizontal: 32, paddingVertical: 40, gap: 6 },
   emptyTodayIcon: { fontSize: 40 },
   emptyTodayTitle: { fontSize: 18, fontWeight: '800', color: '#5c574b' },
   emptyTodayNote: { fontSize: 13, color: '#8a8578', textAlign: 'center', lineHeight: 18 },
-  doneStatText: { fontSize: 13, fontWeight: '700' },
   weeklyPanel: { paddingHorizontal: 20, paddingTop: 4 },
   weekSubTabRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   weekSubTab: {
