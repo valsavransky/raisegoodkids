@@ -6,10 +6,15 @@ import { AuthProvider } from './src/context/AuthContext';
 import { AppDataProvider, useAppData } from './src/context/AppDataContext';
 import { SetupNavigator } from './src/navigation/SetupNavigator';
 import { RootStackNavigator } from './src/navigation/RootStackNavigator';
+import { useDailyReminderSync } from './src/hooks/useDailyReminderSync';
+import { configureNotificationHandler } from './src/services/dailyReminder';
 import { LoadingScreen } from './src/screens/LoadingScreen';
+
+configureNotificationHandler();
 
 function RootNavigator() {
   const { childProfile, isHydrated } = useAppData();
+  useDailyReminderSync();
   if (!isHydrated) return <LoadingScreen />;
   return childProfile ? <RootStackNavigator /> : <SetupNavigator />;
 }

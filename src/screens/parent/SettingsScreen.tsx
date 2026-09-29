@@ -6,8 +6,9 @@
 // rows, each leading to its own screen, with the profile row prominent at
 // the top — the standard placement, which is also just where a parent
 // looks first.
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, Pressable, ScrollView, Switch, Alert, StyleSheet } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -15,6 +16,8 @@ import { useAppData } from '../../context/AppDataContext';
 import { useAuth } from '../../context/AuthContext';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { signOut as signOutOfGoogle } from '../../services/googleAuth';
+import { loadReminderSettings, hasNotificationPermission } from '../../services/dailyReminder';
+import { formatTime12h } from '../../utils/time';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
@@ -23,6 +26,18 @@ export function SettingsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { childProfile, parentName, resetAllData, soundEnabled, setSoundEnabled, futureFund } = useAppData();
   const { isAutoAccount, accountEmail } = useAuth();
+  const [reminderSubtitle, setReminderSubtitle] = useState('Off');
+  // Re-read on every return to this screen, since the reminder is edited on
+  // its own sub-screen.
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        const stored = await loadReminderSettings();
+        const on = stored.enabled && (await hasNotificationPermission());
+        setReminderSubtitle(on ? `On · ${formatTime12h(stored.time)}` : 'Off');
+      })();
+    }, [])
+  );
 
   const confirmResetAllData = () => {
     Alert.alert(
@@ -93,6 +108,16 @@ export function SettingsScreen({ navigation }: Props) {
           <View style={styles.rowInfo}>
             <Text style={styles.rowLabel}>Future Fund</Text>
             <Text style={styles.rowSubtitle}>{futureFund && futureFund.percentage > 0 ? `${futureFund.percentage}% of every gig` : 'Off'}</Text>
+          </View>
+          <Text style={styles.chevron}>{'›'}</Text>
+        </Pressable>
+
+        <Text style={styles.sectionLabel}>Notifications</Text>
+        <Pressable onPress={() => navigation.navigate('NotificationSettings')} style={styles.row}>
+          <Text style={styles.rowIcon}>🔔</Text>
+          <View style={styles.rowInfo}>
+            <Text style={styles.rowLabel}>Daily reminder</Text>
+            <Text style={styles.rowSubtitle}>{reminderSubtitle}</Text>
           </View>
           <Text style={styles.chevron}>{'›'}</Text>
         </Pressable>

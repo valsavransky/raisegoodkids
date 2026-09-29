@@ -44,6 +44,7 @@
           "backgroundColor": "#ffffff"
         }
       ],
+      "expo-notifications",
       [
         "expo-image-picker",
         {
