@@ -22,6 +22,9 @@ import {
   hasNotificationPermission,
   syncDailyReminder,
   reminderBody,
+  getReminderDiagnostics,
+  sendTestReminder,
+  ReminderDiagnostics,
 } from '../../services/dailyReminder';
 import { timeStringToDate, dateToTimeString, formatTime12h } from '../../utils/time';
 import { colors } from '../../theme/colors';
@@ -35,6 +38,10 @@ export function NotificationSettingsScreen({ navigation }: Props) {
   const [loaded, setLoaded] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [tempTime, setTempTime] = useState<Date>(timeStringToDate(DEFAULT_REMINDER_TIME));
+  const [diag, setDiag] = useState<ReminderDiagnostics | null>(null);
+  const [testStatus, setTestStatus] = useState('');
+
+  const refreshDiag = async () => setDiag(await getReminderDiagnostics());
 
   useEffect(() => {
     (async () => {
@@ -43,6 +50,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
       const permitted = stored.enabled ? await hasNotificationPermission() : true;
       setSettings(permitted ? stored : { ...stored, enabled: false });
       setLoaded(true);
+      refreshDiag();
     })();
   }, []);
 
@@ -53,6 +61,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
       childName: childProfile?.name,
       doneToday: isSomethingDoneToday(expectedCompletions, gigCompletions),
     });
+    await refreshDiag();
   };
 
   const turnOn = () => {
@@ -147,6 +156,31 @@ export function NotificationSettingsScreen({ navigation }: Props) {
         ) : (
           <Text style={styles.helper}>Turn it on to get one gentle nudge on days nothing has been checked off yet.</Text>
         )}
+
+        <Text style={styles.previewLabel}>Troubleshooting</Text>
+        <View style={styles.diagBox}>
+          <Text style={styles.diagLine}>
+            Phone permission: {diag ? (diag.permissionGranted ? 'allowed' : 'not allowed') : '…'}
+          </Text>
+          <Text style={styles.diagLine}>
+            Scheduled reminders:{' '}
+            {diag ? (diag.scheduledDays.length > 0 ? diag.scheduledDays.join(', ') : 'none') : '…'}
+          </Text>
+          <Text style={styles.diagNote}>
+            Today is skipped once anything has been checked off, or if the time has already passed.
+          </Text>
+          <Pressable
+            style={styles.testButton}
+            onPress={async () => {
+              setTestStatus('Sending… close Merit or lock your phone and wait about 10 seconds.');
+              const ok = await sendTestReminder(childProfile?.name);
+              setTestStatus(ok ? 'Sent. Look for it in about 10 seconds.' : "Couldn't schedule the test.");
+            }}
+          >
+            <Text style={styles.testButtonText}>Send a test reminder in 10 seconds</Text>
+          </Pressable>
+          {testStatus !== '' && <Text style={styles.diagNote}>{testStatus}</Text>}
+        </View>
       </ScrollView>
 
       {showPicker && Platform.OS === 'android' && (
@@ -209,6 +243,11 @@ const styles = StyleSheet.create({
   previewText: { flex: 1 },
   previewTitle: { fontSize: 13, fontWeight: '700', color: colors.text },
   previewBody: { fontSize: 13, color: colors.text, marginTop: 2, lineHeight: 18 },
+  diagBox: { borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, backgroundColor: colors.surface, gap: 6 },
+  diagLine: { fontSize: 13, color: colors.text },
+  diagNote: { fontSize: 12, color: colors.textMuted, lineHeight: 16 },
+  testButton: { marginTop: 6, borderWidth: 1, borderColor: colors.expected, borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
+  testButtonText: { color: colors.expected, fontWeight: '700', fontSize: 13 },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalCard: { backgroundColor: colors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
   modalDoneButton: { marginTop: 8, backgroundColor: colors.expected, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },

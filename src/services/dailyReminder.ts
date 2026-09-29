@@ -156,3 +156,44 @@ export async function clearDailyReminder(): Promise<void> {
     console.warn('Failed to clear daily reminder', e);
   }
 }
+
+// ---- Troubleshooting aids (shown on the Daily reminder screen while the
+// reminder is being tested on real devices; hide before real users launch).
+
+export interface ReminderDiagnostics {
+  permissionGranted: boolean;
+  /** Local YYYY-MM-DD days that currently have a reminder scheduled. */
+  scheduledDays: string[];
+}
+
+export async function getReminderDiagnostics(): Promise<ReminderDiagnostics> {
+  try {
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    return {
+      permissionGranted: await hasNotificationPermission(),
+      scheduledDays: scheduled
+        .filter((n) => n.identifier.startsWith(ID_PREFIX))
+        .map((n) => n.identifier.slice(ID_PREFIX.length))
+        .sort(),
+    };
+  } catch {
+    return { permissionGranted: false, scheduledDays: [] };
+  }
+}
+
+/** Schedules the real reminder text to fire a few seconds from now, to prove
+ * the phone can show Merit notifications at all. Resolves false on failure. */
+export async function sendTestReminder(childName?: string, seconds = 10): Promise<boolean> {
+  try {
+    await ensureAndroidChannel();
+    await Notifications.scheduleNotificationAsync({
+      identifier: 'reminder-test',
+      content: { title: 'Merit', body: reminderBody(childName) },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds, channelId: CHANNEL_ID },
+    });
+    return true;
+  } catch (e) {
+    console.warn('Failed to schedule test reminder', e);
+    return false;
+  }
+}
