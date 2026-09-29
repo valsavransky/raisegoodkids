@@ -86,10 +86,6 @@ const STEP_Y = 78;
 // trail area instead of overlapping the label/toggle row above it.
 // (Includes a 28px band above the first stop for the section header.)
 const FIRST_Y = 128;
-// Extra vertical space before the first Gig stop, so the "Gigs" section header
-// sits on the path between the Expected and Gig stops instead of on top of a
-// stop label.
-const SECTION_GAP = 44;
 const AVATAR_SIZE = 72;
 const STOP_SIZE = 50;
 
@@ -97,8 +93,8 @@ type TrailStop =
   | { kind: 'expected'; id: string; name: string; done: boolean }
   | { kind: 'gig'; id: string; name: string; percentage: number | null; done: boolean };
 
-function trailPointAt(index: number, afterSectionGap = false): { x: number; y: number } {
-  return { x: COLUMN_X[index % 2], y: FIRST_Y + index * STEP_Y + (afterSectionGap ? SECTION_GAP : 0) };
+function trailPointAt(index: number): { x: number; y: number } {
+  return { x: COLUMN_X[index % 2], y: FIRST_Y + index * STEP_Y };
 }
 
 function pathThrough(points: { x: number; y: number }[]): string {
@@ -436,8 +432,7 @@ export function ChildHomeScreen() {
   ];
 
   const expectedStopCount = dailyItems.length;
-  const hasBothSections = expectedStopCount > 0 && gigs.length > 0;
-  const points = stops.map((_, i) => trailPointAt(i, hasBothSections && i >= expectedStopCount));
+  const points = stops.map((_, i) => trailPointAt(i));
   const doneCount = stops.filter((s) => s.done).length;
   const shownProgress = Math.max(doneCount, stops.length > 0 ? 1 : 0);
   // The colored (done) portion of the path is teal through the Expected
@@ -461,9 +456,6 @@ export function ChildHomeScreen() {
 
   const goalPercent = goal ? Math.min(goalProgressPercentage(goal.id), 100) : 0;
   const expectedDoneStops = dailyItems.filter((item) => isExpectedDoneToday(item.id)).length;
-  const gigsHeaderLabel = `GIGS · ${gigsDoneCount} of ${gigs.length}${
-    gigsUnlocked && gigsDoneCount === 0 ? ' · pick one 🪙' : ''
-  }`;
   const expectedHeaderLabel = `EXPECTED · ${expectedDoneStops} of ${dailyItems.length}${
     expectedDoneStops === dailyItems.length ? ' ✓' : ''
   }`;
@@ -637,14 +629,9 @@ export function ChildHomeScreen() {
 
         {view === 'today' && stops.length > 0 && (
           <View style={[styles.trailArea, { height: trailHeight }]}>
-            <View style={[styles.sectionHeader, { top: 4 }]} pointerEvents="none">
-              <Text style={[styles.sectionHeaderText, { color: expectedStopCount > 0 ? colors.expected : colors.gigs }]}>
-                {expectedStopCount > 0 ? expectedHeaderLabel : gigsHeaderLabel}
-              </Text>
-            </View>
-            {hasBothSections && (
-              <View style={[styles.sectionHeader, { top: points[expectedStopCount].y - 56 }]} pointerEvents="none">
-                <Text style={[styles.sectionHeaderText, { color: colors.gigs }]}>{gigsHeaderLabel}</Text>
+            {expectedStopCount > 0 && (
+              <View style={[styles.sectionHeader, { top: 4 }]} pointerEvents="none">
+                <Text style={[styles.sectionHeaderText, { color: colors.expected }]}>{expectedHeaderLabel}</Text>
               </View>
             )}
             <Svg width={TRAIL_WIDTH} height={trailHeight} style={StyleSheet.absoluteFill}>
@@ -894,8 +881,8 @@ const styles = StyleSheet.create({
   scheduleTitleNext: { fontWeight: '800', color: '#B96A08' },
   scheduleTitlePast: { color: colors.textMuted, fontWeight: '500' },
   scheduleTime: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
-  // Section headers sit on a solid chip so they read cleanly where they
-  // cross the trail's connecting line.
+  // The Expected header, on a solid chip. (Gigs get no header — their amber
+  // color already sets them apart.)
   sectionHeader: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   sectionHeaderText: {
     fontSize: 11.5,
