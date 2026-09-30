@@ -40,6 +40,7 @@ import { Confetti } from '../../components/Confetti';
 import { CATEGORY_EMOJI, GoalIdea, guessGoalCategory, suggestGoalIdeas } from '../../data/goalIdeas';
 import { classifyGoalCategory } from '../../services/api';
 import { track } from '../../services/analytics';
+import { CurrencyInput } from '../../components/CurrencyInput';
 import { colors } from '../../theme/colors';
 import { estimateGigsToGo } from '../../utils/gigValue';
 
@@ -434,13 +435,7 @@ export function GoalPickerScreen() {
                 </View>
               </View>
             )}
-            <TextInput
-              style={styles.input}
-              placeholder="Cost ($)"
-              keyboardType="decimal-pad"
-              value={draftCost}
-              onChangeText={setDraftCost}
-            />
+            <CurrencyInput placeholder="How much does it cost?" value={draftCost} onChangeText={setDraftCost} />
             <View style={styles.modalActions}>
               <Pressable style={styles.modalCancelButton} onPress={() => setModalVisible(false)}>
                 <Text style={styles.modalCancelText}>Cancel</Text>
@@ -494,13 +489,7 @@ export function GoalPickerScreen() {
               <>
                 <Text style={styles.modalTitle}>Log a contribution</Text>
                 <Text style={styles.futureFundSubtitle}>How much did you move to the real account?</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Amount ($)"
-                  keyboardType="decimal-pad"
-                  value={contributionAmount}
-                  onChangeText={setContributionAmount}
-                />
+                <CurrencyInput placeholder="0.00" value={contributionAmount} onChangeText={setContributionAmount} />
                 <View style={styles.modalActions}>
                   <Pressable style={styles.modalCancelButton} onPress={() => setGrownUpsMode('info')}>
                     <Text style={styles.modalCancelText}>Back</Text>

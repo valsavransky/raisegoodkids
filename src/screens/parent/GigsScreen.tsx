@@ -11,6 +11,7 @@ import { SettingsSubHeader } from '../../components/SettingsSubHeader';
 import { useAppData } from '../../context/AppDataContext';
 import { useSaveConfirmation } from '../../hooks/useSaveConfirmation';
 import { Gig, GigEffortTier, GigEffortValues } from '../../types/models';
+import { CurrencyInput } from '../../components/CurrencyInput';
 import { colors } from '../../theme/colors';
 import { DEFAULT_GIG_EFFORT_VALUES } from '../../utils/gigValue';
 
@@ -136,15 +137,11 @@ export function GigsScreen({ navigation }: Props) {
             {EFFORT_TIERS.map((tier) => (
               <View key={tier.value} style={styles.gigValueRow}>
                 <Text style={styles.gigValueLabel}>{tier.label}</Text>
-                <View style={styles.gigValueInputWrap}>
-                  <Text style={styles.gigValueDollarSign}>$</Text>
-                  <TextInput
-                    style={styles.gigValueInput}
-                    keyboardType="decimal-pad"
-                    value={gigValueDrafts[tier.value]}
-                    onChangeText={(text) => editGigValueDraft(tier.value, text)}
-                  />
-                </View>
+                <CurrencyInput
+                  compact
+                  value={gigValueDrafts[tier.value]}
+                  onChangeText={(text) => editGigValueDraft(tier.value, text)}
+                />
               </View>
             ))}
             <Pressable
@@ -231,17 +228,6 @@ const styles = StyleSheet.create({
   helper: { fontSize: 12, color: colors.textMuted, marginBottom: 10, lineHeight: 17 },
   gigValueRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 },
   gigValueLabel: { fontSize: 15, color: colors.text },
-  gigValueInputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    backgroundColor: colors.surface,
-  },
-  gigValueDollarSign: { fontSize: 15, color: colors.textMuted, marginRight: 2 },
-  gigValueInput: { fontSize: 15, color: colors.text, paddingVertical: 8, width: 56, textAlign: 'right' },
   saveButton: { marginTop: 12, backgroundColor: colors.gigs, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   saveButtonSaved: { backgroundColor: colors.success },
   saveButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
