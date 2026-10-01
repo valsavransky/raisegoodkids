@@ -1,4 +1,4 @@
-// Shared top bar (Merit logo + wordmark, tappable profile chip) — shown on
+// Shared top bar (UpTrek logo + wordmark, tappable profile chip) — shown on
 // every main tab screen, not just Home, for consistent branding and a
 // settings entry point reachable from anywhere. The chip is the only
 // settings entry — no separate gear icon — mirroring the profile chip in
@@ -34,7 +34,7 @@ export function AppHeader() {
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.brandRow}>
           <Logo size={26} />
-          <Text style={styles.wordmark}>Merit</Text>
+          <Text style={styles.wordmark}>UpTrek</Text>
         </View>
         <Pressable onPress={() => navigation.navigate('Settings')} hitSlop={8} style={styles.chip}>
           <AvatarGlyph avatarId={childProfile?.avatarId} size={20} />

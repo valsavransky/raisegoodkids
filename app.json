@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Merit",
+    "name": "UpTrek",
     "slug": "merit",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -14,7 +14,7 @@
     "android": {
       "package": "com.valsavransky.merit",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#F3F1FB",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -48,7 +48,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Merit uses your photos to let you attach a picture to a goal."
+          "photosPermission": "UpTrek uses your photos to let you attach a picture to a goal."
         }
       ]
     ],

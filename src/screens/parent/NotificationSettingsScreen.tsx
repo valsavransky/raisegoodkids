@@ -81,7 +81,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
             } else {
               Alert.alert(
                 'Notifications are off',
-                "Merit can't send reminders until notifications are allowed in your phone's settings.",
+                "UpTrek can't send reminders until notifications are allowed in your phone's settings.",
                 [
                   { text: 'Not now', style: 'cancel' },
                   { text: 'Open settings', onPress: () => Linking.openSettings() },
@@ -146,7 +146,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
                 <Text style={styles.previewIconText}>M</Text>
               </View>
               <View style={styles.previewText}>
-                <Text style={styles.previewTitle}>Merit</Text>
+                <Text style={styles.previewTitle}>UpTrek</Text>
                 <Text style={styles.previewBody}>{reminderBody(childProfile?.name)}</Text>
               </View>
             </View>
@@ -174,7 +174,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
           <Pressable
             style={styles.testButton}
             onPress={async () => {
-              setTestStatus('Sending… close Merit or lock your phone and wait about 10 seconds.');
+              setTestStatus('Sending… close UpTrek or lock your phone and wait about 10 seconds.');
               const ok = await sendTestReminder(childProfile?.name);
               setTestStatus(ok ? 'Sent. Look for it in about 10 seconds.' : "Couldn't schedule the test.");
             }}

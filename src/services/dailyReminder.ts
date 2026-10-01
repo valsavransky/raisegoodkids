@@ -32,7 +32,7 @@ export type PermissionResult = 'granted' | 'denied';
 
 export function reminderBody(childName?: string): string {
   const who = childName?.trim().split(/\s+/)[0] || 'your child';
-  return `Today's Expected activities haven't been started. Open Merit to check in with ${who}.`;
+  return `Today's Expected activities haven't been started. Open UpTrek to check in with ${who}.`;
 }
 
 /** Foreground behavior: show the banner if the app happens to be open. */
@@ -138,7 +138,7 @@ export async function syncDailyReminder(state: { childName?: string; doneToday: 
     for (const date of upcomingReminderDates(new Date(), settings.time, state.doneToday)) {
       await Notifications.scheduleNotificationAsync({
         identifier: `${ID_PREFIX}${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
-        content: { title: 'Merit', body },
+        content: { title: 'UpTrek', body },
         trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date, channelId: CHANNEL_ID },
       });
     }
@@ -182,13 +182,13 @@ export async function getReminderDiagnostics(): Promise<ReminderDiagnostics> {
 }
 
 /** Schedules the real reminder text to fire a few seconds from now, to prove
- * the phone can show Merit notifications at all. Resolves false on failure. */
+ * the phone can show UpTrek notifications at all. Resolves false on failure. */
 export async function sendTestReminder(childName?: string, seconds = 10): Promise<boolean> {
   try {
     await ensureAndroidChannel();
     await Notifications.scheduleNotificationAsync({
       identifier: 'reminder-test',
-      content: { title: 'Merit', body: reminderBody(childName) },
+      content: { title: 'UpTrek', body: reminderBody(childName) },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds, channelId: CHANNEL_ID },
     });
     return true;

@@ -5,7 +5,7 @@
 // efficient — no exclamation points (see docs/screens-and-flows.md, "Dual
 // voice").
 //
-// No Merit brand mark here on purpose — it's already made its impression on
+// No UpTrek brand mark here on purpose — it's already made its impression on
 // the Welcome screen, and most step-by-step wizards (Stripe onboarding,
 // Apple setup) drop the logo from inner steps once the user knows what
 // app they're in, keeping the chrome to just back arrow + progress + title.
