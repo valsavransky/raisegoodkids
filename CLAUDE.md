@@ -1,6 +1,6 @@
 # raisegoodkids
 
-This project is **UpTrek** (formerly "Merit", and before that "badge") — a mobile app that teaches kids goal-setting, responsibility, and earning by splitting daily/weekly household tasks into two categories: **Expected** (unpaid, non-negotiable responsibilities) and **Gigs** (optional, paid work that builds toward a goal).
+This project is **Trekker** (formerly "UpTrek", "Merit" and, originally, "badge") — a mobile app that teaches kids goal-setting, responsibility, and earning by splitting daily/weekly household tasks into two categories: **Expected** (unpaid, non-negotiable responsibilities) and **Gigs** (optional, paid work that builds toward a goal).
 
 For full product vision and UX context, see:
 - `docs/vision-doc-kids-goals-app.md` — product vision, target users, competitive landscape, risks
@@ -16,4 +16,4 @@ See `AGENTS.md` for the Expo SDK version this project pins to and where to check
 
 ## Live priorities doc
 
-`https://claude.ai/artifact/E9gWXz71mLd4B1nwMpT2bH` is the running "UpTrek Priorities" snapshot (what's shipped, in progress, and queued, ranked by impact/effort) — read it at the start of a new session to pick up where things left off, and re-publish it (same URL) whenever a feature ships or priorities change. Don't let it go stale.
+`https://claude.ai/artifact/E9gWXz71mLd4B1nwMpT2bH` is the running "Trekker Priorities" snapshot (what's shipped, in progress, and queued, ranked by impact/effort) — read it at the start of a new session to pick up where things left off, and re-publish it (same URL) whenever a feature ships or priorities change. Don't let it go stale.

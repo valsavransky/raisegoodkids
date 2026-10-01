@@ -1,4 +1,5 @@
-// UpTrek's logo mark (renamed from "Merit", Sept 30 2026) — three nested,
+// Trekker's logo mark (drawn Sept 30 2026, when the app was briefly named
+// "UpTrek", to replace the Merit monogram) — three nested,
 // organic arches rising to a summit, abstracted just far enough that it
 // reads as a peak or a roofline depending how you look at it, rather than
 // a literal mountain. A thin winding trail climbs through all three layers

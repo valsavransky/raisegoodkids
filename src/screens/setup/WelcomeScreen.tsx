@@ -2,7 +2,7 @@
 // so nothing here can be personalized with the child's name yet (that's
 // step 1, two screens after this — SignInScreen sits between the two,
 // offering a skippable "Sign in with Google" instead of the silent
-// auto-account). Explains what UpTrek actually is and why the Expected/Gigs
+// auto-account). Explains what Trekker actually is and why the Expected/Gigs
 // split exists, since nothing else in the flow did before this screen
 // existed (see the "Splash/start screen needs real content" item in
 // docs/screens-and-flows.md's Known follow-ups).
@@ -44,7 +44,7 @@ interface Slide {
 const SLIDES: Slide[] = [
   {
     icon: '🌱',
-    body: 'Raising responsible kids is hard. UpTrek makes it simple.',
+    body: 'Raising responsible kids is hard. Trekker makes it simple.',
   },
   {
     icon: '🎯',
@@ -126,7 +126,7 @@ export function WelcomeScreen({ navigation }: Props) {
         <Animated.View style={{ transform: [{ scale: logoScale }] }}>
           <Logo size={64} />
         </Animated.View>
-        <Text style={styles.wordmark}>UpTrek</Text>
+        <Text style={styles.wordmark}>Trekker</Text>
       </View>
 
       <View style={styles.textArea}>

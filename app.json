@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "UpTrek",
+    "name": "Trekker",
     "slug": "merit",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -48,7 +48,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "UpTrek uses your photos to let you attach a picture to a goal."
+          "photosPermission": "Trekker uses your photos to let you attach a picture to a goal."
         }
       ]
     ],
