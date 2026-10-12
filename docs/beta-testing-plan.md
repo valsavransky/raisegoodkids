@@ -1,5 +1,5 @@
 # Beta Testing & Feedback Plan: Trekker
-*Companion to vision-doc-kids-goals-app.md and screens-and-flows.md. Renamed from the Sept 8, 2026 "Merit" version — content substantially revised, not just a find-and-replace, since the content-library and feature-readiness pictures have both changed materially. Last updated: Oct 1, 2026.*
+*Companion to vision-doc-kids-goals-app.md and screens-and-flows.md. Renamed from the Sept 8, 2026 "Merit" version — content substantially revised, not just a find-and-replace, since the content-library and feature-readiness pictures have both changed materially. Last updated: Oct 12, 2026.*
 
 ---
 
@@ -30,7 +30,9 @@ Same bar as before — **a family needs to be able to experience the full core l
 Same reasoning as before: no form, no survey link, no re-explaining the app (Welcome already does that). One combined text/email at invite time covering only what the app can't say for itself.
 
 **Template:**
-> Hey! I've been building an app called Trekker — it walks you through what it's about when you open it, so I won't repeat all that here. Two things worth knowing first: it's still early, so expect some rough edges — that's exactly what I'm hoping to catch, so please don't hold back if something's confusing or broken. And it's meant to be something you sit down and use *with* [kid], more like a little shared check-in than an app you just hand over — that's intentional, not a bug. No timeline pressure, just use it as it comes up over the next few weeks and text me anytime you've got a reaction. Oh, and random question while I have you — have you tried other apps or ways to teach [kid] about this kind of stuff before? Curious what worked or didn't.
+> Hey! I've been building an app called Trekker — it walks you through what it's about when you open it, so I won't repeat all that here. Two things worth knowing first: it's still early, so expect some rough edges — that's exactly what I'm hoping to catch, so please don't hold back if something's confusing or broken. And it's meant to be something you sit down and use *with* [kid], more like a little shared check-in than an app you just hand over — that's intentional, not a bug. No timeline pressure, just use it as it comes up over the next few weeks and text me anytime you've got a reaction. One practical thing: right now it only runs on Android, so I need to know — are you on an Android phone? (If you're on iPhone, no worries, I'll loop you in once that's ready!) Oh, and random question while I have you — have you tried other apps or ways to teach [kid] about this kind of stuff before? Curious what worked or didn't.
+
+**Android screening (added Oct 12):** the template now asks up front whether the family is on Android, since iOS is still unavailable. Only invite families who answer yes into wave one; keep iPhone families on a list to loop in once iOS testing is unblocked. Delete that sentence from the template once iOS is working.
 
 Same deliberately-dropped intake questions as before (tech-savviness, current allowance handling) — moved to the exit survey, where comparative/structured answers are more useful.
 
