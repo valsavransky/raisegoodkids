@@ -10,9 +10,9 @@
 // can be turned off from Settings, which also drops anything still queued.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, Platform } from 'react-native';
-import Constants from 'expo-constants';
 import { API_BASE_URL } from '../config';
 import { randomToken } from '../utils/randomToken';
+import { appVersionLabel } from '../utils/appVersion';
 
 const INSTALL_ID_KEY = 'merit.installId.v1';
 const ENABLED_KEY = 'merit.analyticsEnabled.v1';
@@ -82,7 +82,7 @@ async function flush(): Promise<void> {
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
       body: JSON.stringify({
         installId,
-        appVersion: Constants.expoConfig?.version ?? '',
+        appVersion: appVersionLabel(),
         platform: Platform.OS,
         events: batch,
       }),

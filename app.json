@@ -6,7 +6,10 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "scheme": ["merit", "com.valsavransky.merit"],
+    "scheme": [
+      "merit",
+      "com.valsavransky.merit"
+    ],
     "ios": {
       "bundleIdentifier": "com.valsavransky.merit",
       "supportsTablet": true
@@ -52,6 +55,13 @@
         }
       ]
     ],
-    "owner": "vals-kitchen"
+    "owner": "vals-kitchen",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/87dd2a7c-09dc-4e0e-b834-542420d21e3c",
+      "fallbackToCacheTimeout": 3000
+    }
   }
 }

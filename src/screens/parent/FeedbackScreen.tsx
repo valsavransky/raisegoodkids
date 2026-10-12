@@ -6,13 +6,13 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Constants from 'expo-constants';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { SettingsSubHeader } from '../../components/SettingsSubHeader';
 import { useAuth } from '../../context/AuthContext';
 import { sendFeedback } from '../../services/api';
 import { getInstallId, track } from '../../services/analytics';
+import { appVersionLabel } from '../../utils/appVersion';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Feedback'>;
@@ -37,7 +37,7 @@ export function FeedbackScreen({ navigation }: Props) {
     try {
       await sendFeedback(token, {
         installId: await getInstallId(),
-        appVersion: Constants.expoConfig?.version ?? '',
+        appVersion: appVersionLabel(),
         platform: Platform.OS,
         message: message.trim(),
         contact: contact.trim() || undefined,
