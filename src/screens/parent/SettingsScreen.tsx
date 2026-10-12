@@ -161,19 +161,35 @@ export function SettingsScreen({ navigation }: Props) {
           <Text style={styles.rowIcon}>🔐</Text>
           <View style={styles.rowInfo}>
             <Text style={styles.rowLabel}>Account</Text>
-            <Text style={styles.rowSubtitle}>{isAutoAccount ? 'Not secured yet' : accountEmail ?? 'Secured'}</Text>
+            <Text style={styles.rowSubtitle}>{isAutoAccount ? 'No email added yet' : accountEmail ?? 'Signed in'}</Text>
           </View>
           {isAutoAccount && <View style={styles.attentionDot} />}
           <Text style={styles.chevron}>{'›'}</Text>
         </Pressable>
 
-        <Text style={styles.sectionLabel}>Danger Zone</Text>
-        <Pressable style={styles.resetButton} onPress={confirmDisconnectGoogle}>
-          <Text style={styles.resetButtonText}>Disconnect Google Calendar</Text>
+        <Text style={styles.sectionLabel}>Help</Text>
+        <Pressable onPress={() => navigation.navigate('Feedback')} style={styles.row}>
+          <Text style={styles.rowIcon}>💬</Text>
+          <View style={styles.rowInfo}>
+            <Text style={styles.rowLabel}>Send feedback</Text>
+            <Text style={styles.rowSubtitle}>Tell us what's working and what isn't</Text>
+          </View>
+          <Text style={styles.chevron}>{'›'}</Text>
         </Pressable>
-        <Pressable style={[styles.resetButton, styles.resetButtonSpaced]} onPress={confirmResetAllData}>
-          <Text style={styles.resetButtonText}>Reset all data</Text>
-        </Pressable>
+
+        {/* Developer conveniences — only in development builds (running through
+         * Metro), never in a beta or store build. */}
+        {__DEV__ && (
+          <>
+            <Text style={styles.sectionLabel}>Developer tools</Text>
+            <Pressable style={styles.resetButton} onPress={confirmDisconnectGoogle}>
+              <Text style={styles.resetButtonText}>Disconnect Google Calendar</Text>
+            </Pressable>
+            <Pressable style={[styles.resetButton, styles.resetButtonSpaced]} onPress={confirmResetAllData}>
+              <Text style={styles.resetButtonText}>Reset all data</Text>
+            </Pressable>
+          </>
+        )}
       </ScrollView>
     </View>
   );

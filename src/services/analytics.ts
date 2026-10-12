@@ -123,6 +123,13 @@ export function flushAnalytics(): void {
   flush();
 }
 
+/** The random id this install uses (also attached to feedback, so a message can
+ * be matched to usage without any personal details). */
+export async function getInstallId(): Promise<string> {
+  await ready();
+  return installId;
+}
+
 export async function isAnalyticsEnabled(): Promise<boolean> {
   await ready();
   return enabled;

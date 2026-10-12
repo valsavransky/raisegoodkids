@@ -50,6 +50,13 @@ export function loginWithGoogle(idToken: string): Promise<{ token: string; email
   return request('/auth/google', { method: 'POST', body: { idToken } });
 }
 
+export function sendFeedback(
+  token: string,
+  body: { installId: string; appVersion: string; platform: string; message: string; contact?: string }
+): Promise<{ ok: true }> {
+  return request('/feedback', { method: 'POST', token, body });
+}
+
 export function fetchData(token: string): Promise<{ data: unknown | null }> {
   return request('/data', { token });
 }

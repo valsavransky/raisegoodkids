@@ -37,6 +37,18 @@ export async function runMigrations(): Promise<void> {
       app_version TEXT,
       platform TEXT
     );
+    -- Free-text feedback families send from Settings. Unlike events this IS
+    -- typed content, so it's only what the parent chose to write (plus an
+    -- optional contact line) tied to the random install id, nothing else.
+    CREATE TABLE IF NOT EXISTS feedback (
+      id BIGSERIAL PRIMARY KEY,
+      install_id TEXT,
+      message TEXT NOT NULL,
+      contact TEXT,
+      app_version TEXT,
+      platform TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
     CREATE INDEX IF NOT EXISTS events_name_received_idx ON events (name, received_at);
     CREATE INDEX IF NOT EXISTS events_install_received_idx ON events (install_id, received_at);
   `);

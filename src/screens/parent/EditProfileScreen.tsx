@@ -56,7 +56,7 @@ export function EditProfileScreen({ navigation }: Props) {
     ? parsedBirthday.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
     : null;
 
-  const canSave = useMemo(() => name.trim().length > 0, [name]);
+  const canSave = useMemo(() => name.trim().length > 0 && !!grade, [name, grade]);
 
   const openPicker = () => {
     setTempDate(parsedBirthday ?? eightYearsAgo());
@@ -176,7 +176,7 @@ export function EditProfileScreen({ navigation }: Props) {
           </Modal>
         )}
 
-        <Text style={styles.label}>Grade in school (optional)</Text>
+        <Text style={styles.label}>Grade in school</Text>
         <View style={styles.chipRow}>
           {GRADE_OPTIONS.map((g) => {
             const selected = grade === g;
@@ -184,7 +184,7 @@ export function EditProfileScreen({ navigation }: Props) {
               <Pressable
                 key={g}
                 onPress={() => {
-                  setGrade(selected ? undefined : g);
+                  setGrade(g);
                 }}
                 style={[styles.chip, selected && styles.chipSelected]}
               >

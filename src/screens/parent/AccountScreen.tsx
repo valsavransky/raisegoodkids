@@ -83,7 +83,7 @@ export function AccountScreen({ navigation }: Props) {
         {isAutoAccount ? (
           <>
             <Text style={styles.helper}>
-              Your data already backs up automatically. Set an email and password so you can also get to it from a
+              Your data already backs up automatically. Add an email and password so you can also get to it from a
               new phone if you ever need to.
             </Text>
             <TextInput
@@ -141,14 +141,14 @@ export function AccountScreen({ navigation }: Props) {
               disabled={status === 'saving'}
             >
               <Text style={[styles.saveButtonText, status === 'saved' && styles.saveButtonTextSaved]}>
-                {status === 'saving' ? 'Saving…' : status === 'saved' ? '✓ Secured' : 'Secure my account'}
+                {status === 'saving' ? 'Saving…' : status === 'saved' ? '✓ Saved' : 'Add email and password'}
               </Text>
             </Pressable>
             {status === 'error' && <Text style={styles.errorText}>{error}</Text>}
           </>
         ) : (
           <Text style={styles.helper}>
-            ✓ Account secured{accountEmail ? ` — ${accountEmail}` : ''}. You can log in with this email on another
+            ✓ Signed in{accountEmail ? ` — ${accountEmail}` : ''}. You can log in with this email on another
             phone if you ever need to.
           </Text>
         )}

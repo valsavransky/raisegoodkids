@@ -18,6 +18,7 @@ import { ExpectedItemsScreen } from '../screens/parent/ExpectedItemsScreen';
 import { GigsScreen } from '../screens/parent/GigsScreen';
 import { ScheduleScreen } from '../screens/parent/ScheduleScreen';
 import { FutureFundSettingsScreen } from '../screens/parent/FutureFundSettingsScreen';
+import { FeedbackScreen } from '../screens/parent/FeedbackScreen';
 import { NotificationSettingsScreen } from '../screens/parent/NotificationSettingsScreen';
 import { AccountScreen } from '../screens/parent/AccountScreen';
 import { EditProfileScreen } from '../screens/parent/EditProfileScreen';
@@ -45,6 +46,7 @@ export function RootStackNavigator() {
         <Stack.Screen name="ScheduleSettings" component={ScheduleScreen} />
         <Stack.Screen name="FutureFundSettings" component={FutureFundSettingsScreen} />
         <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
+        <Stack.Screen name="Feedback" component={FeedbackScreen} />
         <Stack.Screen name="AccountSettings" component={AccountScreen} />
         <Stack.Screen name="EditProfile" component={EditProfileScreen} />
       </Stack.Group>

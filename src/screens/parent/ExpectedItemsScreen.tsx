@@ -10,6 +10,7 @@ import { SettingsSubHeader } from '../../components/SettingsSubHeader';
 import { useAppData } from '../../context/AppDataContext';
 import { ExpectedItem } from '../../types/models';
 import { colors } from '../../theme/colors';
+import { LINK_HIT_SLOP } from '../../theme/hitSlop';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExpectedItemsSettings'>;
 
@@ -75,10 +76,10 @@ export function ExpectedItemsScreen({ navigation }: Props) {
                     )}
                   </View>
                   <View style={styles.rowActions}>
-                    <Pressable onPress={() => openEdit(item)}>
+                    <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => openEdit(item)}>
                       <Text style={styles.linkAction}>Edit</Text>
                     </Pressable>
-                    <Pressable onPress={() => confirmDelete(item)}>
+                    <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => confirmDelete(item)}>
                       <Text style={styles.linkActionDanger}>Remove</Text>
                     </Pressable>
                   </View>
@@ -100,10 +101,10 @@ export function ExpectedItemsScreen({ navigation }: Props) {
                     )}
                   </View>
                   <View style={styles.rowActions}>
-                    <Pressable onPress={() => openEdit(item)}>
+                    <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => openEdit(item)}>
                       <Text style={styles.linkAction}>Edit</Text>
                     </Pressable>
-                    <Pressable onPress={() => confirmDelete(item)}>
+                    <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => confirmDelete(item)}>
                       <Text style={styles.linkActionDanger}>Remove</Text>
                     </Pressable>
                   </View>

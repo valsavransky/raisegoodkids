@@ -64,3 +64,31 @@ eventsRouter.post('/', requireAuth, async (req: AuthedRequest, res: Response) =>
     res.status(500).json({ error: 'Could not save events' });
   }
 });
+
+// Feedback a parent types into Settings > Send feedback. Authenticated like
+// events, size-limited, and shown on the private /admin page.
+export const feedbackRouter = Router();
+
+feedbackRouter.post('/', requireAuth, async (req: AuthedRequest, res: Response) => {
+  try {
+    const { installId, appVersion, platform, message, contact } = req.body ?? {};
+    if (typeof message !== 'string' || message.trim().length === 0) {
+      res.status(400).json({ error: 'Write a message first' });
+      return;
+    }
+    await pool.query(
+      `INSERT INTO feedback (install_id, message, contact, app_version, platform) VALUES ($1, $2, $3, $4, $5)`,
+      [
+        typeof installId === 'string' ? installId.slice(0, 64) : null,
+        message.trim().slice(0, 2000),
+        typeof contact === 'string' && contact.trim() ? contact.trim().slice(0, 200) : null,
+        typeof appVersion === 'string' ? appVersion.slice(0, 20) : null,
+        typeof platform === 'string' ? platform.slice(0, 20) : null,
+      ]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('POST /feedback failed', err);
+    res.status(500).json({ error: 'Could not save feedback' });
+  }
+});

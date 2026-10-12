@@ -159,6 +159,9 @@ export function NotificationSettingsScreen({ navigation }: Props) {
           <Text style={styles.helper}>Turn it on to get one gentle nudge on days nothing has been checked off yet.</Text>
         )}
 
+        {/* Troubleshooting aids — development builds only. */}
+        {__DEV__ && (
+          <>
         <Text style={styles.previewLabel}>Troubleshooting</Text>
         <View style={styles.diagBox}>
           <Text style={styles.diagLine}>
@@ -183,6 +186,8 @@ export function NotificationSettingsScreen({ navigation }: Props) {
           </Pressable>
           {testStatus !== '' && <Text style={styles.diagNote}>{testStatus}</Text>}
         </View>
+          </>
+        )}
       </ScrollView>
 
       {showPicker && Platform.OS === 'android' && (

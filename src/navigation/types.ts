@@ -35,6 +35,7 @@ export type RootStackParamList = {
   ScheduleSettings: undefined;
   FutureFundSettings: undefined;
   NotificationSettings: undefined;
+  Feedback: undefined;
   AccountSettings: undefined;
   EditProfile: undefined;
 };

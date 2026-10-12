@@ -13,6 +13,7 @@ import { useSaveConfirmation } from '../../hooks/useSaveConfirmation';
 import { Gig, GigEffortTier, GigEffortValues } from '../../types/models';
 import { CurrencyInput } from '../../components/CurrencyInput';
 import { colors } from '../../theme/colors';
+import { LINK_HIT_SLOP } from '../../theme/hitSlop';
 import { DEFAULT_GIG_EFFORT_VALUES } from '../../utils/gigValue';
 
 const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
@@ -116,10 +117,10 @@ export function GigsScreen({ navigation }: Props) {
                   <Text style={styles.rowMeta}>{EFFORT_TIERS.find((t) => t.value === gig.effortTier)?.label}</Text>
                 </View>
                 <View style={styles.rowActions}>
-                  <Pressable onPress={() => openEdit(gig)}>
+                  <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => openEdit(gig)}>
                     <Text style={styles.linkAction}>Edit</Text>
                   </Pressable>
-                  <Pressable onPress={() => confirmDelete(gig)}>
+                  <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => confirmDelete(gig)}>
                     <Text style={styles.linkActionDanger}>Remove</Text>
                   </Pressable>
                 </View>

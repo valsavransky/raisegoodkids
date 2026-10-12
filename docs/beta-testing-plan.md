@@ -38,7 +38,7 @@ Same deliberately-dropped intake questions as before (tech-savviness, current al
 
 ### B) Lightweight in-app feedback (ongoing, low-friction)
 
-**Still not built** — this hasn't changed since Sept 8. A "Send feedback" option in parent settings and a one-tap pulse check after a goal completion ("How did that feel for your family?") remain designed-on-paper, not shipped. Given everything else that's landed since Sept 8, this is worth a look before wave one starts if it's cheap to add — right now a family's only feedback channel is texting you directly, which works at 3-5 families but is easy to lose track of without a dedicated place to log it.
+**Built (Oct 12):** Settings → Help → **Send feedback** — a free-text box plus an optional "how can we reach you?" line. Messages are stored in the server database and appear under "Feedback from families" on the private `/admin` page (with the install's short id, platform and app version, but no name or email unless the parent types a contact). Not built: the one-tap pulse check after a goal completion ("How did that feel for your family?") — still designed-on-paper only, and optional.
 
 ### C) Exit survey (whenever a family reaches a natural stopping point)
 
@@ -57,6 +57,6 @@ The Sept 8 plan flagged two problems with no good solution: no admin dashboard, 
 **Delivery tone, core-mechanic/engagement/outcome/open-ended question pools:** unchanged from the Sept 8 plan in substance — see that version's full candidate list if you need the exact wording; just swap the app name.
 
 ## 6. Not yet designed
-- The in-app feedback UI (Section 4B) — still the single biggest gap between this plan and what's actually built.
+- The one-tap pulse check after a goal completion (Section 4B) — optional; the Send feedback screen now covers ongoing feedback.
 - Where/how the intake and exit surveys are delivered — in-app vs. an external form — still an open decision, now slightly lower-stakes given the admin dashboard covers some of what a built-in survey tool would have.
 - iOS testing path (Simulator vs. a paid Apple Developer Program device build) — blocks wave one from including any iPhone families until resolved.

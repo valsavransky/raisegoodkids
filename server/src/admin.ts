@@ -80,7 +80,7 @@ adminRouter.get('/', async (req: Request, res: Response) => {
     return;
   }
   try {
-    const [totals, dau, funnel, retention, features, recent, methods, grades, fundPct] = await Promise.all([
+    const [totals, dau, funnel, retention, features, recent, methods, grades, fundPct, feedback] = await Promise.all([
       pool.query(`
         SELECT
           COUNT(DISTINCT install_id)::int AS installs,
@@ -124,6 +124,10 @@ adminRouter.get('/', async (req: Request, res: Response) => {
       breakdown('signed_in', 'method'),
       breakdown('setup_completed', 'grade'),
       breakdown('future_fund_set', 'percent'),
+      pool.query(`
+        SELECT message, contact, LEFT(install_id, 6) AS who, platform, app_version,
+               to_char(created_at AT TIME ZONE 'UTC', 'Mon DD HH24:MI') AS at
+        FROM feedback ORDER BY id DESC LIMIT 50`),
     ]);
 
     const t = totals.rows[0];
@@ -191,6 +195,17 @@ ${retentionCell('Day 1 return', r.d1_ret, r.d1_base)}${retentionCell('Day 7 retu
 <div class="panel"><strong>Grade</strong>${table(grades)}</div>
 <div class="panel"><strong>Future Fund %</strong>${table(fundPct)}</div>
 </div>
+
+<h2>Feedback from families (${feedback.rows.length})</h2>${
+      feedback.rows.length === 0
+        ? '<div class="panel muted">Nothing yet. Families send feedback from Settings &rarr; Send feedback.</div>'
+        : feedback.rows
+            .map(
+              (x) =>
+                `<div class="panel" style="margin-bottom:8px"><div class="muted">${esc(x.at)} UTC &middot; install <code>${esc(x.who)}</code> &middot; ${esc(x.platform ?? '')} ${esc(x.app_version ?? '')}${x.contact ? ` &middot; contact: ${esc(x.contact)}` : ''}</div><div style="white-space:pre-wrap;margin-top:6px">${esc(x.message)}</div></div>`
+            )
+            .join('')
+    }
 
 <h2>Latest events</h2><div class="panel scroll"><table><tr><th>When (UTC)</th><th>Install</th><th>Event</th><th>Details</th></tr>${recent.rows
       .map((x) => `<tr><td>${esc(x.at)}</td><td><code>${esc(x.who)}</code></td><td>${esc(x.name)}</td><td class="muted">${esc(Object.entries(x.props ?? {}).map(([k, v]) => `${k}=${v}`).join(' '))}</td></tr>`)

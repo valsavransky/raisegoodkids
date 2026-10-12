@@ -42,6 +42,7 @@ import { classifyGoalCategory } from '../../services/api';
 import { track } from '../../services/analytics';
 import { CurrencyInput } from '../../components/CurrencyInput';
 import { colors } from '../../theme/colors';
+import { LINK_HIT_SLOP } from '../../theme/hitSlop';
 import { estimateGigsToGo } from '../../utils/gigValue';
 
 type GoalPickerNavigationProp = CompositeNavigationProp<
@@ -245,20 +246,20 @@ export function GoalPickerScreen() {
             </View>
           </View>
           <View style={styles.goalRowActions}>
-            <Pressable onPress={() => handleMakeActive(item)}>
+            <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => handleMakeActive(item)}>
               <Text style={styles.linkAction}>Make active</Text>
             </Pressable>
             {modifiable && (
               <>
-                <Pressable onPress={() => openEditModal(item)}>
+                <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => openEditModal(item)}>
                   <Text style={styles.linkAction}>Edit</Text>
                 </Pressable>
                 {deleteConfirmId === item.id ? (
-                  <Pressable onPress={() => deleteGoal(item.id)}>
+                  <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => deleteGoal(item.id)}>
                     <Text style={styles.linkActionDanger}>Confirm delete</Text>
                   </Pressable>
                 ) : (
-                  <Pressable onPress={() => setDeleteConfirmId(item.id)}>
+                  <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => setDeleteConfirmId(item.id)}>
                     <Text style={styles.linkActionDanger}>Delete</Text>
                   </Pressable>
                 )}
@@ -420,7 +421,7 @@ export function GoalPickerScreen() {
                   {draftPhotoUri ? (
                     <View style={styles.photoPreviewRow}>
                       <Image source={{ uri: draftPhotoUri }} style={styles.photoPreviewThumb} />
-                      <Pressable onPress={() => setDraftPhotoUri(undefined)}>
+                      <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => setDraftPhotoUri(undefined)}>
                         <Text style={styles.linkActionDanger}>Remove</Text>
                       </Pressable>
                     </View>
