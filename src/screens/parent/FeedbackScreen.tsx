@@ -60,7 +60,7 @@ export function FeedbackScreen({ navigation }: Props) {
         >
           <Text style={styles.helper}>
             What's working, what's confusing, what's missing? Anything helps. Your note goes straight to the Trekker
-            team.
+            team. (Update test: if you can read this line, over-the-air updates work.)
           </Text>
 
           <TextInput
