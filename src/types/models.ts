@@ -168,6 +168,9 @@ export interface GigCompletion {
   /** Percentage of the active goal this completion was worth, computed at
    * approval time from the gig's effort tier and the goal's cost. */
   percentageAwarded: number;
+  /** Dollars this completion moved into the Future Fund (so un-selecting the
+   * gig can take back exactly that amount). Absent on older completions. */
+  futureFundAmount?: number;
 }
 
 export type GoalStatus = 'queued' | 'active' | 'achieved' | 'fulfilled';

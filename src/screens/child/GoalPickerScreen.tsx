@@ -83,6 +83,8 @@ export function GoalPickerScreen() {
   const [draftCost, setDraftCost] = useState('');
   const [draftPhotoUri, setDraftPhotoUri] = useState<string | undefined>(undefined);
 
+  // Shown once, right after the very first goal is saved.
+  const [firstGoalPromptVisible, setFirstGoalPromptVisible] = useState(false);
   const [confettiTrigger, setConfettiTrigger] = useState(0);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   // The "For grown-ups" sheet: the investing explainer, then (via "I moved
@@ -191,7 +193,9 @@ export function GoalPickerScreen() {
         guessGoalCategory(name) ??
         (token ? (await classifyGoalCategory(token, name)) ?? undefined : undefined);
       track('goal_added', { source: draftIdea && draftIdea.name === name ? 'suggested' : 'custom', has_photo: !!draftPhotoUri });
+      const isFirstGoal = goals.length === 0;
       addGoal(name, cost, category, draftPhotoUri);
+      if (isFirstGoal) setFirstGoalPromptVisible(true);
       return;
     }
     setModalVisible(false);
@@ -321,7 +325,14 @@ export function GoalPickerScreen() {
         sections={sections}
         keyExtractor={(goal) => goal.id}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>Pick something they actually want — every gig they do chips away at it.</Text>
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyText}>
+              Pick something {childName} actually wants — every gig they do chips away at it. Add a goal now, or skip and add one later.
+            </Text>
+            <Pressable style={styles.emptySkip} onPress={() => navigation.navigate('Home')} hitSlop={LINK_HIT_SLOP}>
+              <Text style={styles.emptySkipText}>Skip for now →</Text>
+            </Pressable>
+          </View>
         }
         renderSectionHeader={({ section }) => <Text style={styles.sectionHeader}>{section.title}</Text>}
         renderItem={({ item }) => renderGoalRow(item)}
@@ -451,6 +462,34 @@ export function GoalPickerScreen() {
       </Modal>
 
       <Modal
+        visible={firstGoalPromptVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setFirstGoalPromptVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]}>
+            <Text style={styles.modalTitle}>Goal added! 🎉</Text>
+            <Text style={styles.emptyText}>Add another, or head to Today to start earning toward it.</Text>
+            <View style={styles.promptButtons}>
+              <Pressable style={styles.modalCancelButton} onPress={() => setFirstGoalPromptVisible(false)}>
+                <Text style={styles.modalCancelText}>Add another goal</Text>
+              </Pressable>
+              <Pressable
+                style={styles.modalAddButton}
+                onPress={() => {
+                  setFirstGoalPromptVisible(false);
+                  navigation.navigate('Home');
+                }}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>See Today's activities</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
         visible={grownUpsVisible}
         animationType="slide"
         transparent
@@ -516,6 +555,10 @@ const styles = StyleSheet.create({
   list: { flex: 1 },
   listContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20 },
   emptyText: { fontSize: 14, color: colors.textMuted, textAlign: 'center', marginTop: 24 },
+  emptyCard: { alignItems: 'center', paddingHorizontal: 12 },
+  emptySkip: { marginTop: 12, paddingVertical: 6 },
+  emptySkipText: { color: colors.expected, fontSize: 15, fontWeight: '600' },
+  promptButtons: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 20 },
   sectionHeader: { fontSize: 13, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', marginTop: 12, marginBottom: 8 },
   goalRow: {
     borderWidth: 1,

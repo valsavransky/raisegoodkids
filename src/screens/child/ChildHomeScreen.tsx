@@ -253,12 +253,10 @@ function WeeklyStopSection({
           .map((d) => expectedCompletions.find((c) => c.expectedItemId === item.id && c.date === d))
           .find(Boolean);
         const done = !!completion;
-        const tappable = !done && !isExpectedDoneToday(item.id);
         const doneDayName = completion ? STOP_WEEKDAY_NAMES[new Date(`${completion.date}T00:00:00`).getDay()] : null;
         return (
           <Pressable
             key={item.id}
-            disabled={!tappable}
             onPress={() => onPressStop(item.id)}
             style={styles.stopRow}
           >
@@ -379,6 +377,8 @@ export function ChildHomeScreen() {
     gigPreviewPercentage,
     gigCompletionStatusToday,
     markGigDone,
+    unmarkExpectedDone,
+    unmarkGigDone,
     soundEnabled,
     expectedStreak,
     scheduleEvents,
@@ -512,7 +512,38 @@ export function ChildHomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [avatarPoint.x, avatarPoint.y]);
 
+  // A short in-flow confirmation under the toggle after each check-off (it
+  // swaps places with the "tap to mark complete" hint, then goes away).
+  const [confirmation, setConfirmation] = useState<string | null>(null);
+  const confirmationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const showConfirmation = (itemName: string) => {
+    const who = childProfile?.name?.trim().split(/\s+/)[0] || 'They';
+    setConfirmation(`${who} completed "${itemName}"`);
+    if (confirmationTimer.current) clearTimeout(confirmationTimer.current);
+    confirmationTimer.current = setTimeout(() => setConfirmation(null), 2800);
+  };
+  useEffect(
+    () => () => {
+      if (confirmationTimer.current) clearTimeout(confirmationTimer.current);
+    },
+    []
+  );
+
+  const confirmUnselect = (itemName: string, onConfirm: () => void) => {
+    Alert.alert(`Unselect "${itemName}"?`, 'Are you sure? It will go back to not done.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Unselect', style: 'destructive', onPress: onConfirm },
+    ]);
+  };
+
   const handleExpectedPress = (itemId: string) => {
+    if (isExpectedDoneToday(itemId)) {
+      const done = expectedItems.find((i) => i.id === itemId);
+      if (done) confirmUnselect(done.name, () => unmarkExpectedDone(itemId));
+      return;
+    }
+    const tapped = expectedItems.find((i) => i.id === itemId);
+    if (tapped) showConfirmation(tapped.name);
     celebrateCheckoff();
     const { newBadgeCatalogId, allDoneToday, allWeeklyDoneThisWeek } = markExpectedDone(itemId);
     if (allDoneToday) {
@@ -525,6 +556,14 @@ export function ChildHomeScreen() {
   };
 
   const handleGigPress = (gig: Gig) => {
+    if (gigCompletionStatusToday(gig.id) !== null) {
+      confirmUnselect(gig.name, () => {
+        if (unmarkGigDone(gig.id) === 'goal_reached') {
+          Alert.alert("Can't unselect this one", 'This gig finished the goal, so it can no longer be undone.');
+        }
+      });
+      return;
+    }
     if (!goal) {
       Alert.alert('Pick a goal first!', 'Gigs add progress toward a goal. Pick one to get started.', [
         { text: 'Not now', style: 'cancel' },
@@ -534,6 +573,7 @@ export function ChildHomeScreen() {
     }
     const activeGoalId = goal.id;
     const startGig = () => {
+      showConfirmation(gig.name);
       celebrateGig();
       const { achievedGoal, newBadgeCatalogId, allGigsDoneToday } = markGigDone(gig.id);
       if (achievedGoal) {
@@ -564,10 +604,10 @@ export function ChildHomeScreen() {
   // item, so both share DailyGridSection's day-by-day rendering.
   const dailyIsDoneOn = (itemId: string, date: string) =>
     expectedCompletions.some((c) => c.expectedItemId === itemId && c.date === date);
-  const dailyIsTappableOn = (itemId: string, date: string) => date === todayStr && !dailyIsDoneOn(itemId, date);
+  const dailyIsTappableOn = (_itemId: string, date: string) => date === todayStr;
   const gigIsDoneOn = (gigId: string, date: string) =>
     gigCompletions.some((c) => c.gigId === gigId && c.status === 'approved' && localDateOf(c.markedDoneAt) === date);
-  const gigIsTappableOn = (gigId: string, date: string) => date === todayStr && gigCompletionStatusToday(gigId) === null;
+  const gigIsTappableOn = (_gigId: string, date: string) => date === todayStr;
   const handleGigPressById = (gigId: string) => {
     const gig = gigs.find((g) => g.id === gigId);
     if (gig) handleGigPress(gig);
@@ -643,6 +683,15 @@ export function ChildHomeScreen() {
               <Text style={styles.streakText}>{streak > 0 ? `${streak}-day streak` : 'Start your streak!'}</Text>
             )}
         </View>
+
+        {view === 'today' && stops.length > 0 &&
+          (confirmation ? (
+            <View style={styles.confirmBanner}>
+              <Text style={styles.confirmBannerText}>✓ {confirmation}</Text>
+            </View>
+          ) : (
+            <Text style={styles.tapHint}>Tap an activity to mark it complete. Tap again to undo.</Text>
+          ))}
 
         {view === 'today' && todaysEvents.length > 0 && (
           <View style={styles.scheduleStrip}>
@@ -737,7 +786,6 @@ export function ChildHomeScreen() {
               return (
                 <View key={`${stop.kind}-${stop.id}`}>
                   <Pressable
-                    disabled={stop.done}
                     onPress={() =>
                       stop.kind === 'expected'
                         ? handleExpectedPress(stop.id)
@@ -932,6 +980,16 @@ const styles = StyleSheet.create({
   scheduleTitleNext: { fontWeight: '800', color: '#B96A08' },
   scheduleTitlePast: { color: colors.textMuted, fontWeight: '500' },
   scheduleTime: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
+  tapHint: { fontSize: 12.5, color: '#8a8578', paddingHorizontal: 20, marginBottom: 8 },
+  confirmBanner: {
+    marginHorizontal: 20,
+    marginBottom: 8,
+    backgroundColor: colors.successBackground,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  confirmBannerText: { fontSize: 13, fontWeight: '700', color: colors.success },
   trailArea: { width: TRAIL_WIDTH, alignSelf: 'center', marginTop: 10 },
   avatarWrap: {
     position: 'absolute',
