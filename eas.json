@@ -14,10 +14,6 @@
         "simulator": true
       }
     },
-    "staging": {
-      "distribution": "internal",
-      "channel": "staging"
-    },
     "preview": {
       "distribution": "internal",
       "channel": "preview"

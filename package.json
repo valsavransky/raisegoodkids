@@ -39,7 +39,6 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "ship:staging": "npm run typecheck && npx eas-cli update --channel staging --message",
     "ship:preview": "npm run typecheck && npx eas-cli update --channel preview --message"
   },
   "private": true
