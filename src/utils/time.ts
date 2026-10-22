@@ -20,3 +20,10 @@ export function formatTimeRange12h(startTime?: string, endTime?: string): string
   if (!startTime) return null;
   return endTime ? `${formatTime12h(startTime)}–${formatTime12h(endTime)}` : formatTime12h(startTime);
 }
+
+/** hhmm plus an hour, held at 23:59 so a late start never wraps to "before" it. */
+export function addOneHour(hhmm: string): string {
+  const d = timeStringToDate(hhmm);
+  const end = new Date(d.getTime() + 60 * 60 * 1000);
+  return end.getDate() !== d.getDate() ? '23:59' : dateToTimeString(end);
+}

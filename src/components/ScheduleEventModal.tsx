@@ -10,7 +10,7 @@ import { View, Text, TextInput, Pressable, Modal, Alert, KeyboardAvoidingView, P
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { ScheduleEventCategory, ScheduleEventCadence, CADENCE_LABELS } from '../types/models';
-import { timeStringToDate, dateToTimeString, formatTime12h } from '../utils/time';
+import { timeStringToDate, dateToTimeString, formatTime12h, addOneHour } from '../utils/time';
 import { KeyboardAwareScrollView } from './KeyboardAwareScrollView';
 import { colors } from '../theme/colors';
 
@@ -76,17 +76,28 @@ export function ScheduleEventModal({ visible, draft, onChangeDraft, editing, onS
     setTimePickerTarget(target);
   };
 
+  // Picking a start time fills the end time as one hour later, so the parent
+  // doesn't have to set both every time. It follows later start changes until
+  // the parent sets an end time themselves.
+  const applyTime = (target: 'startTime' | 'endTime', value: string) => {
+    onChangeDraft((prev) => {
+      if (target === 'endTime') return { ...prev, endTime: value };
+      const endIsAuto = !prev.endTime || (prev.startTime && prev.endTime === addOneHour(prev.startTime));
+      return { ...prev, startTime: value, endTime: endIsAuto ? addOneHour(value) : prev.endTime };
+    });
+  };
+
   const handleAndroidTimeChange = (_event: DateTimePickerChangeEvent, selectedDate?: Date) => {
     const target = timePickerTarget;
     setTimePickerTarget(null);
     if (selectedDate && target) {
-      onChangeDraft((prev) => ({ ...prev, [target]: dateToTimeString(selectedDate) }));
+      applyTime(target, dateToTimeString(selectedDate));
     }
   };
 
   const confirmIOSTime = () => {
     if (timePickerTarget) {
-      onChangeDraft((prev) => ({ ...prev, [timePickerTarget]: dateToTimeString(tempTime) }));
+      applyTime(timePickerTarget, dateToTimeString(tempTime));
     }
     setTimePickerTarget(null);
   };
@@ -204,6 +215,10 @@ export function ScheduleEventModal({ visible, draft, onChangeDraft, editing, onS
             </Pressable>
           </View>
 
+          {!!draft.startTime && draft.endTime === addOneHour(draft.startTime) && (
+            <Text style={styles.timeHint}>End time is set to 1 hour after the start. Tap it to change.</Text>
+          )}
+
           {timePickerTarget && Platform.OS === 'android' && (
             <DateTimePicker
               value={tempTime}
@@ -299,6 +314,7 @@ const styles = StyleSheet.create({
   dayChipSelected: { backgroundColor: colors.expected, borderColor: colors.expected },
   dayChipText: { fontSize: 12, color: colors.text },
   dayChipTextSelected: { color: '#fff', fontWeight: '600' },
+  timeHint: { fontSize: 12, color: colors.textMuted, marginTop: 6, marginBottom: 12 },
   timeRow: { flexDirection: 'row', gap: 10 },
   timeInput: { flex: 1 },
   timeValueText: { fontSize: 16, color: colors.text },
