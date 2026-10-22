@@ -3,12 +3,13 @@
 // on the Settings list (which also shows a small amber dot there while
 // still unsecured, mirroring the same nudge on the gear icon).
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { SettingsSubHeader } from '../../components/SettingsSubHeader';
 import { useAuth } from '../../context/AuthContext';
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { colors } from '../../theme/colors';
 
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
@@ -76,7 +77,7 @@ export function AccountScreen({ navigation }: Props) {
       <SettingsSubHeader title="Account" onBack={() => navigation.goBack()} />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
+      <KeyboardAwareScrollView avoid={false}
         contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}
         keyboardShouldPersistTaps="handled"
       >
@@ -152,7 +153,7 @@ export function AccountScreen({ navigation }: Props) {
             phone if you ever need to.
           </Text>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
       </KeyboardAvoidingView>
     </View>
   );

@@ -6,11 +6,12 @@
 // originally established; the native AM/PM time picker and the
 // validation-feedback alert were Settings-only until now.
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, Modal, ScrollView, Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, Modal, Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { ScheduleEventCategory, ScheduleEventCadence, CADENCE_LABELS } from '../types/models';
 import { timeStringToDate, dateToTimeString, formatTime12h } from '../utils/time';
+import { KeyboardAwareScrollView } from './KeyboardAwareScrollView';
 import { colors } from '../theme/colors';
 
 export interface ScheduleEventDraft {
@@ -111,7 +112,7 @@ export function ScheduleEventModal({ visible, draft, onChangeDraft, editing, onS
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <Pressable style={styles.modalBackdrop} onPress={onCancel}>
         <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
-        <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <KeyboardAwareScrollView avoid={false} showsVerticalScrollIndicator={false}>
           <Text style={styles.modalTitle}>{editing ? 'Edit event' : 'Add event'}</Text>
           <TextInput
             style={styles.input}
@@ -243,7 +244,7 @@ export function ScheduleEventModal({ visible, draft, onChangeDraft, editing, onS
               </Pressable>
             </View>
           </View>
-        </ScrollView>
+        </KeyboardAwareScrollView>
         </Pressable>
         </Pressable>
       </KeyboardAvoidingView>

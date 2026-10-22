@@ -10,7 +10,7 @@
 // Settings on its own (see useSaveConfirmation) — same as every other
 // Settings save screen.
 import React, { useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -18,6 +18,7 @@ import { SettingsSubHeader } from '../../components/SettingsSubHeader';
 import { FuturePercentagePicker } from '../../components/FuturePercentagePicker';
 import { useAppData } from '../../context/AppDataContext';
 import { useSaveConfirmation } from '../../hooks/useSaveConfirmation';
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'FutureFundSettings'>;
@@ -49,7 +50,7 @@ export function FutureFundSettingsScreen({ navigation }: Props) {
     <View style={styles.screen}>
       <SettingsSubHeader title="Future Fund" onBack={() => navigation.goBack()} />
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
+      <KeyboardAwareScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
         <Text style={styles.helper}>
           The share of every gig that goes to the Future Fund first, before the rest counts toward their goal —
           shown to your child right on the Goal tab. Use the switch to turn it off.
@@ -61,7 +62,7 @@ export function FutureFundSettingsScreen({ navigation }: Props) {
           <Text style={styles.saveButtonText}>{saved ? '✓ Saved' : 'Save'}</Text>
         </Pressable>
         {invalid && <Text style={styles.errorText}>Enter a percentage between 0 and 100.</Text>}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }

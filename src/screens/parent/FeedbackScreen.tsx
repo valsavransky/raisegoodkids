@@ -4,7 +4,7 @@
 // usage events, which never carry anything typed — so the screen says exactly
 // where it goes.
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -13,6 +13,7 @@ import { useAuth } from '../../context/AuthContext';
 import { sendFeedback } from '../../services/api';
 import { getInstallId, track } from '../../services/analytics';
 import { appVersionLabel } from '../../utils/appVersion';
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Feedback'>;
@@ -54,7 +55,7 @@ export function FeedbackScreen({ navigation }: Props) {
     <View style={styles.screen}>
       <SettingsSubHeader title="Send feedback" onBack={() => navigation.goBack()} />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView
+        <KeyboardAwareScrollView avoid={false}
           contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}
           keyboardShouldPersistTaps="handled"
         >
@@ -102,7 +103,7 @@ export function FeedbackScreen({ navigation }: Props) {
           {status === 'error' && (
             <Text style={styles.errorText}>Couldn't send that. Check your connection and try again.</Text>
           )}
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </KeyboardAvoidingView>
     </View>
   );

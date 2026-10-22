@@ -13,8 +13,8 @@
 // Manual entry uses structured fields (name, day(s)/date, start/end time,
 // whether it repeats) rather than a single free-form recurrence string, so
 // events can later be rendered as a real schedule view.
-import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, FlatList, StyleSheet } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { View, Text, TextInput, Pressable, FlatList, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
@@ -29,6 +29,7 @@ import {
   placeholderForCategory,
 } from '../../data/practiceSuggestions';
 import { useTrackSetupStep } from '../../hooks/useTrackScreen';
+import { useKeyboardScrollIntoView } from '../../hooks/useKeyboardScrollIntoView';
 import { colors } from '../../theme/colors';
 import { formatShortDate } from '../../utils/date';
 
@@ -75,11 +76,24 @@ export function ScheduleReviewScreen({ navigation }: Props) {
   const [modalVisible, setModalVisible] = useState(false);
   const [draft, setDraft] = useState<ScheduleEventDraft>(BLANK_SCHEDULE_EVENT_DRAFT);
 
+  const listRef = useRef<FlatList<DraftScheduleEvent>>(null);
+  const onListScroll = useKeyboardScrollIntoView(listRef, (offset) => listRef.current?.scrollToOffset({ offset, animated: true }));
+
+  // Bring an event's row to the top of the list so what just opened under it
+  // (category chips, the suggestion card and its text box) is on screen
+  // rather than below the fold.
+  const scrollToEvent = (localId: string) => {
+    const index = scheduleEvents.findIndex((e) => e.localId === localId);
+    if (index < 0) return;
+    setTimeout(() => listRef.current?.scrollToIndex({ index, viewPosition: 0, viewOffset: 8, animated: true }), 80);
+  };
+
   const updateCategory = (localId: string, category: ScheduleEventCategory) => {
     // Picking a type must not collapse the row (an "other" row is open only
     // by default, and leaving "other" would flip that default) — the parent
     // is mid-edit and next needs the suggestion that just appeared.
     setExpanded((prev) => ({ ...prev, [localId]: true }));
+    scrollToEvent(localId);
     setScheduleEvents(
       scheduleEvents.map((event) => (event.localId === localId ? { ...event, category } : event))
     );
@@ -168,7 +182,7 @@ export function ScheduleReviewScreen({ navigation }: Props) {
   };
 
   return (
-    <View style={styles.screen}>
+    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScreenHeader
         title="Review schedule"
         step={2}
@@ -180,6 +194,13 @@ export function ScheduleReviewScreen({ navigation }: Props) {
       />
 
       <FlatList
+        ref={listRef}
+        onScroll={onListScroll}
+        scrollEventThrottle={16}
+        keyboardShouldPersistTaps="handled"
+        onScrollToIndexFailed={(info) => {
+          listRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: true });
+        }}
         style={styles.list}
         contentContainerStyle={styles.listContent}
         data={scheduleEvents}
@@ -200,7 +221,10 @@ export function ScheduleReviewScreen({ navigation }: Props) {
             <View style={[styles.eventRow, unsorted && styles.eventRowUnsorted]}>
               <Pressable
                 style={styles.eventHeader}
-                onPress={() => setExpanded((prev) => ({ ...prev, [item.localId]: !isOpen }))}
+                onPress={() => {
+                  setExpanded((prev) => ({ ...prev, [item.localId]: !isOpen }));
+                  if (!isOpen) scrollToEvent(item.localId);
+                }}
               >
                 <View style={styles.eventInfo}>
                   <Text style={styles.eventTitle}>{item.title}</Text>
@@ -395,7 +419,7 @@ export function ScheduleReviewScreen({ navigation }: Props) {
         onSave={confirmAdd}
         onCancel={() => setModalVisible(false)}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

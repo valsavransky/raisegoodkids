@@ -11,7 +11,6 @@ import {
   Text,
   TextInput,
   Pressable,
-  ScrollView,
   Modal,
   Platform,
   KeyboardAvoidingView,
@@ -28,6 +27,7 @@ import { useSetup } from '../../context/SetupContext';
 import { GRADE_OPTIONS } from '../../data/contentLibrary';
 import { AVATAR_OPTIONS } from '../../data/avatars';
 import { useTrackSetupStep } from '../../hooks/useTrackScreen';
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { colors } from '../../theme/colors';
 import { toLocalDateString } from '../../utils/date';
 
@@ -92,7 +92,7 @@ export function ChildProfileScreen({ navigation }: Props) {
 
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
+      <KeyboardAwareScrollView avoid={false}
         style={styles.screen}
         contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}
         keyboardShouldPersistTaps="handled"
@@ -269,7 +269,7 @@ export function ChildProfileScreen({ navigation }: Props) {
           </Pressable>
         </>
       )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </KeyboardAvoidingView>
   );
 }

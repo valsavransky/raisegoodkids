@@ -3,7 +3,7 @@
 // Settings list. Keeps its internal list/values sub-tabs, since that
 // smaller pattern wasn't part of what the user flagged as not working.
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, Modal, Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, Modal, Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -12,6 +12,7 @@ import { useAppData } from '../../context/AppDataContext';
 import { useSaveConfirmation } from '../../hooks/useSaveConfirmation';
 import { Gig, GigEffortTier, GigEffortValues } from '../../types/models';
 import { CurrencyInput } from '../../components/CurrencyInput';
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { colors } from '../../theme/colors';
 import { LINK_HIT_SLOP } from '../../theme/hitSlop';
 import { DEFAULT_GIG_EFFORT_VALUES } from '../../utils/gigValue';
@@ -105,7 +106,7 @@ export function GigsScreen({ navigation }: Props) {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
+      <KeyboardAwareScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
         {subTab === 'list' ? (
           <>
             <Text style={styles.helper}>Optional, paid work they choose that builds toward their goal.</Text>
@@ -155,7 +156,7 @@ export function GigsScreen({ navigation }: Props) {
             {gigValuesStatus === 'invalid' && <Text style={styles.errorText}>Enter valid, non-negative amounts.</Text>}
           </>
         )}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <Modal visible={modalMode !== null} animationType="slide" transparent onRequestClose={() => setModalMode(null)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>

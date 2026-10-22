@@ -5,7 +5,7 @@
 // Save (like the rest of Settings) rather than writing straight through on
 // every keystroke.
 import React, { useMemo, useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, Modal, Platform, KeyboardAvoidingView, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, Modal, Platform, KeyboardAvoidingView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -15,6 +15,7 @@ import { useAppData } from '../../context/AppDataContext';
 import { useSaveConfirmation } from '../../hooks/useSaveConfirmation';
 import { GRADE_OPTIONS } from '../../data/contentLibrary';
 import { AVATAR_OPTIONS } from '../../data/avatars';
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { colors } from '../../theme/colors';
 import { toLocalDateString } from '../../utils/date';
 
@@ -95,7 +96,7 @@ export function EditProfileScreen({ navigation }: Props) {
       <SettingsSubHeader title="Edit Profile" onBack={() => navigation.goBack()} />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView
+      <KeyboardAwareScrollView avoid={false}
         contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}
         keyboardShouldPersistTaps="handled"
       >
@@ -292,7 +293,7 @@ export function EditProfileScreen({ navigation }: Props) {
         >
           <Text style={styles.saveButtonText}>{saved ? '✓ Saved' : 'Save'}</Text>
         </Pressable>
-      </ScrollView>
+      </KeyboardAwareScrollView>
       </KeyboardAvoidingView>
     </View>
   );

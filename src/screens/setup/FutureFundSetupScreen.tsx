@@ -4,7 +4,7 @@
 // This is where setup actually completes (completeSetup) — Gigs used to be
 // the last screen.
 import React, { useState } from 'react';
-import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
@@ -13,6 +13,7 @@ import { FuturePercentagePicker } from '../../components/FuturePercentagePicker'
 import { useSetup } from '../../context/SetupContext';
 import { useAppData } from '../../context/AppDataContext';
 import { useTrackSetupStep } from '../../hooks/useTrackScreen';
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'FutureFundSetup'>;
@@ -53,7 +54,7 @@ export function FutureFundSetupScreen({ navigation }: Props) {
         onPressProfile={() => navigation.navigate('ChildProfile')}
       />
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAwareScrollView contentContainerStyle={styles.content}>
         <Text style={styles.introText}>
           Teach your child early on about the importance of saving and investing for their future. Select a
           percentage of every gig earned to automatically go towards a Future Fund.
@@ -70,7 +71,7 @@ export function FutureFundSetupScreen({ navigation }: Props) {
           }}
         />
         {invalid && <Text style={styles.errorText}>Enter a percentage between 0 and 100.</Text>}
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <Pressable style={[styles.finishButton, { marginBottom: 20 + insets.bottom }]} onPress={finish}>
         <Text style={styles.finishButtonText}>Finish setup</Text>
