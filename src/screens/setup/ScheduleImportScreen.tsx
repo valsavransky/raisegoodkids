@@ -6,10 +6,11 @@
 // picker/import flow (mock calendars from src/data/mockGoogleCalendar.ts),
 // so this screen still works on Expo Go / unconfigured platforms.
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, Alert, ScrollView, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { CalendarPrivacyNote } from '../../components/CalendarPrivacyNote';
 import { useSetup } from '../../context/SetupContext';
 import { useTrackSetupStep } from '../../hooks/useTrackScreen';
 import { colors } from '../../theme/colors';
@@ -77,7 +78,7 @@ export function ScheduleImportScreen({ navigation }: Props) {
         onPressProfile={() => navigation.navigate('ChildProfile')}
       />
 
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.icon}>📅</Text>
         <Text style={styles.explanation}>
           Pull in {childPossessive(childProfile.name)} weekly activities to help us suggest Expected items for them
@@ -114,17 +115,15 @@ export function ScheduleImportScreen({ navigation }: Props) {
           <Text style={styles.secondaryButtonText}>Skip and add manually</Text>
         </Pressable>
 
-        <Text style={styles.privacyNote}>
-          Only event titles and times are read. Nothing else is stored.
-        </Text>
-      </View>
+        <CalendarPrivacyNote />
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { flex: 1, paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center' },
+  content: { flexGrow: 1, paddingHorizontal: 20, paddingVertical: 24, alignItems: 'center', justifyContent: 'center' },
   icon: { fontSize: 40, marginBottom: 16 },
   explanation: {
     fontSize: 15,

@@ -19,6 +19,7 @@ import {
   signOut,
 } from '../../services/googleAuth';
 import { fetchCalendarList, GoogleCalendarSummary, GoogleApiError } from '../../services/googleCalendarApi';
+import { CalendarPrivacyNote } from '../../components/CalendarPrivacyNote';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ImportGoogleCalendar'>;
@@ -121,6 +122,7 @@ export function ImportGoogleCalendarScreen({ navigation }: Props) {
               <Text style={styles.primaryButtonText}>Connect Google Calendar</Text>
             )}
           </Pressable>
+          <CalendarPrivacyNote />
         </View>
       ) : (
         <>
