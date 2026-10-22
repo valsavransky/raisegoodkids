@@ -12,8 +12,12 @@ export function dateToTimeString(d: Date): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+// Built by hand (not toLocaleTimeString) so a phone set to a 24-hour clock
+// can't turn this back into "15:30".
 export function formatTime12h(hhmm: string): string {
-  return timeStringToDate(hhmm).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const d = timeStringToDate(hhmm);
+  const h = d.getHours() % 12 || 12;
+  return `${h}:${String(d.getMinutes()).padStart(2, '0')} ${d.getHours() >= 12 ? 'PM' : 'AM'}`;
 }
 
 export function formatTimeRange12h(startTime?: string, endTime?: string): string | null {

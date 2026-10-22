@@ -24,6 +24,7 @@ import { getValidAccessToken } from '../../services/googleAuth';
 import { fetchImportableEvents, ImportedScheduleEvent } from '../../services/googleCalendarApi';
 import { CADENCE_LABELS } from '../../types/models';
 import { track } from '../../services/analytics';
+import { formatTimeRange12h } from '../../utils/time';
 import { colors } from '../../theme/colors';
 import { formatShortDate } from '../../utils/date';
 import { childFirstName } from '../../utils/setupCopy';
@@ -53,7 +54,7 @@ function titleMentionsChild(title: string, childName: string): boolean {
 }
 
 function describeEvent(event: ImportedScheduleEvent): string {
-  const time = event.startTime ? `${event.startTime}${event.endTime ? `-${event.endTime}` : ''}` : '';
+  const time = formatTimeRange12h(event.startTime, event.endTime) ?? '';
   if (event.recurring) {
     const days = (event.daysOfWeek ?? []).map((d) => DAY_LABELS[d]).join('/');
     return [days, time].filter(Boolean).join(' ');

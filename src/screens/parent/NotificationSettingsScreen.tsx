@@ -194,6 +194,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
         <DateTimePicker
           value={tempTime}
           mode="time"
+          is24Hour={false}
           display="default"
           onValueChange={handleAndroidChange}
           onDismiss={() => setShowPicker(false)}
@@ -204,7 +205,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
         <Modal visible={showPicker} animationType="slide" transparent onRequestClose={() => setShowPicker(false)}>
           <Pressable style={styles.modalBackdrop} onPress={() => setShowPicker(false)}>
             <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
-              <DateTimePicker value={tempTime} mode="time" display="spinner" onValueChange={(_, d) => d && setTempTime(d)} />
+              <DateTimePicker value={tempTime} mode="time" display="spinner" is24Hour={false} onValueChange={(_, d) => d && setTempTime(d)} />
               <Pressable style={styles.modalDoneButton} onPress={confirmIOS}>
                 <Text style={styles.modalDoneButtonText}>Done</Text>
               </Pressable>

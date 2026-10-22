@@ -223,6 +223,7 @@ export function ScheduleEventModal({ visible, draft, onChangeDraft, editing, onS
             <DateTimePicker
               value={tempTime}
               mode="time"
+              is24Hour={false}
               display="default"
               onValueChange={handleAndroidTimeChange}
               onDismiss={() => setTimePickerTarget(null)}
@@ -233,7 +234,7 @@ export function ScheduleEventModal({ visible, draft, onChangeDraft, editing, onS
             <Modal visible={timePickerTarget !== null} animationType="slide" transparent onRequestClose={() => setTimePickerTarget(null)}>
               <Pressable style={styles.modalBackdrop} onPress={() => setTimePickerTarget(null)}>
                 <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
-                  <DateTimePicker value={tempTime} mode="time" display="spinner" onValueChange={(_, d) => d && setTempTime(d)} />
+                  <DateTimePicker value={tempTime} mode="time" display="spinner" is24Hour={false} onValueChange={(_, d) => d && setTempTime(d)} />
                   <Pressable style={styles.modalDoneButton} onPress={confirmIOSTime}>
                     <Text style={styles.modalDoneButtonText}>Done</Text>
                   </Pressable>
