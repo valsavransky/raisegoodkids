@@ -9,19 +9,12 @@ import { colors } from '../theme/colors';
 export function CalendarPrivacyNote() {
   return (
     <View style={styles.card}>
-      <Text style={styles.heading}>What Google will ask — and what we do</Text>
+      <Text style={styles.heading}>About Google's permission</Text>
       <Text style={styles.body}>
-        Google's screen will say Trekker can see "any calendar you can access." That's the only access level Google
-        offers for calendars, so it can't be limited to just one.
+        Google will say Trekker can see "any calendar you can access." It can't limit that to one calendar, so we
+        only read titles and times from the one you pick. We never change anything.
       </Text>
-      <Text style={styles.body}>
-        What Trekker actually does: lists your calendar names, then reads event titles and times from the one calendar
-        you choose. It never adds, changes or deletes anything, and only the events you tick are saved.
-      </Text>
-      <Text style={styles.body}>
-        Your calendar connection stays on this phone, and you can remove Trekker's access any time at
-        myaccount.google.com/permissions.
-      </Text>
+      <Text style={styles.body}>Remove access any time at myaccount.google.com/permissions.</Text>
     </View>
   );
 }
