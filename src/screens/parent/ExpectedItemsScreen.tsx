@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { SettingsSubHeader } from '../../components/SettingsSubHeader';
-import { ReorderButtons } from '../../components/ReorderButtons';
+import { DraggableList } from '../../components/DraggableList';
 import { useAppData } from '../../context/AppDataContext';
 import { ExpectedItem } from '../../types/models';
 import { colors } from '../../theme/colors';
@@ -19,9 +19,10 @@ type ModalMode = { editingId: string | null } | null;
 
 export function ExpectedItemsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { expectedItems, addExpectedItem, updateExpectedItem, deleteExpectedItem, moveExpectedItem } = useAppData();
+  const { expectedItems, addExpectedItem, updateExpectedItem, deleteExpectedItem, setExpectedOrder } = useAppData();
 
   const [modalMode, setModalMode] = useState<ModalMode>(null);
+  const [dragging, setDragging] = useState(false);
   const [draftName, setDraftName] = useState('');
   const [draftFrequency, setDraftFrequency] = useState<ExpectedItem['frequency']>('daily');
 
@@ -58,9 +59,9 @@ export function ExpectedItemsScreen({ navigation }: Props) {
     <View style={styles.screen}>
       <SettingsSubHeader title="Expected Activities" onBack={() => navigation.goBack()} />
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
+      <ScrollView scrollEnabled={!dragging} contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
         <Text style={styles.helper}>
-          Everyday responsibilities that build good habits. These are unpaid. Use the arrows to set the order they
+          Everyday responsibilities that build good habits. These are unpaid. Drag the dots to set the order they
           appear on the Today trail.
         </Text>
 
@@ -70,31 +71,32 @@ export function ExpectedItemsScreen({ navigation }: Props) {
           return (
             <React.Fragment key={frequency}>
               <Text style={styles.subSectionHeader}>{frequency === 'daily' ? 'Daily' : 'Weekly'}</Text>
-              {group.map((item, index) => (
-                <View key={item.id} style={styles.row}>
-                  <ReorderButtons
-                    label={item.name}
-                    canMoveUp={index > 0}
-                    canMoveDown={index < group.length - 1}
-                    onMoveUp={() => moveExpectedItem(item.id, 'up')}
-                    onMoveDown={() => moveExpectedItem(item.id, 'down')}
-                  />
-                  <View style={styles.rowInfo}>
-                    <Text style={styles.rowName}>{item.name}</Text>
-                    {item.linkedEventTitle && (
-                      <Text style={styles.rowLinked}>🗓 From {item.linkedEventTitle}</Text>
-                    )}
+              <DraggableList
+                items={group}
+                keyOf={(item) => item.id}
+                labelOf={(item) => item.name}
+                onReorder={(ids) => setExpectedOrder(frequency, ids)}
+                onDragStateChange={setDragging}
+                renderItem={(item, grip, { isDragging }) => (
+                  <View style={[styles.row, isDragging && styles.rowLifted]}>
+                    {grip}
+                    <View style={styles.rowInfo}>
+                      <Text style={styles.rowName}>{item.name}</Text>
+                      {item.linkedEventTitle && (
+                        <Text style={styles.rowLinked}>🗓 From {item.linkedEventTitle}</Text>
+                      )}
+                    </View>
+                    <View style={styles.rowActions}>
+                      <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => openEdit(item)}>
+                        <Text style={styles.linkAction}>Edit</Text>
+                      </Pressable>
+                      <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => confirmDelete(item)}>
+                        <Text style={styles.linkActionDanger}>Remove</Text>
+                      </Pressable>
+                    </View>
                   </View>
-                  <View style={styles.rowActions}>
-                    <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => openEdit(item)}>
-                      <Text style={styles.linkAction}>Edit</Text>
-                    </Pressable>
-                    <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => confirmDelete(item)}>
-                      <Text style={styles.linkActionDanger}>Remove</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              ))}
+                )}
+              />
             </React.Fragment>
           );
         })}
@@ -162,8 +164,16 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 12,
     padding: 12,
-    marginBottom: 8,
+    paddingLeft: 4,
     backgroundColor: colors.surface,
+  },
+  rowLifted: {
+    borderColor: colors.expected,
+    elevation: 8,
+    shadowColor: '#28204F',
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
   },
   rowInfo: { flex: 1, flexShrink: 1 },
   rowName: { fontSize: 15, fontWeight: '600', color: colors.text },

@@ -26,7 +26,7 @@ import {
 import { DraftChildProfile, DraftScheduleEvent, DraftExpectedItem, DraftGig } from './SetupContext';
 import { makeId } from '../utils/id';
 import { todayString, localDateOf, startOfWeek, addDays } from '../utils/date';
-import { moveWithinGroup } from '../utils/reorder';
+import { applyGroupOrder } from '../utils/reorder';
 import { computeExpectedStreak, isDayFullyCompleted } from '../utils/streak';
 import { isExpectedItemSatisfied } from '../utils/expectedItemStatus';
 import { computeGigPercentage, DEFAULT_GIG_EFFORT_VALUES } from '../utils/gigValue';
@@ -244,14 +244,14 @@ interface AppDataContextValue {
   addExpectedItem: (item: { name: string; frequency: ExpectedItem['frequency'] }) => void;
   updateExpectedItem: (id: string, fields: { name: string; frequency: ExpectedItem['frequency'] }) => void;
   deleteExpectedItem: (id: string) => void;
-  /** Moves an activity one step up or down among the others of its kind (Daily or Weekly); this is the order of the Today trail. */
-  moveExpectedItem: (id: string, direction: 'up' | 'down') => void;
+  /** Sets the order of the Daily (or Weekly) Expected activities; this is the order of the Today trail. */
+  setExpectedOrder: (frequency: ExpectedItem['frequency'], orderedIds: string[]) => void;
 
   addGig: (gig: { name: string; effortTier: Gig['effortTier'] }) => void;
   updateGig: (id: string, fields: { name: string; effortTier: Gig['effortTier'] }) => void;
   deleteGig: (id: string) => void;
-  /** Moves a gig one step up or down; this is the order of the gigs on the Today trail. */
-  moveGig: (id: string, direction: 'up' | 'down') => void;
+  /** Sets the order of the gigs on the Today trail. */
+  setGigOrder: (orderedIds: string[]) => void;
 
   /** How much each effort tier is worth in dollars, before the Future Fund
    * skim — parent-configurable in Manage Expected & Gigs. */
@@ -906,8 +906,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setExpectedItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const moveExpectedItem = (id: string, direction: 'up' | 'down') => {
-    setExpectedItems((prev) => moveWithinGroup(prev, id, direction, (a, b) => a.frequency === b.frequency));
+  const setExpectedOrder = (frequency: ExpectedItem['frequency'], orderedIds: string[]) => {
+    setExpectedItems((prev) => applyGroupOrder(prev, orderedIds, (item) => item.frequency === frequency));
   };
 
   const addGig = (gig: { name: string; effortTier: Gig['effortTier'] }) => {
@@ -921,8 +921,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setGigs((prev) => prev.map((g) => (g.id === id ? { ...g, ...fields } : g)));
   };
 
-  const moveGig = (id: string, direction: 'up' | 'down') => {
-    setGigs((prev) => moveWithinGroup(prev, id, direction));
+  const setGigOrder = (orderedIds: string[]) => {
+    setGigs((prev) => applyGroupOrder(prev, orderedIds));
   };
 
   const deleteGig = (id: string) => {
@@ -1046,11 +1046,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         addExpectedItem,
         updateExpectedItem,
         deleteExpectedItem,
-        moveExpectedItem,
+        setExpectedOrder,
         addGig,
         updateGig,
         deleteGig,
-        moveGig,
+        setGigOrder,
         updateGigEffortValues,
         resetAllData,
       }}

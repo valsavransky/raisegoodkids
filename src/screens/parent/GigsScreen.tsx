@@ -12,7 +12,7 @@ import { useAppData } from '../../context/AppDataContext';
 import { useSaveConfirmation } from '../../hooks/useSaveConfirmation';
 import { Gig, GigEffortTier, GigEffortValues } from '../../types/models';
 import { CurrencyInput } from '../../components/CurrencyInput';
-import { ReorderButtons } from '../../components/ReorderButtons';
+import { DraggableList } from '../../components/DraggableList';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { colors } from '../../theme/colors';
 import { LINK_HIT_SLOP } from '../../theme/hitSlop';
@@ -31,9 +31,10 @@ type GigValuesStatus = 'idle' | 'invalid';
 
 export function GigsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { gigs, addGig, updateGig, deleteGig, moveGig, gigEffortValues, updateGigEffortValues } = useAppData();
+  const { gigs, addGig, updateGig, deleteGig, setGigOrder, gigEffortValues, updateGigEffortValues } = useAppData();
 
   const [subTab, setSubTab] = useState<SubTab>('list');
+  const [dragging, setDragging] = useState(false);
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [draftName, setDraftName] = useState('');
   const [draftEffortTier, setDraftEffortTier] = useState<GigEffortTier>('quick');
@@ -107,34 +108,35 @@ export function GigsScreen({ navigation }: Props) {
         </Pressable>
       </View>
 
-      <KeyboardAwareScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
+      <KeyboardAwareScrollView scrollEnabled={!dragging} contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
         {subTab === 'list' ? (
           <>
-            <Text style={styles.helper}>Optional, paid work they choose that builds toward their goal. Use the arrows to set the order they appear on the Today trail.</Text>
+            <Text style={styles.helper}>Optional, paid work they choose that builds toward their goal. Drag the dots to set the order they appear on the Today trail.</Text>
 
-            {gigs.map((gig, index) => (
-              <View key={gig.id} style={styles.row}>
-                <ReorderButtons
-                  label={gig.name}
-                  canMoveUp={index > 0}
-                  canMoveDown={index < gigs.length - 1}
-                  onMoveUp={() => moveGig(gig.id, 'up')}
-                  onMoveDown={() => moveGig(gig.id, 'down')}
-                />
-                <View style={styles.rowInfo}>
-                  <Text style={styles.rowName}>{gig.name}</Text>
-                  <Text style={styles.rowMeta}>{EFFORT_TIERS.find((t) => t.value === gig.effortTier)?.label}</Text>
+            <DraggableList
+              items={gigs}
+              keyOf={(gig) => gig.id}
+              labelOf={(gig) => gig.name}
+              onReorder={setGigOrder}
+              onDragStateChange={setDragging}
+              renderItem={(gig, grip, { isDragging }) => (
+                <View style={[styles.row, isDragging && styles.rowLifted]}>
+                  {grip}
+                  <View style={styles.rowInfo}>
+                    <Text style={styles.rowName}>{gig.name}</Text>
+                    <Text style={styles.rowMeta}>{EFFORT_TIERS.find((t) => t.value === gig.effortTier)?.label}</Text>
+                  </View>
+                  <View style={styles.rowActions}>
+                    <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => openEdit(gig)}>
+                      <Text style={styles.linkAction}>Edit</Text>
+                    </Pressable>
+                    <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => confirmDelete(gig)}>
+                      <Text style={styles.linkActionDanger}>Remove</Text>
+                    </Pressable>
+                  </View>
                 </View>
-                <View style={styles.rowActions}>
-                  <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => openEdit(gig)}>
-                    <Text style={styles.linkAction}>Edit</Text>
-                  </Pressable>
-                  <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => confirmDelete(gig)}>
-                    <Text style={styles.linkActionDanger}>Remove</Text>
-                  </Pressable>
-                </View>
-              </View>
-            ))}
+              )}
+            />
             <Pressable style={styles.addLink} onPress={openAdd}>
               <Text style={styles.addLinkText}>+ Add gig</Text>
             </Pressable>
@@ -224,8 +226,16 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 12,
     padding: 12,
-    marginBottom: 8,
+    paddingLeft: 4,
     backgroundColor: colors.surface,
+  },
+  rowLifted: {
+    borderColor: colors.expected,
+    elevation: 8,
+    shadowColor: '#28204F',
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 8 },
   },
   rowInfo: { flex: 1, flexShrink: 1 },
   rowName: { fontSize: 15, fontWeight: '600', color: colors.text },
