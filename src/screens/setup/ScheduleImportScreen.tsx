@@ -11,6 +11,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { CalendarPrivacyNote } from '../../components/CalendarPrivacyNote';
+import { GoogleCalendarLogo } from '../../components/GoogleCalendarLogo';
 import { useSetup } from '../../context/SetupContext';
 import { useTrackSetupStep } from '../../hooks/useTrackScreen';
 import { colors } from '../../theme/colors';
@@ -107,7 +108,10 @@ export function ScheduleImportScreen({ navigation }: Props) {
           {connecting ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.primaryButtonText}>Connect Google Calendar</Text>
+            <View style={styles.connectRow}>
+              <GoogleCalendarLogo size={22} />
+              <Text style={styles.primaryButtonText}>Connect Google Calendar</Text>
+            </View>
           )}
         </Pressable>
 
@@ -161,6 +165,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
   },
+  connectRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   primaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   secondaryButton: { marginTop: 16, paddingVertical: 12 },
   secondaryButtonText: { color: colors.text, fontSize: 15, fontWeight: '600' },

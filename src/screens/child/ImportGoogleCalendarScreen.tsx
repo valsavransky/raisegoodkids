@@ -20,6 +20,7 @@ import {
 } from '../../services/googleAuth';
 import { fetchCalendarList, GoogleCalendarSummary, GoogleApiError } from '../../services/googleCalendarApi';
 import { CalendarPrivacyNote } from '../../components/CalendarPrivacyNote';
+import { GoogleCalendarLogo } from '../../components/GoogleCalendarLogo';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ImportGoogleCalendar'>;
@@ -119,7 +120,10 @@ export function ImportGoogleCalendarScreen({ navigation }: Props) {
             {connecting ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.primaryButtonText}>Connect Google Calendar</Text>
+              <View style={styles.connectRow}>
+                <GoogleCalendarLogo size={22} />
+                <Text style={styles.primaryButtonText}>Connect Google Calendar</Text>
+              </View>
             )}
           </Pressable>
           <CalendarPrivacyNote />
@@ -170,6 +174,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
   },
+  connectRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   primaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
   helperText: { fontSize: 13, color: colors.textMuted, paddingHorizontal: 20, marginBottom: 12 },
   errorText: { fontSize: 13, color: colors.danger, paddingHorizontal: 20, marginBottom: 12 },
