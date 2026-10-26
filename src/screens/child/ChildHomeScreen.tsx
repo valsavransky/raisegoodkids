@@ -59,7 +59,7 @@ import { scheduleEventsForToday, formatEventTimeRange, TodayScheduleEvent } from
 import { playSound } from '../../services/sound';
 import { track } from '../../services/analytics';
 import { colors } from '../../theme/colors';
-import { todayString, startOfWeek, addDays, localDateOf } from '../../utils/date';
+import { todayString, startOfWeek, addDays, localDateOf, formatShortDate } from '../../utils/date';
 import { SETTINGS_HINT_SEEN_KEY, MONEY_HINT_SEEN_KEY } from '../../utils/settingsHints';
 
 const CATEGORY_ICONS: Record<ScheduleEventCategory, string> = {
@@ -160,7 +160,7 @@ function DailyGridSection({
   todayStr: string;
   isDoneOn: (itemId: string, date: string) => boolean;
   isTappableOn: (itemId: string, date: string) => boolean;
-  onPressCell: (itemId: string) => void;
+  onPressCell: (itemId: string, date: string) => void;
   color: string;
   ringColor: string;
 }) {
@@ -175,9 +175,9 @@ function DailyGridSection({
     <View style={styles.gridSection}>
       <View style={styles.gridHeaderRow}>
         <View style={styles.gridLabelCol} />
-        {weekDates.map((d, i) => (
+        {weekDates.map((d) => (
           <View key={d} style={styles.gridHeaderCell}>
-            <Text style={[styles.gridHeaderDay, d === todayStr && { color }]}>{WEEKDAY_ABBR[i]}</Text>
+            <Text style={[styles.gridHeaderDay, d === todayStr && { color }]}>{WEEKDAY_ABBR[new Date(`${d}T00:00:00`).getDay()]}</Text>
           </View>
         ))}
       </View>
@@ -195,7 +195,7 @@ function DailyGridSection({
             const isFuture = d > todayStr;
             const tappable = isTappableOn(item.id, d);
             return (
-              <Pressable key={d} disabled={!tappable} onPress={() => onPressCell(item.id)} style={styles.gridCell}>
+              <Pressable key={d} disabled={!tappable} onPress={() => onPressCell(item.id, d)} style={styles.gridCell}>
                 <View
                   style={[
                     styles.gridDot,
@@ -400,10 +400,14 @@ export function ChildHomeScreen() {
   );
   const todaysEvents = useMemo(() => scheduleEventsForToday(scheduleEvents), [scheduleEvents, focusedAt]);
   const todayStr = useMemo(() => todayString(), [focusedAt]);
+  // Calendar week (Sun–Sat) — what a weekly item counts against.
   const weekDates = useMemo(() => {
     const start = startOfWeek(todayStr);
     return Array.from({ length: 7 }, (_, i) => addDays(start, i));
   }, [todayStr]);
+  // The grid shows the last 7 days ending today, so a forgotten day from just
+  // before the weekend is still there on a Monday to be filled in.
+  const recentDates = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(todayStr, i - 6)), [todayStr]);
 
   const celebrateCheckoff = () => {
     playSound('checkoff', soundEnabled);
@@ -536,7 +540,33 @@ export function ChildHomeScreen() {
     ]);
   };
 
-  const handleExpectedPress = (itemId: string) => {
+  // Forgotten earlier days (up to the last week) can be filled in or undone
+  // from the This Week grid, each behind an "are you sure".
+  const dayLabel = (date: string) =>
+    `${STOP_WEEKDAY_NAMES[new Date(`${date}T00:00:00`).getDay()]}, ${formatShortDate(date)}`;
+  const confirmPastChange = (itemName: string, date: string, isDone: boolean, onConfirm: () => void) => {
+    Alert.alert(
+      isDone ? `Unselect "${itemName}"?` : `Mark "${itemName}" done?`,
+      isDone
+        ? `Are you sure? It will go back to not done for ${dayLabel(date)}.`
+        : `Are you sure? This marks it done for ${dayLabel(date)}, not today.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: isDone ? 'Unselect' : 'Yes, mark done', style: isDone ? 'destructive' : 'default', onPress: onConfirm },
+      ]
+    );
+  };
+
+  const handleExpectedPress = (itemId: string, date?: string) => {
+    if (date && date !== todayStr) {
+      const item = expectedItems.find((i) => i.id === itemId);
+      if (!item) return;
+      const isDone = dailyIsDoneOn(itemId, date);
+      confirmPastChange(item.name, date, isDone, () =>
+        isDone ? unmarkExpectedDone(itemId, date) : markExpectedDone(itemId, date)
+      );
+      return;
+    }
     if (isExpectedDoneToday(itemId)) {
       const done = expectedItems.find((i) => i.id === itemId);
       if (done) confirmUnselect(done.name, () => unmarkExpectedDone(itemId));
@@ -555,7 +585,33 @@ export function ChildHomeScreen() {
     }
   };
 
-  const handleGigPress = (gig: Gig) => {
+  const handleGigPress = (gig: Gig, date?: string) => {
+    if (date && date !== todayStr) {
+      const isDone = gigIsDoneOn(gig.id, date);
+      if (!isDone && !goal) {
+        Alert.alert('Pick a goal first!', 'Gigs add progress toward a goal. Pick one to get started.', [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Pick a goal', onPress: () => navigation.navigate('Goal') },
+        ]);
+        return;
+      }
+      confirmPastChange(gig.name, date, isDone, () => {
+        if (isDone) {
+          if (unmarkGigDone(gig.id, date) === 'goal_reached') {
+            Alert.alert("Can't unselect this one", 'This gig finished the goal, so it can no longer be undone.');
+          }
+          return;
+        }
+        const activeGoalId = goal?.id;
+        const { achievedGoal, newBadgeCatalogId } = markGigDone(gig.id, date);
+        if (achievedGoal && activeGoalId) {
+          navigation.navigate('GoalAchieved', { goalId: activeGoalId });
+        } else if (newBadgeCatalogId) {
+          navigation.navigate('BadgeUnlock', { catalogId: newBadgeCatalogId });
+        }
+      });
+      return;
+    }
     if (gigCompletionStatusToday(gig.id) !== null) {
       confirmUnselect(gig.name, () => {
         if (unmarkGigDone(gig.id) === 'goal_reached') {
@@ -604,13 +660,14 @@ export function ChildHomeScreen() {
   // item, so both share DailyGridSection's day-by-day rendering.
   const dailyIsDoneOn = (itemId: string, date: string) =>
     expectedCompletions.some((c) => c.expectedItemId === itemId && c.date === date);
-  const dailyIsTappableOn = (_itemId: string, date: string) => date === todayStr;
+  const inEditWindow = (date: string) => date <= todayStr && date >= recentDates[0];
+  const dailyIsTappableOn = (_itemId: string, date: string) => inEditWindow(date);
   const gigIsDoneOn = (gigId: string, date: string) =>
     gigCompletions.some((c) => c.gigId === gigId && c.status === 'approved' && localDateOf(c.markedDoneAt) === date);
-  const gigIsTappableOn = (_gigId: string, date: string) => date === todayStr;
-  const handleGigPressById = (gigId: string) => {
+  const gigIsTappableOn = (_gigId: string, date: string) => inEditWindow(date);
+  const handleGigPressById = (gigId: string, date: string) => {
     const gig = gigs.find((g) => g.id === gigId);
-    if (gig) handleGigPress(gig);
+    if (gig) handleGigPress(gig, date);
   };
 
   return (
@@ -812,6 +869,9 @@ export function ChildHomeScreen() {
 
         {view === 'week' && (
           <View style={styles.weeklyPanel}>
+            {weekSubTab !== 'weekly' && (
+              <Text style={styles.weekHint}>Forgot to check something off? Tap a day from the past week to fill it in.</Text>
+            )}
             <View style={styles.weekSubTabRow}>
               <Pressable
                 onPress={() => setWeekSubTab('daily')}
@@ -846,7 +906,7 @@ export function ChildHomeScreen() {
               <DailyGridSection
                 emptyLabel="No daily Expected activities yet — add some in Settings."
                 items={dailyItems}
-                weekDates={weekDates}
+                weekDates={recentDates}
                 todayStr={todayStr}
                 isDoneOn={dailyIsDoneOn}
                 isTappableOn={dailyIsTappableOn}
@@ -859,7 +919,7 @@ export function ChildHomeScreen() {
               <DailyGridSection
                 emptyLabel="No gigs yet — add some in Settings."
                 items={gigs}
-                weekDates={weekDates}
+                weekDates={recentDates}
                 todayStr={todayStr}
                 isDoneOn={gigIsDoneOn}
                 isTappableOn={gigIsTappableOn}
@@ -980,6 +1040,7 @@ const styles = StyleSheet.create({
   scheduleTitleNext: { fontWeight: '800', color: '#B96A08' },
   scheduleTitlePast: { color: colors.textMuted, fontWeight: '500' },
   scheduleTime: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
+  weekHint: { fontSize: 12.5, color: '#8a8578', marginBottom: 10 },
   tapHint: { fontSize: 12.5, color: '#8a8578', paddingHorizontal: 20, marginBottom: 8 },
   confirmBanner: {
     marginHorizontal: 20,

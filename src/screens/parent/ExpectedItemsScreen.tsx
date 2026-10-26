@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { SettingsSubHeader } from '../../components/SettingsSubHeader';
+import { ReorderButtons } from '../../components/ReorderButtons';
 import { useAppData } from '../../context/AppDataContext';
 import { ExpectedItem } from '../../types/models';
 import { colors } from '../../theme/colors';
@@ -18,7 +19,7 @@ type ModalMode = { editingId: string | null } | null;
 
 export function ExpectedItemsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { expectedItems, addExpectedItem, updateExpectedItem, deleteExpectedItem } = useAppData();
+  const { expectedItems, addExpectedItem, updateExpectedItem, deleteExpectedItem, moveExpectedItem } = useAppData();
 
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [draftName, setDraftName] = useState('');
@@ -59,16 +60,25 @@ export function ExpectedItemsScreen({ navigation }: Props) {
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
         <Text style={styles.helper}>
-          Everyday responsibilities that build good habits. These are unpaid.
+          Everyday responsibilities that build good habits. These are unpaid. Use the arrows to set the order they
+          appear on the Today trail.
         </Text>
 
-        {expectedItems.filter((item) => item.frequency === 'daily').length > 0 && (
-          <>
-            <Text style={styles.subSectionHeader}>Daily</Text>
-            {expectedItems
-              .filter((item) => item.frequency === 'daily')
-              .map((item) => (
+        {(['daily', 'weekly'] as const).map((frequency) => {
+          const group = expectedItems.filter((item) => item.frequency === frequency);
+          if (group.length === 0) return null;
+          return (
+            <React.Fragment key={frequency}>
+              <Text style={styles.subSectionHeader}>{frequency === 'daily' ? 'Daily' : 'Weekly'}</Text>
+              {group.map((item, index) => (
                 <View key={item.id} style={styles.row}>
+                  <ReorderButtons
+                    label={item.name}
+                    canMoveUp={index > 0}
+                    canMoveDown={index < group.length - 1}
+                    onMoveUp={() => moveExpectedItem(item.id, 'up')}
+                    onMoveDown={() => moveExpectedItem(item.id, 'down')}
+                  />
                   <View style={styles.rowInfo}>
                     <Text style={styles.rowName}>{item.name}</Text>
                     {item.linkedEventTitle && (
@@ -85,33 +95,9 @@ export function ExpectedItemsScreen({ navigation }: Props) {
                   </View>
                 </View>
               ))}
-          </>
-        )}
-        {expectedItems.filter((item) => item.frequency === 'weekly').length > 0 && (
-          <>
-            <Text style={styles.subSectionHeader}>Weekly</Text>
-            {expectedItems
-              .filter((item) => item.frequency === 'weekly')
-              .map((item) => (
-                <View key={item.id} style={styles.row}>
-                  <View style={styles.rowInfo}>
-                    <Text style={styles.rowName}>{item.name}</Text>
-                    {item.linkedEventTitle && (
-                      <Text style={styles.rowLinked}>🗓 From {item.linkedEventTitle}</Text>
-                    )}
-                  </View>
-                  <View style={styles.rowActions}>
-                    <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => openEdit(item)}>
-                      <Text style={styles.linkAction}>Edit</Text>
-                    </Pressable>
-                    <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => confirmDelete(item)}>
-                      <Text style={styles.linkActionDanger}>Remove</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              ))}
-          </>
-        )}
+            </React.Fragment>
+          );
+        })}
         <Pressable style={styles.addLink} onPress={openAdd}>
           <Text style={styles.addLinkText}>+ Add Expected activity</Text>
         </Pressable>
@@ -179,7 +165,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     backgroundColor: colors.surface,
   },
-  rowInfo: { flexShrink: 1 },
+  rowInfo: { flex: 1, flexShrink: 1 },
   rowName: { fontSize: 15, fontWeight: '600', color: colors.text },
   rowLinked: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   rowActions: { flexDirection: 'row', gap: 14 },

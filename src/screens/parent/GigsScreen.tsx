@@ -12,6 +12,7 @@ import { useAppData } from '../../context/AppDataContext';
 import { useSaveConfirmation } from '../../hooks/useSaveConfirmation';
 import { Gig, GigEffortTier, GigEffortValues } from '../../types/models';
 import { CurrencyInput } from '../../components/CurrencyInput';
+import { ReorderButtons } from '../../components/ReorderButtons';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { colors } from '../../theme/colors';
 import { LINK_HIT_SLOP } from '../../theme/hitSlop';
@@ -30,7 +31,7 @@ type GigValuesStatus = 'idle' | 'invalid';
 
 export function GigsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { gigs, addGig, updateGig, deleteGig, gigEffortValues, updateGigEffortValues } = useAppData();
+  const { gigs, addGig, updateGig, deleteGig, moveGig, gigEffortValues, updateGigEffortValues } = useAppData();
 
   const [subTab, setSubTab] = useState<SubTab>('list');
   const [modalMode, setModalMode] = useState<ModalMode>(null);
@@ -109,10 +110,17 @@ export function GigsScreen({ navigation }: Props) {
       <KeyboardAwareScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
         {subTab === 'list' ? (
           <>
-            <Text style={styles.helper}>Optional, paid work they choose that builds toward their goal.</Text>
+            <Text style={styles.helper}>Optional, paid work they choose that builds toward their goal. Use the arrows to set the order they appear on the Today trail.</Text>
 
-            {gigs.map((gig) => (
+            {gigs.map((gig, index) => (
               <View key={gig.id} style={styles.row}>
+                <ReorderButtons
+                  label={gig.name}
+                  canMoveUp={index > 0}
+                  canMoveDown={index < gigs.length - 1}
+                  onMoveUp={() => moveGig(gig.id, 'up')}
+                  onMoveDown={() => moveGig(gig.id, 'down')}
+                />
                 <View style={styles.rowInfo}>
                   <Text style={styles.rowName}>{gig.name}</Text>
                   <Text style={styles.rowMeta}>{EFFORT_TIERS.find((t) => t.value === gig.effortTier)?.label}</Text>
@@ -219,7 +227,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     backgroundColor: colors.surface,
   },
-  rowInfo: { flexShrink: 1 },
+  rowInfo: { flex: 1, flexShrink: 1 },
   rowName: { fontSize: 15, fontWeight: '600', color: colors.text },
   rowMeta: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
   rowActions: { flexDirection: 'row', gap: 14 },

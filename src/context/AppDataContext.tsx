@@ -26,6 +26,7 @@ import {
 import { DraftChildProfile, DraftScheduleEvent, DraftExpectedItem, DraftGig } from './SetupContext';
 import { makeId } from '../utils/id';
 import { todayString, localDateOf, startOfWeek } from '../utils/date';
+import { moveWithinGroup } from '../utils/reorder';
 import { computeExpectedStreak } from '../utils/streak';
 import { isExpectedItemSatisfied } from '../utils/expectedItemStatus';
 import { computeGigPercentage, DEFAULT_GIG_EFFORT_VALUES } from '../utils/gigValue';
@@ -171,7 +172,9 @@ interface AppDataContextValue {
   updateParentName: (name: string) => void;
 
   isExpectedDoneToday: (expectedItemId: string) => boolean;
-  markExpectedDone: (expectedItemId: string) => MarkExpectedDoneResult;
+  /** With a past `date` (YYYY-MM-DD), records a forgotten check-off for that
+   * day — no celebration or badge popup, the streak just recalculates. */
+  markExpectedDone: (expectedItemId: string, date?: string) => MarkExpectedDoneResult;
   allExpectedDoneToday: () => boolean;
   expectedDoneCountToday: () => { done: number; total: number };
   expectedStreak: () => number;
@@ -211,13 +214,15 @@ interface AppDataContextValue {
 
   gigPreviewPercentage: (gig: Gig) => number | null;
   gigCompletionStatusToday: (gigId: string) => GigCompletion['status'] | null;
-  markGigDone: (gigId: string) => MarkGigDoneResult;
+  /** With a past `date`, records a forgotten gig for that day; it still adds
+   * to the current goal like any other. */
+  markGigDone: (gigId: string, date?: string) => MarkGigDoneResult;
   /** Takes back today's check-off of an Expected activity (for a weekly one,
    * this week's). Badges already earned are not taken back. */
-  unmarkExpectedDone: (expectedItemId: string) => void;
+  unmarkExpectedDone: (expectedItemId: string, date?: string) => void;
   /** Takes back today's check-off of a gig: its goal progress and its Future
    * Fund share. Refuses when that gig is what finished the goal. */
-  unmarkGigDone: (gigId: string) => 'ok' | 'goal_reached' | 'not_found';
+  unmarkGigDone: (gigId: string, date?: string) => 'ok' | 'goal_reached' | 'not_found';
 
   /** Parent logs having actually moved money from the Future Fund into a
    * real account — reduces the tracked (pending) balance by that amount. */
@@ -235,10 +240,14 @@ interface AppDataContextValue {
   addExpectedItem: (item: { name: string; frequency: ExpectedItem['frequency'] }) => void;
   updateExpectedItem: (id: string, fields: { name: string; frequency: ExpectedItem['frequency'] }) => void;
   deleteExpectedItem: (id: string) => void;
+  /** Moves an activity one step up or down among the others of its kind (Daily or Weekly); this is the order of the Today trail. */
+  moveExpectedItem: (id: string, direction: 'up' | 'down') => void;
 
   addGig: (gig: { name: string; effortTier: Gig['effortTier'] }) => void;
   updateGig: (id: string, fields: { name: string; effortTier: Gig['effortTier'] }) => void;
   deleteGig: (id: string) => void;
+  /** Moves a gig one step up or down; this is the order of the gigs on the Today trail. */
+  moveGig: (id: string, direction: 'up' | 'down') => void;
 
   /** How much each effort tier is worth in dollars, before the Future Fund
    * skim — parent-configurable in Manage Expected & Gigs. */
@@ -510,8 +519,27 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     track('badge_earned', { badge: catalogId });
   };
 
-  const markExpectedDone = (expectedItemId: string): MarkExpectedDoneResult => {
+  const markExpectedDone = (expectedItemId: string, date?: string): MarkExpectedDoneResult => {
     const noOp: MarkExpectedDoneResult = { newBadgeCatalogId: null, allDoneToday: false, allWeeklyDoneThisWeek: false };
+    if (date && date !== todayString()) {
+      // A forgotten check-off from an earlier day: just record it (no
+      // celebration — that moment has passed); streaks recompute from the data.
+      const past = expectedItems.find((i) => i.id === expectedItemId);
+      if (!past || expectedCompletions.some((c) => c.expectedItemId === expectedItemId && c.date === date)) return noOp;
+      setExpectedCompletions((prev) => [
+        ...prev,
+        {
+          id: makeId('expectedCompletion'),
+          expectedItemId,
+          childProfileId: childProfile?.id ?? '',
+          date,
+          markedDoneAt: new Date().toISOString(),
+          correctedByParent: false,
+        },
+      ]);
+      track('expected_backfilled', { frequency: past.frequency });
+      return noOp;
+    }
     if (isExpectedDoneToday(expectedItemId)) return noOp;
     const item = expectedItems.find((i) => i.id === expectedItemId);
     if (!item) return noOp;
@@ -697,9 +725,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return completion?.status ?? null;
   };
 
-  const unmarkExpectedDone = (expectedItemId: string) => {
+  const unmarkExpectedDone = (expectedItemId: string, date?: string) => {
     const item = expectedItems.find((i) => i.id === expectedItemId);
     if (!item) return;
+    if (date && date !== todayString()) {
+      setExpectedCompletions((prev) => prev.filter((c) => !(c.expectedItemId === expectedItemId && c.date === date)));
+      track('expected_unchecked', { frequency: item.frequency });
+      return;
+    }
     const today = todayString();
     const from = item.frequency === 'weekly' ? startOfWeek(today) : today;
     setExpectedCompletions((prev) =>
@@ -708,10 +741,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     track('expected_unchecked', { frequency: item.frequency });
   };
 
-  const unmarkGigDone = (gigId: string): 'ok' | 'goal_reached' | 'not_found' => {
-    const today = todayString();
+  const unmarkGigDone = (gigId: string, date?: string): 'ok' | 'goal_reached' | 'not_found' => {
+    const day = date ?? todayString();
     const completion = gigCompletions.find(
-      (c) => c.gigId === gigId && c.status === 'approved' && localDateOf(c.markedDoneAt) === today
+      (c) => c.gigId === gigId && c.status === 'approved' && localDateOf(c.markedDoneAt) === day
     );
     if (!completion) return 'not_found';
     const goal = goals.find((g) => g.id === completion.goalId);
@@ -726,11 +759,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return 'ok';
   };
 
-  const markGigDone = (gigId: string): MarkGigDoneResult => {
+  const markGigDone = (gigId: string, date?: string): MarkGigDoneResult => {
     const noOp: MarkGigDoneResult = { achievedGoal: false, newBadgeCatalogId: null, allGigsDoneToday: false };
     const goal = activeGoal();
     if (!goal || !futureFund) return noOp;
-    if (gigCompletionStatusToday(gigId) !== null) return noOp;
+    const day = date ?? todayString();
+    const isBackfill = day !== todayString();
+    if (gigCompletions.some((c) => c.gigId === gigId && localDateOf(c.markedDoneAt) === day)) return noOp;
     const gig = gigs.find((g) => g.id === gigId);
     if (!gig) return noOp;
 
@@ -743,7 +778,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       gigId,
       childProfileId: childProfile?.id ?? '',
       goalId: goal.id,
-      markedDoneAt: new Date().toISOString(),
+      // A forgotten earlier day is stamped at local noon on that day so it
+      // lands on the right calendar day however the time zone shifts.
+      markedDoneAt: isBackfill ? new Date(`${day}T12:00:00`).toISOString() : new Date().toISOString(),
       // Marked directly by the parent during check-in — since there's only
       // one user type (parent), there's no separate approval queue to defer
       // to. This counts toward goal progress immediately.
@@ -762,6 +799,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const allGigsDoneToday = activeGigs.every((g) =>
       updatedCompletions.some((c) => c.gigId === g.id && localDateOf(c.markedDoneAt) === today)
     );
+    if (isBackfill) track('gig_backfilled', { effort_tier: gig.effortTier });
 
     const priorProgress = goalProgressPercentage(goal.id);
     const achievedGoal = priorProgress + percentageAwarded >= 100;
@@ -804,9 +842,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
     // Same muting rule as the badge popups above — the goal-achieved
     // celebration takes precedence over "all gigs done" in the same tap.
-    track('gig_completed', { effort_tier: gig.effortTier });
+    if (!isBackfill) track('gig_completed', { effort_tier: gig.effortTier });
     if (achievedGoal) track('goal_achieved');
-    return { achievedGoal, newBadgeCatalogId, allGigsDoneToday: achievedGoal ? false : allGigsDoneToday };
+    return { achievedGoal, newBadgeCatalogId, allGigsDoneToday: achievedGoal || isBackfill ? false : allGigsDoneToday };
   };
 
   const recordFutureFundContribution = (amount: number) => {
@@ -845,6 +883,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setExpectedItems((prev) => prev.filter((item) => item.id !== id));
   };
 
+  const moveExpectedItem = (id: string, direction: 'up' | 'down') => {
+    setExpectedItems((prev) => moveWithinGroup(prev, id, direction, (a, b) => a.frequency === b.frequency));
+  };
+
   const addGig = (gig: { name: string; effortTier: Gig['effortTier'] }) => {
     setGigs((prev) => [
       ...prev,
@@ -854,6 +896,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const updateGig = (id: string, fields: { name: string; effortTier: Gig['effortTier'] }) => {
     setGigs((prev) => prev.map((g) => (g.id === id ? { ...g, ...fields } : g)));
+  };
+
+  const moveGig = (id: string, direction: 'up' | 'down') => {
+    setGigs((prev) => moveWithinGroup(prev, id, direction));
   };
 
   const deleteGig = (id: string) => {
@@ -977,9 +1023,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         addExpectedItem,
         updateExpectedItem,
         deleteExpectedItem,
+        moveExpectedItem,
         addGig,
         updateGig,
         deleteGig,
+        moveGig,
         updateGigEffortValues,
         resetAllData,
       }}
