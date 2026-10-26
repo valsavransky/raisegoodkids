@@ -6,7 +6,7 @@
 // calendar-picker step, since jumping straight to a picker full of mock
 // data isn't useful once real sign-in is configured.
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, Pressable, FlatList, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -19,6 +19,8 @@ import {
   signOut,
 } from '../../services/googleAuth';
 import { fetchCalendarList, GoogleCalendarSummary, GoogleApiError } from '../../services/googleCalendarApi';
+import { CalendarImportIntro } from '../../components/CalendarImportIntro';
+import { useAppData } from '../../context/AppDataContext';
 import { CalendarPrivacyNote } from '../../components/CalendarPrivacyNote';
 import { GoogleCalendarLogo } from '../../components/GoogleCalendarLogo';
 import { colors } from '../../theme/colors';
@@ -27,6 +29,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ImportGoogleCalendar'>;
 
 export function ImportGoogleCalendarScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  const { childProfile } = useAppData();
   const configured = isGoogleCalendarConfigured();
   const [request, response, promptAsync] = useGoogleAuthRequest();
   const [connecting, setConnecting] = useState(false);
@@ -111,10 +114,8 @@ export function ImportGoogleCalendarScreen({ navigation }: Props) {
           <ActivityIndicator />
         </View>
       ) : phase === 'needsConnect' ? (
-        <View style={styles.connectContent}>
-          <Text style={styles.explanation}>
-            Sign in to pull school, sports, music, and extracurricular events from your calendar.
-          </Text>
+        <ScrollView contentContainerStyle={styles.connectContent}>
+          <CalendarImportIntro childName={childProfile?.name} />
           {error && <Text style={styles.errorText}>{error}</Text>}
           <Pressable style={styles.primaryButton} onPress={handleConnect} disabled={connecting || !request}>
             {connecting ? (
@@ -127,7 +128,7 @@ export function ImportGoogleCalendarScreen({ navigation }: Props) {
             )}
           </Pressable>
           <CalendarPrivacyNote />
-        </View>
+        </ScrollView>
       ) : (
         <>
           <Text style={styles.helperText}>Pick the calendar that has school, sports, music, and extracurriculars on it.</Text>
@@ -165,8 +166,7 @@ const styles = StyleSheet.create({
   closeButton: { fontSize: 15, color: colors.textMuted, width: 44 },
   title: { fontSize: 17, fontWeight: '700', color: colors.text },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  connectContent: { flex: 1, paddingHorizontal: 20, alignItems: 'center', justifyContent: 'center' },
-  explanation: { fontSize: 15, color: colors.textMuted, textAlign: 'center', marginBottom: 24, lineHeight: 22 },
+  connectContent: { flexGrow: 1, paddingHorizontal: 20, paddingVertical: 24, alignItems: 'center', justifyContent: 'center' },
   primaryButton: {
     width: '100%',
     backgroundColor: colors.expected,
