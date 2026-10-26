@@ -25,9 +25,9 @@ import {
 } from '../types/models';
 import { DraftChildProfile, DraftScheduleEvent, DraftExpectedItem, DraftGig } from './SetupContext';
 import { makeId } from '../utils/id';
-import { todayString, localDateOf, startOfWeek } from '../utils/date';
+import { todayString, localDateOf, startOfWeek, addDays } from '../utils/date';
 import { moveWithinGroup } from '../utils/reorder';
-import { computeExpectedStreak } from '../utils/streak';
+import { computeExpectedStreak, isDayFullyCompleted } from '../utils/streak';
 import { isExpectedItemSatisfied } from '../utils/expectedItemStatus';
 import { computeGigPercentage, DEFAULT_GIG_EFFORT_VALUES } from '../utils/gigValue';
 import { clearDailyReminder } from '../services/dailyReminder';
@@ -130,6 +130,10 @@ export interface MarkExpectedDoneResult {
    * completed every active weekly item for the current week (Sunday
    * through Saturday) — the weekly counterpart to allDoneToday. */
   allWeeklyDoneThisWeek: boolean;
+  /** Set when a check-off for an earlier day completed that whole day: the
+   * length of the unbroken run of complete days it now belongs to (running
+   * forward through any complete days after it, up to today). */
+  completedPastDay?: { date: string; streak: number };
 }
 
 interface AppDataContextValue {
@@ -526,19 +530,38 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       // celebration — that moment has passed); streaks recompute from the data.
       const past = expectedItems.find((i) => i.id === expectedItemId);
       if (!past || expectedCompletions.some((c) => c.expectedItemId === expectedItemId && c.date === date)) return noOp;
-      setExpectedCompletions((prev) => [
-        ...prev,
-        {
-          id: makeId('expectedCompletion'),
-          expectedItemId,
-          childProfileId: childProfile?.id ?? '',
-          date,
-          markedDoneAt: new Date().toISOString(),
-          correctedByParent: false,
-        },
-      ]);
+      const pastCompletion: ExpectedCompletion = {
+        id: makeId('expectedCompletion'),
+        expectedItemId,
+        childProfileId: childProfile?.id ?? '',
+        date,
+        markedDoneAt: new Date().toISOString(),
+        correctedByParent: false,
+      };
+      setExpectedCompletions((prev) => [...prev, pastCompletion]);
       track('expected_backfilled', { frequency: past.frequency });
-      return noOp;
+
+      // If that finished the whole day, celebrate the streak it joins: the
+      // run of complete days through that day and on forward to today. Any
+      // streak badges the run now reaches (and that weren't earned yet) are
+      // awarded; the biggest one is what pops up.
+      const updated = [...expectedCompletions, pastCompletion];
+      if (past.frequency !== 'daily' || !isDayFullyCompleted(date, expectedItems, updated)) return noOp;
+      const todayStr = todayString();
+      let runEnd = date;
+      while (runEnd < todayStr && isDayFullyCompleted(addDays(runEnd, 1), expectedItems, updated)) {
+        runEnd = addDays(runEnd, 1);
+      }
+      const run = computeExpectedStreak(expectedItems, updated, runEnd);
+      const earned = STREAK_THRESHOLDS.filter((t) => t.days <= run && !hasBadge(t.catalogId)).sort(
+        (a, b) => a.days - b.days
+      );
+      earned.forEach((t) => awardBadge(t.catalogId, { streakCount: t.days }));
+      return {
+        ...noOp,
+        newBadgeCatalogId: earned.length > 0 ? earned[earned.length - 1].catalogId : null,
+        completedPastDay: { date, streak: run },
+      };
     }
     if (isExpectedDoneToday(expectedItemId)) return noOp;
     const item = expectedItems.find((i) => i.id === expectedItemId);

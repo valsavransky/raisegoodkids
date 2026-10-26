@@ -520,11 +520,14 @@ export function ChildHomeScreen() {
   // swaps places with the "tap to mark complete" hint, then goes away).
   const [confirmation, setConfirmation] = useState<string | null>(null);
   const confirmationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const showConfirmation = (itemName: string) => {
-    const who = childProfile?.name?.trim().split(/\s+/)[0] || 'They';
-    setConfirmation(`${who} completed "${itemName}"`);
+  const showMessage = (text: string) => {
+    setConfirmation(text);
     if (confirmationTimer.current) clearTimeout(confirmationTimer.current);
     confirmationTimer.current = setTimeout(() => setConfirmation(null), 2800);
+  };
+  const showConfirmation = (itemName: string) => {
+    const who = childProfile?.name?.trim().split(/\s+/)[0] || 'They';
+    showMessage(`${who} completed "${itemName}"`);
   };
   useEffect(
     () => () => {
@@ -562,9 +565,23 @@ export function ChildHomeScreen() {
       const item = expectedItems.find((i) => i.id === itemId);
       if (!item) return;
       const isDone = dailyIsDoneOn(itemId, date);
-      confirmPastChange(item.name, date, isDone, () =>
-        isDone ? unmarkExpectedDone(itemId, date) : markExpectedDone(itemId, date)
-      );
+      confirmPastChange(item.name, date, isDone, () => {
+        if (isDone) {
+          unmarkExpectedDone(itemId, date);
+          return;
+        }
+        celebrateCheckoff();
+        const { newBadgeCatalogId, completedPastDay } = markExpectedDone(itemId, date);
+        if (completedPastDay) {
+          const dayName = STOP_WEEKDAY_NAMES[new Date(`${date}T00:00:00`).getDay()];
+          showMessage(
+            completedPastDay.streak >= 2
+              ? `${dayName} is complete! 🔥 ${completedPastDay.streak}-day streak`
+              : `${dayName} is complete!`
+          );
+        }
+        if (newBadgeCatalogId) navigation.navigate('BadgeUnlock', { catalogId: newBadgeCatalogId });
+      });
       return;
     }
     if (isExpectedDoneToday(itemId)) {
@@ -869,8 +886,14 @@ export function ChildHomeScreen() {
 
         {view === 'week' && (
           <View style={styles.weeklyPanel}>
-            {weekSubTab !== 'weekly' && (
-              <Text style={styles.weekHint}>Forgot to check something off? Tap a day from the past week to fill it in.</Text>
+            {confirmation ? (
+              <View style={[styles.confirmBanner, { marginHorizontal: 0 }]}>
+                <Text style={styles.confirmBannerText}>✓ {confirmation}</Text>
+              </View>
+            ) : (
+              weekSubTab !== 'weekly' && (
+                <Text style={styles.weekHint}>Forgot to check something off? Tap a day from the past week to fill it in.</Text>
+              )
             )}
             <View style={styles.weekSubTabRow}>
               <Pressable
