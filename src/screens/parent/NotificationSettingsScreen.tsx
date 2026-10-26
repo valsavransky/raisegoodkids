@@ -12,7 +12,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { SettingsSubHeader } from '../../components/SettingsSubHeader';
 import { useAppData } from '../../context/AppDataContext';
-import { isSomethingDoneToday } from '../../hooks/useDailyReminderSync';
+import { isSomethingDoneToday, excusedDatesAhead } from '../../hooks/useDailyReminderSync';
 import {
   ReminderSettings,
   DEFAULT_REMINDER_TIME,
@@ -34,7 +34,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'NotificationSettings'>;
 
 export function NotificationSettingsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { childProfile, expectedCompletions, gigCompletions } = useAppData();
+  const { childProfile, expectedCompletions, gigCompletions, isDayExcused } = useAppData();
   const [settings, setSettings] = useState<ReminderSettings>({ enabled: false, time: DEFAULT_REMINDER_TIME });
   const [loaded, setLoaded] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -62,6 +62,7 @@ export function NotificationSettingsScreen({ navigation }: Props) {
     await syncDailyReminder({
       childName: childProfile?.name,
       doneToday: isSomethingDoneToday(expectedCompletions, gigCompletions),
+      excusedDates: excusedDatesAhead(isDayExcused),
     });
     await refreshDiag();
   };

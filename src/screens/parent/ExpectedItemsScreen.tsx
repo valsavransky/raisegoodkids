@@ -2,7 +2,7 @@
 // (which crammed Expected/Gigs/Account into tabs) as part of the Settings
 // redesign — now its own screen, reached from a row on the Settings list.
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, Modal, Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, Modal, Alert, KeyboardAvoidingView, Platform, Switch, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -10,6 +10,7 @@ import { SettingsSubHeader } from '../../components/SettingsSubHeader';
 import { DraggableList } from '../../components/DraggableList';
 import { useAppData } from '../../context/AppDataContext';
 import { ExpectedItem } from '../../types/models';
+import { isItemExcusable } from '../../utils/excuse';
 import { colors } from '../../theme/colors';
 import { LINK_HIT_SLOP } from '../../theme/hitSlop';
 
@@ -19,7 +20,7 @@ type ModalMode = { editingId: string | null } | null;
 
 export function ExpectedItemsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { expectedItems, addExpectedItem, updateExpectedItem, deleteExpectedItem, setExpectedOrder } = useAppData();
+  const { expectedItems, addExpectedItem, updateExpectedItem, deleteExpectedItem, setExpectedOrder, setItemExcusable } = useAppData();
 
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [dragging, setDragging] = useState(false);
@@ -62,7 +63,7 @@ export function ExpectedItemsScreen({ navigation }: Props) {
       <ScrollView scrollEnabled={!dragging} contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
         <Text style={styles.helper}>
           Everyday responsibilities that build good habits. These are unpaid. Drag the dots to set the order they
-          appear on the Today trail.
+          appear on the Today trail. On a sick day, trip or birthday, the ones marked "Can be excused" become optional.
         </Text>
 
         {(['daily', 'weekly'] as const).map((frequency) => {
@@ -84,6 +85,19 @@ export function ExpectedItemsScreen({ navigation }: Props) {
                       <Text style={styles.rowName}>{item.name}</Text>
                       {item.linkedEventTitle && (
                         <Text style={styles.rowLinked}>🗓 From {item.linkedEventTitle}</Text>
+                      )}
+                      {item.frequency === 'daily' && (
+                        <View style={styles.excuseRow}>
+                          <Switch
+                            value={isItemExcusable(item)}
+                            onValueChange={(value) => setItemExcusable(item.id, value)}
+                            trackColor={{ true: colors.expected }}
+                            style={styles.excuseSwitch}
+                          />
+                          <Text style={styles.excuseText}>
+                            {isItemExcusable(item) ? 'Can be excused' : 'Always required'}
+                          </Text>
+                        </View>
                       )}
                     </View>
                     <View style={styles.rowActions}>
@@ -175,6 +189,9 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
   },
+  excuseRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  excuseSwitch: { transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }], marginLeft: -6 },
+  excuseText: { fontSize: 12, color: colors.textMuted, fontWeight: '600' },
   rowInfo: { flex: 1, flexShrink: 1 },
   rowName: { fontSize: 15, fontWeight: '600', color: colors.text },
   rowLinked: { fontSize: 11, color: colors.textMuted, marginTop: 2 },

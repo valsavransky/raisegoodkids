@@ -27,12 +27,14 @@ export type RootStackParamList = {
   AllExpectedDone: { badgeCatalogId?: string };
   AllWeeklyExpectedDone: { badgeCatalogId?: string };
   AllGigsDone: { badgeCatalogId?: string };
+  BirthdayCelebration: undefined;
   ImportGoogleCalendar: undefined;
   ImportGoogleCalendarEvents: { calendarId: string };
   Settings: undefined;
   ExpectedItemsSettings: undefined;
   GigsSettings: undefined;
   ScheduleSettings: undefined;
+  ExcusedDaysSettings: { openAdd?: boolean } | undefined;
   FutureFundSettings: undefined;
   NotificationSettings: undefined;
   Feedback: undefined;

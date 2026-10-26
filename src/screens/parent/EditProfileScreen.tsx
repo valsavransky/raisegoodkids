@@ -57,7 +57,7 @@ export function EditProfileScreen({ navigation }: Props) {
     ? parsedBirthday.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
     : null;
 
-  const canSave = useMemo(() => name.trim().length > 0 && !!grade, [name, grade]);
+  const canSave = useMemo(() => name.trim().length > 0 && !!grade && !!birthday, [name, grade, birthday]);
 
   const openPicker = () => {
     setTempDate(parsedBirthday ?? eightYearsAgo());
@@ -138,7 +138,7 @@ export function EditProfileScreen({ navigation }: Props) {
           }}
         />
 
-        <Text style={styles.label}>Birthday (optional)</Text>
+        <Text style={styles.label}>Birthday</Text>
         <Pressable style={styles.input} onPress={openPicker}>
           <Text style={formattedBirthday ? styles.dateText : styles.datePlaceholder}>
             {formattedBirthday ?? 'Select birthday'}

@@ -15,6 +15,7 @@
 import React from 'react';
 import { BadgeType } from '../types/models';
 import { colors } from '../theme/colors';
+import { ordinal } from '../utils/excuse';
 import { HeartHandshakeIcon } from '../components/icons/HeartHandshakeIcon';
 
 // Almost every badge icon is a plain emoji string, matching the rest of
@@ -53,7 +54,34 @@ export const BADGE_CATALOG: BadgeCatalogEntry[] = [
   { catalogId: 'future_fund_250', requirement: 'Save $250 in your Future Fund.', type: 'future_fund_milestone', title: '$250 Saved', subtitle: 'Future Fund badge earned', icon: '🌳', color: colors.futureFund },
 ];
 
+/** One badge per birthday, made on demand ("birthday_9" is the 9th Birthday)
+ * rather than listed in the fixed catalog above. */
+export function birthdayBadgeEntry(age: number): BadgeCatalogEntry {
+  return {
+    catalogId: `birthday_${age}`,
+    type: 'birthday',
+    title: `${ordinal(age)} Birthday`,
+    subtitle: 'Birthday badge earned',
+    requirement: 'Open Trekker on your birthday.',
+    icon: '🎂',
+    color: colors.gigs,
+  };
+}
+
+/** The shelf's locked "Birthday" tile, shown until the first birthday badge is earned. */
+export const BIRTHDAY_BADGE_PLACEHOLDER: BadgeCatalogEntry = {
+  catalogId: 'birthday',
+  type: 'birthday',
+  title: 'Birthday',
+  subtitle: 'Birthday badge',
+  requirement: 'Open Trekker on your birthday to earn a badge for your age.',
+  icon: '🎂',
+  color: colors.gigs,
+};
+
 export function getBadgeCatalogEntry(catalogId: string): BadgeCatalogEntry | undefined {
+  const birthday = /^birthday_(\d+)$/.exec(catalogId);
+  if (birthday) return birthdayBadgeEntry(Number(birthday[1]));
   return BADGE_CATALOG.find((b) => b.catalogId === catalogId);
 }
 

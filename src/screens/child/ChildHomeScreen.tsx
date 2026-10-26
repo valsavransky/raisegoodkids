@@ -52,6 +52,7 @@ import { useAppData } from '../../context/AppDataContext';
 import { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { ExpectedItem, ExpectedCompletion, Gig, GigCompletion, ScheduleEventCategory } from '../../types/models';
 import { AppHeader } from '../../components/AppHeader';
+import { ExcuseTodaySheet } from '../../components/ExcuseTodaySheet';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { TaskIcon } from '../../components/icons/TaskIcons';
 import { guessTaskIcon } from '../../data/taskIcons';
@@ -94,7 +95,7 @@ const HEADROOM_TRIM = 55;
 const STOP_SIZE = 50;
 
 type TrailStop =
-  | { kind: 'expected'; id: string; name: string; done: boolean }
+  | { kind: 'expected'; id: string; name: string; done: boolean; excused: boolean }
   | { kind: 'gig'; id: string; name: string; percentage: number | null; done: boolean };
 
 function trailPointAt(index: number): { x: number; y: number } {
@@ -370,6 +371,10 @@ export function ChildHomeScreen() {
     markExpectedDone,
     allExpectedDoneToday,
     expectedDoneCountToday,
+    expectedRequiredCountToday,
+    isDayExcused,
+    isItemExcusedToday,
+    birthdayCelebrationDue,
     activeGoal,
     goalProgressPercentage,
     gigs,
@@ -392,12 +397,20 @@ export function ChildHomeScreen() {
   // predictable length no matter how many items get added later.
   const [weekSubTab, setWeekSubTab] = useState<'daily' | 'gigs' | 'weekly'>('daily');
 
+  const [excuseSheetVisible, setExcuseSheetVisible] = useState(false);
+
   const [focusedAt, setFocusedAt] = useState(() => Date.now());
   useFocusEffect(
     useCallback(() => {
       setFocusedAt(Date.now());
     }, [])
   );
+  // On the child's birthday, the first time Today is opened that day, show the
+  // celebration (it marks itself as shown, so this only ever fires once).
+  useEffect(() => {
+    if (birthdayCelebrationDue() !== null) navigation.navigate('BirthdayCelebration');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusedAt, childProfile?.birthday]);
   const todaysEvents = useMemo(() => scheduleEventsForToday(scheduleEvents), [scheduleEvents, focusedAt]);
   const todayStr = useMemo(() => todayString(), [focusedAt]);
   // Calendar week (Sun–Sat) — what a weekly item counts against.
@@ -423,13 +436,21 @@ export function ChildHomeScreen() {
 
   const goal = activeGoal();
   const { done, total } = expectedDoneCountToday();
+  const required = expectedRequiredCountToday();
+  const todayExcused = isDayExcused();
   const gigsUnlocked = allExpectedDoneToday();
   const streak = expectedStreak();
   const dailyItems = expectedItems.filter((item) => item.frequency === 'daily');
   const weeklyItems = expectedItems.filter((item) => item.frequency === 'weekly');
 
   const stops: TrailStop[] = [
-    ...dailyItems.map((item): TrailStop => ({ kind: 'expected', id: item.id, name: item.name, done: isExpectedDoneToday(item.id) })),
+    ...dailyItems.map((item): TrailStop => ({
+      kind: 'expected',
+      id: item.id,
+      name: item.name,
+      done: isExpectedDoneToday(item.id),
+      excused: isItemExcusedToday(item.id),
+    })),
     ...gigs.map((gig): TrailStop => ({
       kind: 'gig',
       id: gig.id,
@@ -451,7 +472,13 @@ export function ChildHomeScreen() {
   const expectedProgress = Math.min(shownProgress, expectedCount);
   const gigJunction = Math.max(expectedCount - 1, 0);
   const showGigProgress = shownProgress > expectedCount && stops.length > expectedCount;
-  const avatarIdx = Math.min(doneCount, Math.max(points.length - 1, 0));
+  // On an excused day the avatar skips past excused activities to the next
+  // thing that's actually asked of them (or the first gig).
+  const nextAskedIdx = stops.findIndex((s) => !s.done && !(s.kind === 'expected' && s.excused));
+  const avatarIdx =
+    todayExcused && nextAskedIdx >= 0
+      ? nextAskedIdx
+      : Math.min(doneCount, Math.max(points.length - 1, 0));
   const avatarPoint = points[avatarIdx] ?? trailPointAt(0);
   const trailHeight = points.length > 0 ? points[points.length - 1].y + 70 : 0;
   const gigsDoneToday = gigs.some((gig) => gigCompletionStatusToday(gig.id) === 'approved');
@@ -663,8 +690,8 @@ export function ChildHomeScreen() {
     }
     Alert.alert(
       'Still some Expected left today',
-      `${childProfile?.name ?? 'Your child'} still has ${total - done} Expected activit${
-        total - done === 1 ? 'y' : 'ies'
+      `${childProfile?.name ?? 'Your child'} still has ${required.total - required.done} Expected activit${
+        required.total - required.done === 1 ? 'y' : 'ies'
       } left today. Let them start a gig anyway?`,
       [
         { text: 'Not yet', style: 'cancel' },
@@ -754,9 +781,34 @@ export function ChildHomeScreen() {
             )}
           </View>
           {view === 'today' && (
+            <View style={styles.streakRow}>
               <Text style={styles.streakText}>{streak > 0 ? `${streak}-day streak` : 'Start your streak!'}</Text>
-            )}
+              <Pressable
+                onPress={() => setExcuseSheetVisible(true)}
+                hitSlop={10}
+                accessibilityLabel="More options: excuse today"
+                style={styles.moreButton}
+              >
+                <Text style={styles.moreButtonText}>⋯</Text>
+              </Pressable>
+            </View>
+          )}
         </View>
+
+        {view === 'today' && !childProfile?.birthday && childProfile && (
+          <Pressable style={styles.birthdayCard} onPress={() => navigation.navigate('EditProfile')}>
+            <Text style={styles.birthdayCardText}>
+              🎂 Add {childProfile.name.trim().split(/\s+/)[0]}'s birthday for a birthday celebration
+            </Text>
+            <Text style={styles.birthdayCardChevron}>{'›'}</Text>
+          </Pressable>
+        )}
+
+        {view === 'today' && todayExcused && (
+          <View style={styles.excusedNote}>
+            <Text style={styles.excusedNoteText}>🌴 Day off from Expected Activities today</Text>
+          </View>
+        )}
 
         {view === 'today' && stops.length > 0 &&
           (confirmation ? (
@@ -874,6 +926,9 @@ export function ChildHomeScreen() {
                   </Pressable>
                   <View style={[styles.stopLabelWrap, { left: point.x - 62, top: point.y + 32 }]}>
                     <Text style={styles.stopLabel} numberOfLines={2}>{stop.name}</Text>
+                    {stop.kind === 'expected' && stop.excused && !stop.done && (
+                      <Text style={styles.stopExcused}>Excused</Text>
+                    )}
                     {stop.kind === 'gig' && stop.percentage !== null && (
                       <Text style={styles.stopAmount}>+{stop.percentage}%</Text>
                     )}
@@ -964,6 +1019,12 @@ export function ChildHomeScreen() {
           </View>
         )}
       </ScrollView>
+
+      <ExcuseTodaySheet
+        visible={excuseSheetVisible}
+        onClose={() => setExcuseSheetVisible(false)}
+        onMoreDays={() => navigation.navigate('ExcusedDaysSettings', { openAdd: true })}
+      />
     </View>
   );
 }
@@ -1047,6 +1108,34 @@ const styles = StyleSheet.create({
   toggleTabActive: { backgroundColor: colors.expected },
   toggleTabText: { fontSize: 12.5, fontWeight: '800', color: '#8a8578' },
   toggleTabTextActive: { color: '#FFFFFF' },
+  streakRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  moreButton: { paddingHorizontal: 6, paddingBottom: 4 },
+  moreButtonText: { fontSize: 22, fontWeight: '800', color: colors.textMuted, lineHeight: 22 },
+  excusedNote: {
+    marginHorizontal: 20,
+    marginBottom: 8,
+    backgroundColor: '#E4F4F1',
+    borderWidth: 1,
+    borderColor: '#BFE4DE',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  excusedNoteText: { fontSize: 12.5, fontWeight: '700', color: '#0B6D63' },
+  birthdayCard: {
+    marginHorizontal: 20,
+    marginBottom: 8,
+    backgroundColor: '#FCEBD2',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  birthdayCardText: { flex: 1, fontSize: 12.5, fontWeight: '700', color: '#8a5a12' },
+  birthdayCardChevron: { fontSize: 18, color: '#8a5a12', fontWeight: '700' },
+  stopExcused: { fontWeight: '800', fontSize: 9.5, color: '#0B6D63', marginTop: 1 },
   streakText: { fontSize: 12.5, color: colors.expected, fontWeight: '700' },
   scheduleStrip: { paddingHorizontal: 20, marginBottom: 6 },
   scheduleRow: {

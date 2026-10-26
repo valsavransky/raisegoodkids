@@ -1,5 +1,5 @@
 // Screen 4: parent setup, step 1 of 5 — child profile. Avatar, name and
-// grade are required; birthday and the At home details are optional.
+// grade and birthday are required; the At home details are optional.
 //
 // Progressive disclosure: a brand-new user only sees Avatar + Name at
 // first — Birthday, Grade, and the At Home toggles reveal themselves (with
@@ -62,8 +62,8 @@ export function ChildProfileScreen({ navigation }: Props) {
     : null;
 
   const canContinue = useMemo(
-    () => childProfile.name.trim().length > 0 && !!childProfile.grade,
-    [childProfile.name, childProfile.grade]
+    () => childProfile.name.trim().length > 0 && !!childProfile.grade && !!childProfile.birthday,
+    [childProfile.name, childProfile.grade, childProfile.birthday]
   );
 
   const detailsUnlocked = childProfile.name.trim().length > 0;
@@ -144,7 +144,10 @@ export function ChildProfileScreen({ navigation }: Props) {
             })}
           </View>
 
-          <Text style={styles.label}>Birthday (optional)</Text>
+          <Text style={styles.label}>Birthday</Text>
+          <Text style={styles.helperText}>
+            We use it for a birthday celebration on the day, and to keep suggestions fitting as they grow.
+          </Text>
           <Pressable style={styles.input} onPress={openPicker}>
             <Text style={formattedBirthday ? styles.dateText : styles.datePlaceholder}>
               {formattedBirthday ?? 'Select birthday'}

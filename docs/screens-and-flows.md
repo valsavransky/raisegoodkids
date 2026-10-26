@@ -224,6 +224,8 @@ Both converge on a payoff step: redeem the goal (parent fulfills it in real life
 - Optional reason dropdown (Sick day / Travel / Family event / Other) — not shown to the child, just for the parent's own record-keeping
 - Save button
 
+**Built (Oct 2026), with these decisions:** excused days are set from a quick "Excuse today?" sheet behind a ⋯ on the Today screen (reason chips are just for the parent), plus Settings → Excused days for any day or range ahead of time (a trip, a holiday) — so multi-day is in. Each daily Expected activity has a "Can be excused" / "Always required" switch under Settings → Expected Activities, set once (personal-care items such as brushing teeth default to always required). On an excused day the child sees "Day off from Expected Activities today" and an "Excused" tag on the excusable activities; they can still do them and they still count. Only the always-required activities count toward unlocking gigs. The streak **pauses** on an excused day (neither grows nor breaks) when the always-required activities are done. The child's birthday is an automatic excused day, opens with a one-time celebration screen, and earns a "9th Birthday"-style badge each year. The birthday (full date) is now required when adding a child.
+
 **Open question:** should this support excusing a range of days at once (e.g., a week-long trip) rather than one day at a time? As designed, it's single-day only — worth deciding whether multi-day is a v1 need or a later addition.
 
 ---

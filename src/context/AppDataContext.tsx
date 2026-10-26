@@ -22,12 +22,16 @@ import {
   FutureFund,
   GigEffortValues,
   Badge,
+  DailyExcuse,
+  DailyExcuseReason,
+  DailyExcuseTrigger,
 } from '../types/models';
 import { DraftChildProfile, DraftScheduleEvent, DraftExpectedItem, DraftGig } from './SetupContext';
 import { makeId } from '../utils/id';
 import { todayString, localDateOf, startOfWeek, addDays } from '../utils/date';
 import { applyGroupOrder } from '../utils/reorder';
-import { computeExpectedStreak, isDayFullyCompleted } from '../utils/streak';
+import { computeExpectedStreak, dayStatus } from '../utils/streak';
+import { isItemExcusable, isBirthdayOn, ageOn } from '../utils/excuse';
 import { isExpectedItemSatisfied } from '../utils/expectedItemStatus';
 import { computeGigPercentage, DEFAULT_GIG_EFFORT_VALUES } from '../utils/gigValue';
 import { clearDailyReminder } from '../services/dailyReminder';
@@ -51,6 +55,7 @@ const EMPTY_APP_DATA: PersistedAppData = {
   futureFund: null,
   gigEffortValues: DEFAULT_GIG_EFFORT_VALUES,
   badges: [],
+  dailyExcuses: [],
   soundEnabled: true,
 };
 
@@ -96,6 +101,9 @@ interface PersistedAppData {
   futureFund: FutureFund | null;
   gigEffortValues: GigEffortValues;
   badges: Badge[];
+  /** Days a parent excused (sick, travel, family event…); a birthday is
+   * excused automatically and isn't stored here. Missing on older data. */
+  dailyExcuses?: DailyExcuse[];
   /** Defaults to true (missing on any data saved before this field existed,
    * so `?? true` at every read site treats that the same as "on"). */
   soundEnabled: boolean;
@@ -182,6 +190,27 @@ interface AppDataContextValue {
   allExpectedDoneToday: () => boolean;
   expectedDoneCountToday: () => { done: number; total: number };
   expectedStreak: () => number;
+
+  /** Manually excused days (a sick day, a trip…). A birthday is excused too,
+   * automatically, and isn't in this list. */
+  dailyExcuses: DailyExcuse[];
+  /** True if the date (default today) is excused, manually or by birthday. */
+  isDayExcused: (date?: string) => boolean;
+  /** Why a date is excused, or null if it isn't. */
+  excuseInfo: (date: string) => { trigger: DailyExcuseTrigger; reason?: DailyExcuseReason } | null;
+  excuseDays: (dates: string[], reason?: DailyExcuseReason) => void;
+  removeExcuseDays: (dates: string[]) => void;
+  /** True when today is excused AND this activity is one that can be excused. */
+  isItemExcusedToday: (expectedItemId: string) => boolean;
+  setItemExcusable: (id: string, excusable: boolean) => void;
+  /** Today's daily activities that still count toward unlocking gigs (just the
+   * always-required ones on an excused day) and how many are done. */
+  expectedRequiredCountToday: () => { done: number; total: number };
+  /** The age being celebrated if today is the child's birthday and the
+   * celebration hasn't been shown yet this year, otherwise null. */
+  birthdayCelebrationDue: () => number | null;
+  /** Marks this year's celebration as shown and awards the birthday badge. */
+  completeBirthdayCelebration: () => { badgeCatalogId: string; age: number } | null;
 
   activeGoal: () => Goal | undefined;
   queuedGoals: () => Goal[];
@@ -292,6 +321,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [futureFund, setFutureFund] = useState<FutureFund | null>(null);
   const [gigEffortValues, setGigEffortValues] = useState<GigEffortValues>(DEFAULT_GIG_EFFORT_VALUES);
   const [badges, setBadges] = useState<Badge[]>([]);
+  const [dailyExcuses, setDailyExcuses] = useState<DailyExcuse[]>([]);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
 
   // Load once on mount. Until this resolves, isHydrated stays false so
@@ -313,6 +343,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           setFutureFund(data.futureFund);
           setGigEffortValues(data.gigEffortValues ?? DEFAULT_GIG_EFFORT_VALUES);
           setBadges(data.badges);
+          setDailyExcuses(data.dailyExcuses ?? []);
           setSoundEnabled(data.soundEnabled ?? true);
         }
       } catch (e) {
@@ -350,6 +381,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           setFutureFund(data.futureFund);
           setGigEffortValues(data.gigEffortValues ?? DEFAULT_GIG_EFFORT_VALUES);
           setBadges(data.badges);
+          setDailyExcuses(data.dailyExcuses ?? []);
           setSoundEnabled(data.soundEnabled ?? true);
         } else if (childProfile) {
           await saveData(token, {
@@ -364,6 +396,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
             futureFund,
             gigEffortValues,
             badges,
+            dailyExcuses,
             soundEnabled,
           });
         }
@@ -393,6 +426,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       futureFund,
       gigEffortValues,
       badges,
+      dailyExcuses,
       soundEnabled,
     };
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data)).catch((e) =>
@@ -416,6 +450,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     futureFund,
     gigEffortValues,
     badges,
+    dailyExcuses,
     soundEnabled,
   ]);
 
@@ -498,10 +533,49 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const excuseInfo: AppDataContextValue['excuseInfo'] = (date) => {
+    const manual = dailyExcuses.find((e) => e.date === date);
+    if (manual) return { trigger: manual.trigger, reason: manual.reason };
+    if (isBirthdayOn(childProfile?.birthday, date)) return { trigger: 'birthday' };
+    return null;
+  };
+  const isDayExcused = (date: string = todayString()): boolean => excuseInfo(date) !== null;
+
+  const excuseDays: AppDataContextValue['excuseDays'] = (dates, reason) => {
+    setDailyExcuses((prev) => {
+      const have = new Set(prev.map((e) => e.date));
+      const added = dates
+        .filter((d) => !have.has(d))
+        .map((date): DailyExcuse => ({
+          id: makeId('dailyExcuse'),
+          childProfileId: childProfile?.id ?? '',
+          date,
+          trigger: 'manual',
+          reason,
+        }));
+      return [...prev, ...added];
+    });
+    track('day_excused', { days: dates.length });
+  };
+
+  const removeExcuseDays: AppDataContextValue['removeExcuseDays'] = (dates) => {
+    const gone = new Set(dates);
+    setDailyExcuses((prev) => prev.filter((e) => !gone.has(e.date)));
+  };
+
+  const setItemExcusable: AppDataContextValue['setItemExcusable'] = (id, excusable) => {
+    setExpectedItems((prev) => prev.map((item) => (item.id === id ? { ...item, excusable } : item)));
+  };
+
   const isExpectedDoneToday = (expectedItemId: string): boolean => {
     const item = expectedItems.find((i) => i.id === expectedItemId);
     if (!item) return false;
     return isExpectedItemSatisfied(item, expectedCompletions, todayString());
+  };
+
+  const isItemExcusedToday = (expectedItemId: string): boolean => {
+    const item = expectedItems.find((i) => i.id === expectedItemId);
+    return !!item && item.frequency === 'daily' && isDayExcused() && isItemExcusable(item);
   };
 
   const hasBadge = (catalogId: string): boolean => badges.some((b) => b.catalogId === catalogId);
@@ -546,13 +620,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       // streak badges the run now reaches (and that weren't earned yet) are
       // awarded; the biggest one is what pops up.
       const updated = [...expectedCompletions, pastCompletion];
-      if (past.frequency !== 'daily' || !isDayFullyCompleted(date, expectedItems, updated)) return noOp;
+      if (past.frequency !== 'daily' || dayStatus(date, expectedItems, updated, isDayExcused) !== 'complete') return noOp;
       const todayStr = todayString();
       let runEnd = date;
-      while (runEnd < todayStr && isDayFullyCompleted(addDays(runEnd, 1), expectedItems, updated)) {
+      while (runEnd < todayStr && dayStatus(addDays(runEnd, 1), expectedItems, updated, isDayExcused) !== 'broken') {
         runEnd = addDays(runEnd, 1);
       }
-      const run = computeExpectedStreak(expectedItems, updated, runEnd);
+      const run = computeExpectedStreak(expectedItems, updated, runEnd, isDayExcused);
       const earned = STREAK_THRESHOLDS.filter((t) => t.days <= run && !hasBadge(t.catalogId)).sort(
         (a, b) => a.days - b.days
       );
@@ -598,7 +672,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
     let newBadgeCatalogId: string | null = null;
     if (allDoneToday) {
-      const newStreak = computeExpectedStreak(expectedItems, updatedCompletions, today);
+      const newStreak = computeExpectedStreak(expectedItems, updatedCompletions, today, isDayExcused);
       const threshold = STREAK_THRESHOLDS.find((t) => t.days === newStreak);
       if (threshold && !hasBadge(threshold.catalogId)) {
         awardBadge(threshold.catalogId, { streakCount: newStreak });
@@ -619,7 +693,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const allExpectedDoneToday = (): boolean => {
     const dailyItems = expectedItems.filter((item) => item.frequency === 'daily');
     if (dailyItems.length === 0) return false;
-    return dailyItems.every((item) => isExpectedDoneToday(item.id));
+    // On an excused day only the always-required activities gate gigs.
+    const needed = isDayExcused() ? dailyItems.filter((item) => !isItemExcusable(item)) : dailyItems;
+    return needed.every((item) => isExpectedDoneToday(item.id));
+  };
+
+  const expectedRequiredCountToday = () => {
+    const dailyItems = expectedItems.filter((item) => item.frequency === 'daily');
+    const needed = isDayExcused() ? dailyItems.filter((item) => !isItemExcusable(item)) : dailyItems;
+    return { done: needed.filter((item) => isExpectedDoneToday(item.id)).length, total: needed.length };
   };
 
   const expectedDoneCountToday = () => {
@@ -628,7 +710,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return { done, total: dailyItems.length };
   };
 
-  const expectedStreak = (): number => computeExpectedStreak(expectedItems, expectedCompletions, todayString());
+  const expectedStreak = (): number =>
+    computeExpectedStreak(expectedItems, expectedCompletions, todayString(), isDayExcused);
 
   const activeGoal = (): Goal | undefined => goals.find((g) => g.status === 'active');
   const queuedGoals = (): Goal[] =>
@@ -879,6 +962,25 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setFutureFund((prev) => (prev ? { ...prev, percentage } : prev));
   };
 
+  const birthdayCelebrationDue = (): number | null => {
+    const today = todayString();
+    if (!childProfile || !isBirthdayOn(childProfile.birthday, today)) return null;
+    if (childProfile.lastBirthdayCelebratedYear === Number(today.slice(0, 4))) return null;
+    const age = ageOn(childProfile.birthday, today);
+    return age !== null && age >= 1 ? age : null;
+  };
+
+  const completeBirthdayCelebration = (): { badgeCatalogId: string; age: number } | null => {
+    const age = birthdayCelebrationDue();
+    if (age === null) return null;
+    const year = Number(todayString().slice(0, 4));
+    setChildProfile((prev) => (prev ? { ...prev, lastBirthdayCelebratedYear: year } : prev));
+    const badgeCatalogId = `birthday_${age}`;
+    if (!hasBadge(badgeCatalogId)) awardBadge(badgeCatalogId);
+    track('birthday_celebrated');
+    return { badgeCatalogId, age };
+  };
+
   const addScheduleEvent = (event: Omit<ScheduleEvent, 'id' | 'childProfileId'>) => {
     setScheduleEvents((prev) => [...prev, { ...event, id: makeId('scheduleEvent'), childProfileId: childProfile?.id ?? '' }]);
   };
@@ -992,6 +1094,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setFutureFund(null);
     setGigEffortValues(DEFAULT_GIG_EFFORT_VALUES);
     setBadges([]);
+    setDailyExcuses([]);
     await disconnectAndStartFresh();
   };
 
@@ -1020,6 +1123,16 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         allExpectedDoneToday,
         expectedDoneCountToday,
         expectedStreak,
+        dailyExcuses,
+        isDayExcused,
+        excuseInfo,
+        excuseDays,
+        removeExcuseDays,
+        isItemExcusedToday,
+        setItemExcusable,
+        expectedRequiredCountToday,
+        birthdayCelebrationDue,
+        completeBirthdayCelebration,
         activeGoal,
         queuedGoals,
         completedGoals,

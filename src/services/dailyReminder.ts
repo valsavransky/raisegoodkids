@@ -105,13 +105,21 @@ function pad(n: number): string {
 
 /** The next few moments a reminder should fire: today's chosen time if it's
  * still ahead and nothing's been done, then each following day's. */
-export function upcomingReminderDates(now: Date, time: string, doneToday: boolean, days = DAYS_AHEAD): Date[] {
+export function upcomingReminderDates(
+  now: Date,
+  time: string,
+  doneToday: boolean,
+  days = DAYS_AHEAD,
+  excusedDates: string[] = []
+): Date[] {
   const [h, m] = time.split(':').map(Number);
   const dates: Date[] = [];
   for (let i = 0; i < days; i++) {
     const target = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, Number.isFinite(h) ? h : 18, Number.isFinite(m) ? m : 0, 0, 0);
     if (target.getTime() <= now.getTime()) continue;
     if (i === 0 && doneToday) continue;
+    // Nothing is asked of an excused day (sick, travel, birthday…), so no nudge.
+    if (excusedDates.includes(`${target.getFullYear()}-${pad(target.getMonth() + 1)}-${pad(target.getDate())}`)) continue;
     dates.push(target);
   }
   return dates;
@@ -128,14 +136,19 @@ async function cancelOurNotifications(): Promise<void> {
 
 /** Re-lays the reminders to match current settings and today's progress.
  * Safe to call as often as needed; never throws. */
-export async function syncDailyReminder(state: { childName?: string; doneToday: boolean }): Promise<void> {
+export async function syncDailyReminder(state: {
+  childName?: string;
+  doneToday: boolean;
+  /** Local YYYY-MM-DD days (from today on) that are excused. */
+  excusedDates?: string[];
+}): Promise<void> {
   try {
     await cancelOurNotifications();
     const settings = await loadReminderSettings();
     if (!settings.enabled || !(await hasNotificationPermission())) return;
     await ensureAndroidChannel();
     const body = reminderBody(state.childName);
-    for (const date of upcomingReminderDates(new Date(), settings.time, state.doneToday)) {
+    for (const date of upcomingReminderDates(new Date(), settings.time, state.doneToday, DAYS_AHEAD, state.excusedDates)) {
       await Notifications.scheduleNotificationAsync({
         identifier: `${ID_PREFIX}${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
         content: { title: 'Trekker', body },

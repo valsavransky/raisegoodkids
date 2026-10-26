@@ -28,6 +28,9 @@ export interface ChildProfile {
   petType?: string;
   /** Only meaningful when hasPet is true; optional even then. */
   petName?: string;
+  /** The birthday year (e.g. 2026) whose celebration screen has already been
+   * shown, so it appears once per birthday. */
+  lastBirthdayCelebratedYear?: number;
 }
 
 // 'skip' (hide from the schedule) was removed — redundant with just not
@@ -92,6 +95,11 @@ export interface ExpectedItem {
   name: string;
   frequency: 'daily' | 'weekly';
   active: boolean;
+  /** Whether this activity becomes optional on an excused day (a sick day, a
+   * trip, a birthday). Missing means "use the default" (see
+   * src/utils/excuse.ts: hygiene items default to always required). Only
+   * meaningful for daily items. */
+  excusable?: boolean;
   /** Title of the schedule event this item was suggested from (e.g. "Rayna
    * piano"), when accepted via the practice-suggestion prompt on
    * ScheduleReviewScreen — shown as a subtitle in the Expected Items list so
@@ -227,7 +235,8 @@ export type BadgeType =
   | 'goal_achieved'
   | 'character_grit'
   | 'future_fund_milestone'
-  | 'weekly_complete';
+  | 'weekly_complete'
+  | 'birthday';
 
 /**
  * Streak length and goal-progress percentage are deliberately NOT stored as

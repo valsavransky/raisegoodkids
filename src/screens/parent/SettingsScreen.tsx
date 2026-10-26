@@ -108,6 +108,14 @@ export function SettingsScreen({ navigation }: Props) {
           </View>
           <Text style={styles.chevron}>{'›'}</Text>
         </Pressable>
+        <Pressable onPress={() => navigation.navigate('ExcusedDaysSettings')} style={styles.row}>
+          <Text style={styles.rowIcon}>🌴</Text>
+          <View style={styles.rowInfo}>
+            <Text style={styles.rowLabel}>Excused days</Text>
+            <Text style={styles.rowSubtitle}>Sick days, trips, holidays</Text>
+          </View>
+          <Text style={styles.chevron}>{'›'}</Text>
+        </Pressable>
         <Pressable onPress={() => navigation.navigate('FutureFundSettings')} style={styles.row}>
           <Text style={styles.rowIcon}>📈</Text>
           <View style={styles.rowInfo}>

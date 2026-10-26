@@ -11,12 +11,14 @@ import { BadgeUnlockScreen } from '../screens/child/BadgeUnlockScreen';
 import { AllExpectedDoneScreen } from '../screens/child/AllExpectedDoneScreen';
 import { AllWeeklyExpectedDoneScreen } from '../screens/child/AllWeeklyExpectedDoneScreen';
 import { AllGigsDoneScreen } from '../screens/child/AllGigsDoneScreen';
+import { BirthdayCelebrationScreen } from '../screens/child/BirthdayCelebrationScreen';
 import { ImportGoogleCalendarScreen } from '../screens/child/ImportGoogleCalendarScreen';
 import { ImportGoogleCalendarEventsScreen } from '../screens/child/ImportGoogleCalendarEventsScreen';
 import { SettingsScreen } from '../screens/parent/SettingsScreen';
 import { ExpectedItemsScreen } from '../screens/parent/ExpectedItemsScreen';
 import { GigsScreen } from '../screens/parent/GigsScreen';
 import { ScheduleScreen } from '../screens/parent/ScheduleScreen';
+import { ExcusedDaysScreen } from '../screens/parent/ExcusedDaysScreen';
 import { FutureFundSettingsScreen } from '../screens/parent/FutureFundSettingsScreen';
 import { FeedbackScreen } from '../screens/parent/FeedbackScreen';
 import { NotificationSettingsScreen } from '../screens/parent/NotificationSettingsScreen';
@@ -36,6 +38,7 @@ export function RootStackNavigator() {
         <Stack.Screen name="AllExpectedDone" component={AllExpectedDoneScreen} />
         <Stack.Screen name="AllWeeklyExpectedDone" component={AllWeeklyExpectedDoneScreen} />
         <Stack.Screen name="AllGigsDone" component={AllGigsDoneScreen} />
+        <Stack.Screen name="BirthdayCelebration" component={BirthdayCelebrationScreen} />
       </Stack.Group>
       <Stack.Group screenOptions={{ presentation: 'modal' }}>
         <Stack.Screen name="ImportGoogleCalendar" component={ImportGoogleCalendarScreen} />
@@ -44,6 +47,7 @@ export function RootStackNavigator() {
         <Stack.Screen name="ExpectedItemsSettings" component={ExpectedItemsScreen} />
         <Stack.Screen name="GigsSettings" component={GigsScreen} />
         <Stack.Screen name="ScheduleSettings" component={ScheduleScreen} />
+        <Stack.Screen name="ExcusedDaysSettings" component={ExcusedDaysScreen} />
         <Stack.Screen name="FutureFundSettings" component={FutureFundSettingsScreen} />
         <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
         <Stack.Screen name="Feedback" component={FeedbackScreen} />

@@ -11,7 +11,7 @@ import { View, Text, ScrollView, Pressable, Modal, StyleSheet } from 'react-nati
 import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppData } from '../../context/AppDataContext';
-import { BADGE_CATALOG, BadgeCatalogEntry, STREAK_THRESHOLDS, GIG_MILESTONE_THRESHOLDS, FUTURE_FUND_THRESHOLDS } from '../../data/badgeCatalog';
+import { BADGE_CATALOG, BIRTHDAY_BADGE_PLACEHOLDER, birthdayBadgeEntry, BadgeCatalogEntry, STREAK_THRESHOLDS, GIG_MILESTONE_THRESHOLDS, FUTURE_FUND_THRESHOLDS } from '../../data/badgeCatalog';
 import { AppHeader } from '../../components/AppHeader';
 import { BadgeIconGlyph } from '../../components/BadgeIconGlyph';
 import { isExpectedItemSatisfied } from '../../utils/expectedItemStatus';
@@ -53,7 +53,18 @@ export function BadgesShelfScreen() {
   const [selected, setSelected] = useState<BadgeCatalogEntry | null>(null);
 
   const fundVisible = !!futureFund && (futureFund.percentage > 0 || futureFund.balance > 0);
-  const catalog = BADGE_CATALOG.filter((b) => b.type !== 'future_fund_milestone' || fundVisible);
+  // Birthday badges aren't in the fixed catalog: one per birthday earned, or a
+  // single locked "Birthday" tile until the first one.
+  const earnedBirthdays = badges
+    .filter((b) => b.type === 'birthday')
+    .map((b) => /^birthday_(\d+)$/.exec(b.catalogId))
+    .filter((m): m is RegExpExecArray => !!m)
+    .map((m) => birthdayBadgeEntry(Number(m[1])))
+    .sort((a, b) => a.catalogId.localeCompare(b.catalogId, undefined, { numeric: true }));
+  const catalog = [
+    ...BADGE_CATALOG.filter((b) => b.type !== 'future_fund_milestone' || fundVisible),
+    ...(earnedBirthdays.length > 0 ? earnedBirthdays : [BIRTHDAY_BADGE_PLACEHOLDER]),
+  ];
   const earnedCount = catalog.filter((b) => badges.some((e) => e.catalogId === b.catalogId)).length;
 
   const streak = expectedStreak();
