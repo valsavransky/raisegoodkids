@@ -3,16 +3,16 @@
 // kept. The child's birthday is excused automatically and listed here for
 // reference. Today's one-tap version lives on the Today screen.
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, ScrollView, Modal, Alert, Platform, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, Modal, Alert, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { SettingsSubHeader } from '../../components/SettingsSubHeader';
+import { DateRangeCalendar } from '../../components/DateRangeCalendar';
 import { EXCUSE_REASON_LABELS } from '../../components/ExcuseTodaySheet';
 import { useAppData } from '../../context/AppDataContext';
 import { DailyExcuseReason } from '../../types/models';
-import { addDays, formatShortDate, todayString, toLocalDateString } from '../../utils/date';
+import { addDays, formatShortDate, todayString } from '../../utils/date';
 import { groupExcuseRanges, nextBirthdayOnOrAfter } from '../../utils/excuse';
 import { colors } from '../../theme/colors';
 import { LINK_HIT_SLOP } from '../../theme/hitSlop';
@@ -21,8 +21,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ExcusedDaysSettings'>;
 
 const MAX_RANGE_DAYS = 60;
 
-function dateOf(dateStr: string): Date {
-  return new Date(`${dateStr}T00:00:00`);
+function daysBetween(a: string, b: string): number {
+  return Math.round((new Date(`${b}T00:00:00`).getTime() - new Date(`${a}T00:00:00`).getTime()) / 86400000) + 1;
 }
 
 export function ExcusedDaysScreen({ navigation, route }: Props) {
@@ -34,8 +34,6 @@ export function ExcusedDaysScreen({ navigation, route }: Props) {
   const [start, setStart] = useState(today);
   const [end, setEnd] = useState(today);
   const [reason, setReason] = useState<DailyExcuseReason | undefined>(undefined);
-  const [pickerTarget, setPickerTarget] = useState<'start' | 'end' | null>(null);
-  const [tempDate, setTempDate] = useState<Date>(new Date());
 
   useEffect(() => {
     if (route.params?.openAdd) openAdd();
@@ -54,32 +52,6 @@ export function ExcusedDaysScreen({ navigation, route }: Props) {
     setEnd(today);
     setReason(undefined);
     setAdding(true);
-  };
-
-  const openPicker = (target: 'start' | 'end') => {
-    setTempDate(dateOf(target === 'start' ? start : end));
-    setPickerTarget(target);
-  };
-
-  const applyPicked = (target: 'start' | 'end', picked: Date) => {
-    const value = toLocalDateString(picked);
-    if (target === 'start') {
-      setStart(value);
-      if (end < value) setEnd(value);
-    } else {
-      setEnd(value < start ? start : value);
-    }
-  };
-
-  const handleAndroidChange = (_e: DateTimePickerChangeEvent, selected?: Date) => {
-    const target = pickerTarget;
-    setPickerTarget(null);
-    if (selected && target) applyPicked(target, selected);
-  };
-
-  const confirmIOS = () => {
-    if (pickerTarget) applyPicked(pickerTarget, tempDate);
-    setPickerTarget(null);
   };
 
   const save = () => {
@@ -145,16 +117,21 @@ export function ExcusedDaysScreen({ navigation, route }: Props) {
         <Pressable style={styles.backdrop} onPress={() => setAdding(false)}>
           <Pressable style={[styles.sheet, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
             <Text style={styles.sheetTitle}>Excuse days</Text>
-            <View style={styles.dateRow}>
-              <Pressable style={styles.dateBox} onPress={() => openPicker('start')}>
-                <Text style={styles.dateLabel}>From</Text>
-                <Text style={styles.dateValue}>{formatShortDate(start)}</Text>
-              </Pressable>
-              <Pressable style={styles.dateBox} onPress={() => openPicker('end')}>
-                <Text style={styles.dateLabel}>To</Text>
-                <Text style={styles.dateValue}>{formatShortDate(end)}</Text>
-              </Pressable>
-            </View>
+            <Text style={styles.rangeSummary}>
+              {start === end ? formatShortDate(start) : `${formatShortDate(start)} – ${formatShortDate(end)}`}
+              {start === end ? '' : ` (${daysBetween(start, end)} days)`}
+            </Text>
+            <Text style={styles.rangeHint}>Tap the first day, then the last. Tap one day twice for a single day.</Text>
+            <DateRangeCalendar
+              start={start}
+              end={end}
+              minDate={today}
+              maxDays={MAX_RANGE_DAYS}
+              onChange={(a, b) => {
+                setStart(a);
+                setEnd(b);
+              }}
+            />
             <Text style={styles.dateLabel}>Reason (just for you)</Text>
             <View style={styles.chips}>
               {(Object.keys(EXCUSE_REASON_LABELS) as DailyExcuseReason[]).map((r) => (
@@ -176,25 +153,8 @@ export function ExcusedDaysScreen({ navigation, route }: Props) {
               </Pressable>
             </View>
 
-            {pickerTarget && Platform.OS === 'android' && (
-              <DateTimePicker
-                value={tempDate}
-                mode="date"
-                display="default"
-                onValueChange={handleAndroidChange}
-                onDismiss={() => setPickerTarget(null)}
-              />
-            )}
           </Pressable>
         </Pressable>
-        {Platform.OS === 'ios' && pickerTarget && (
-          <View style={[styles.iosPicker, { paddingBottom: 20 + insets.bottom }]}>
-            <DateTimePicker value={tempDate} mode="date" display="spinner" onValueChange={(_, d) => d && setTempDate(d)} />
-            <Pressable style={styles.save} onPress={confirmIOS}>
-              <Text style={styles.saveText}>Done</Text>
-            </Pressable>
-          </View>
-        )}
       </Modal>
     </View>
   );
@@ -226,10 +186,9 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
   sheetTitle: { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 14 },
-  dateRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
-  dateBox: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, backgroundColor: colors.surface },
+  rangeSummary: { fontSize: 16, fontWeight: '800', color: colors.expected, marginBottom: 2 },
+  rangeHint: { fontSize: 12, color: colors.textMuted, marginBottom: 12 },
   dateLabel: { fontSize: 12, fontWeight: '700', color: colors.textMuted, marginBottom: 4 },
-  dateValue: { fontSize: 16, fontWeight: '700', color: colors.text },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 6, marginBottom: 16 },
   chip: { borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingVertical: 7, paddingHorizontal: 12 },
   chipOn: { backgroundColor: colors.expected, borderColor: colors.expected },
@@ -240,5 +199,4 @@ const styles = StyleSheet.create({
   cancelText: { color: colors.textMuted, fontSize: 15, fontWeight: '600' },
   save: { backgroundColor: colors.expected, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 22, alignItems: 'center' },
   saveText: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  iosPicker: { backgroundColor: colors.background, padding: 16 },
 });
