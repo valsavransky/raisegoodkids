@@ -9,7 +9,7 @@ import React, { createContext, useContext, useState, useEffect, useRef, ReactNod
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
-import { fetchData, saveData } from '../services/api';
+import { fetchData, saveData, deleteAccount as deleteAccountOnServer } from '../services/api';
 import {
   ChildProfile,
   ScheduleEvent,
@@ -289,6 +289,8 @@ interface AppDataContextValue {
   /** Clears persisted storage and all in-memory state — a testing
    * convenience now that data survives restarts. */
   resetAllData: () => Promise<void>;
+  /** Permanently deletes the account's server data and this phone's copy. Resolves false if the server couldn't confirm. */
+  deleteAccountAndData: () => Promise<boolean>;
 }
 
 const AppDataContext = createContext<AppDataContextValue | undefined>(undefined);
@@ -1083,6 +1085,34 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         return;
       }
     }
+    await wipeLocalData();
+  };
+
+  /** Deletes the account and all of its data from the server, then wipes this
+   * phone too, so the app goes back to a fresh install. Stops (and says so)
+   * if the server can't confirm the deletion, since signing back in would
+   * otherwise bring the data back. */
+  const deleteAccountAndData = async (): Promise<boolean> => {
+    track('account_deleted');
+    if (token) {
+      resettingRef.current = true;
+      try {
+        await deleteAccountOnServer(token);
+      } catch (e) {
+        resettingRef.current = false;
+        Alert.alert(
+          'Could not delete your account',
+          `Your data is still on the server. Check your connection and try again.\n\n${e instanceof Error ? e.message : ''}`
+        );
+        return false;
+      }
+      resettingRef.current = false;
+    }
+    await wipeLocalData();
+    return true;
+  };
+
+  const wipeLocalData = async () => {
     await AsyncStorage.removeItem(STORAGE_KEY);
     // Also local-only but not part of PersistedAppData — a reset should
     // give the one-time Settings coachmarks a fresh start too, not just
@@ -1173,6 +1203,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         setGigOrder,
         updateGigEffortValues,
         resetAllData,
+        deleteAccountAndData,
       }}
     >
       {children}

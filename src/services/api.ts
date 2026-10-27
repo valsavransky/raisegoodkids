@@ -57,6 +57,10 @@ export function sendFeedback(
   return request('/feedback', { method: 'POST', token, body });
 }
 
+export function deleteAccount(token: string): Promise<{ ok: true }> {
+  return request('/account', { method: 'DELETE', token });
+}
+
 export function fetchData(token: string): Promise<{ data: unknown | null }> {
   return request('/data', { token });
 }

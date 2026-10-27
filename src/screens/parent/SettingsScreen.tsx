@@ -7,7 +7,7 @@
 // the top — the standard placement, which is also just where a parent
 // looks first.
 import React, { useState, useCallback } from 'react';
-import { View, Text, Pressable, ScrollView, Switch, Alert, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, Switch, Alert, Linking, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -20,6 +20,7 @@ import { loadReminderSettings, hasNotificationPermission } from '../../services/
 import { formatTime12h } from '../../utils/time';
 import { isAnalyticsEnabled, setAnalyticsEnabled } from '../../services/analytics';
 import { colors } from '../../theme/colors';
+import { PRIVACY_URL, TERMS_URL } from '../../config';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
@@ -186,6 +187,16 @@ export function SettingsScreen({ navigation }: Props) {
           <SettingsRow icon="💬" label="Send feedback" onPress={() => navigation.navigate('Feedback')} last />
         </View>
 
+        <View style={styles.legalRow}>
+          <Pressable onPress={() => Linking.openURL(PRIVACY_URL)} hitSlop={8}>
+            <Text style={styles.legalLink}>Privacy Policy</Text>
+          </Pressable>
+          <Text style={styles.legalDot}>·</Text>
+          <Pressable onPress={() => Linking.openURL(TERMS_URL)} hitSlop={8}>
+            <Text style={styles.legalLink}>Terms of Service</Text>
+          </Pressable>
+        </View>
+
         {/* Developer conveniences — only in development builds (running through
          * Metro), never in a beta or store build. */}
         {__DEV__ && (
@@ -257,6 +268,9 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     gap: 12,
   },
+  legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16 },
+  legalLink: { fontSize: 13, color: colors.textMuted, textDecorationLine: 'underline' },
+  legalDot: { fontSize: 13, color: colors.textMuted },
   group: {
     borderWidth: 1,
     borderColor: colors.border,

@@ -10,7 +10,8 @@
 // links to the email log-in screen for a returning parent). No progress bar
 // — account creation sits before step 1.
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, Linking, StyleSheet } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +22,10 @@ import { isGoogleSignInConfigured, useGoogleSignInRequest, getIdToken } from '..
 import { useTrackSetupStep } from '../../hooks/useTrackScreen';
 import { track } from '../../services/analytics';
 import { colors } from '../../theme/colors';
+import { PRIVACY_URL, TERMS_URL } from '../../config';
+
+// Remembers that this phone accepted the Terms and Privacy Policy, and when.
+const CONSENT_KEY = 'merit.consent.v1';
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'SignIn'>;
 type Status = 'idle' | 'loading' | 'error';
@@ -33,6 +38,12 @@ export function SignInScreen({ navigation }: Props) {
   const [request, response, promptAsync] = useGoogleSignInRequest();
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState('');
+  const [agreed, setAgreed] = useState(false);
+
+  const recordConsent = () => {
+    AsyncStorage.setItem(CONSENT_KEY, JSON.stringify({ acceptedAt: new Date().toISOString() })).catch(() => {});
+    track('consent_accepted');
+  };
 
   useEffect(() => {
     if (!response) return;
@@ -64,6 +75,8 @@ export function SignInScreen({ navigation }: Props) {
   }, [response]);
 
   const handlePress = () => {
+    if (!agreed) return;
+    recordConsent();
     setStatus('loading');
     setError('');
     promptAsync();
@@ -82,9 +95,9 @@ export function SignInScreen({ navigation }: Props) {
       <View style={styles.content}>
         {configured && (
           <Pressable
-            style={styles.googleButton}
+            style={[styles.googleButton, !agreed && styles.disabled]}
             onPress={handlePress}
-            disabled={!request || status === 'loading'}
+            disabled={!request || status === 'loading' || !agreed}
           >
             {status === 'loading' ? (
               <ActivityIndicator color={colors.text} />
@@ -97,8 +110,24 @@ export function SignInScreen({ navigation }: Props) {
           </Pressable>
         )}
 
-        <Pressable style={styles.emailButton} onPress={() => navigation.navigate('SignUpEmail')}>
+        <Pressable
+          style={[styles.emailButton, !agreed && styles.disabled]}
+          disabled={!agreed}
+          onPress={() => {
+            recordConsent();
+            navigation.navigate('SignUpEmail');
+          }}
+        >
           <Text style={styles.emailButtonText}>Sign up with email</Text>
+        </Pressable>
+
+        <Pressable style={styles.consentRow} onPress={() => setAgreed((v) => !v)} hitSlop={6}>
+          <View style={[styles.checkbox, agreed && styles.checkboxOn]}>{agreed && <Text style={styles.checkMark}>✓</Text>}</View>
+          <Text style={styles.consentText}>
+            I'm this child's parent or guardian, and I agree to the{' '}
+            <Text style={styles.consentLink} onPress={() => Linking.openURL(TERMS_URL)}>Terms of Service</Text> and{' '}
+            <Text style={styles.consentLink} onPress={() => Linking.openURL(PRIVACY_URL)}>Privacy Policy</Text>.
+          </Text>
         </Pressable>
 
         {status === 'error' && <Text style={styles.errorText}>{error}</Text>}
@@ -133,5 +162,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emailButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  disabled: { opacity: 0.4 },
+  consentRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 8 },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  checkboxOn: { backgroundColor: colors.expected, borderColor: colors.expected },
+  checkMark: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  consentText: { flex: 1, fontSize: 13, lineHeight: 19, color: colors.textMuted },
+  consentLink: { color: colors.expected, fontWeight: '700', textDecorationLine: 'underline' },
   errorText: { color: colors.danger, fontSize: 13, fontWeight: '600', textAlign: 'center' },
 });

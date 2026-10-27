@@ -3,12 +3,13 @@
 // on the Settings list (which also shows a small amber dot there while
 // still unsecured, mirroring the same nudge on the gear icon).
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, Alert, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { SettingsSubHeader } from '../../components/SettingsSubHeader';
 import { useAuth } from '../../context/AuthContext';
+import { useAppData } from '../../context/AppDataContext';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { colors } from '../../theme/colors';
 
@@ -32,6 +33,27 @@ type Status = 'idle' | 'saving' | 'saved' | 'error';
 export function AccountScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { isAutoAccount, accountEmail, claimAccount } = useAuth();
+  const { deleteAccountAndData } = useAppData();
+  const [deleting, setDeleting] = useState(false);
+
+  const confirmDeleteAccount = () => {
+    Alert.alert(
+      'Delete your account?',
+      "This permanently deletes your account and everything in it, including your child's profile, activities, goals and badges, from our server and from this phone. It can't be undone.",
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete everything',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleting(true);
+            await deleteAccountAndData();
+            setDeleting(false);
+          },
+        },
+      ]
+    );
+  };
 
   const [emailDraft, setEmailDraft] = useState('');
   const [passwordDraft, setPasswordDraft] = useState('');
@@ -153,6 +175,17 @@ export function AccountScreen({ navigation }: Props) {
             phone if you ever need to.
           </Text>
         )}
+
+        <View style={styles.dangerZone}>
+          <Text style={styles.dangerTitle}>Delete my account</Text>
+          <Text style={styles.helper}>
+            Permanently deletes your account and all of its data, including your child's profile, activities,
+            goals and badges, from our server and this phone.
+          </Text>
+          <Pressable style={styles.deleteButton} onPress={confirmDeleteAccount} disabled={deleting}>
+            <Text style={styles.deleteButtonText}>{deleting ? 'Deleting…' : 'Delete my account and data'}</Text>
+          </Pressable>
+        </View>
       </KeyboardAwareScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -162,6 +195,10 @@ export function AccountScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 20, paddingTop: 8 },
+  dangerZone: { marginTop: 36, paddingTop: 20, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+  dangerTitle: { fontSize: 14, fontWeight: '800', color: colors.text, marginBottom: 6 },
+  deleteButton: { borderWidth: 1, borderColor: colors.danger, borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 4 },
+  deleteButtonText: { color: colors.danger, fontSize: 14, fontWeight: '700' },
   helper: { fontSize: 12, color: colors.textMuted, marginBottom: 10, lineHeight: 17 },
   input: {
     borderWidth: 1,

@@ -5,6 +5,7 @@ import { authRouter, requireAuth, AuthedRequest } from './auth';
 import { goalsRouter } from './goals';
 import { eventsRouter, feedbackRouter } from './events';
 import { adminRouter } from './admin';
+import { legalRouter } from './legal';
 
 const app = express();
 app.use(cors());
@@ -19,6 +20,21 @@ app.use('/goals', goalsRouter);
 app.use('/events', eventsRouter);
 app.use('/feedback', feedbackRouter);
 app.use('/admin', adminRouter);
+app.use('/', legalRouter);
+
+// Deletes the signed-in account and everything stored for it (the data blob
+// goes with it via ON DELETE CASCADE). Anonymous usage counts and feedback are
+// tied only to a random install id, not to the account, and stay. Express 4
+// needs the try/catch (see /data below).
+app.delete('/account', requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    await pool.query('DELETE FROM users WHERE id = $1', [req.userId]);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Failed to delete account', e);
+    res.status(500).json({ error: 'Could not delete the account right now' });
+  }
+});
 
 // The app's entire local data blob (see PersistedAppData in
 // AppDataContext.tsx), stored as one JSONB column per account — mirrors
