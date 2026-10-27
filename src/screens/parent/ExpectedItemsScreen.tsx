@@ -140,26 +140,30 @@ export function ExpectedItemsScreen({ navigation }: Props) {
                   <Switch value={draftRequired} onValueChange={setDraftRequired} trackColor={{ true: colors.expected }} />
                 </View>
               )}
-              {modalMode?.editingId && (
-                <Pressable
-                  style={styles.removeButton}
-                  onPress={() => {
-                    const id = modalMode.editingId;
-                    const item = expectedItems.find((i) => i.id === id);
-                    setModalMode(null);
-                    if (item) confirmDelete(item);
-                  }}
-                >
-                  <Text style={styles.removeButtonText}>Remove activity</Text>
-                </Pressable>
-              )}
               <View style={styles.modalActions}>
-                <Pressable style={styles.modalCancelButton} onPress={() => setModalMode(null)}>
-                  <Text style={styles.modalCancelText}>Cancel</Text>
-                </Pressable>
-                <Pressable style={styles.modalSaveButton} onPress={confirmSave}>
-                  <Text style={styles.modalSaveText}>{modalMode?.editingId ? 'Save' : 'Add'}</Text>
-                </Pressable>
+                <View>
+                  {modalMode?.editingId && (
+                    <Pressable
+                      style={styles.removeButton}
+                      onPress={() => {
+                        const id = modalMode.editingId;
+                        const item = expectedItems.find((i) => i.id === id);
+                        setModalMode(null);
+                        if (item) confirmDelete(item);
+                      }}
+                    >
+                      <Text style={styles.removeButtonText}>Remove</Text>
+                    </Pressable>
+                  )}
+                </View>
+                <View style={styles.modalActionsRight}>
+                  <Pressable style={styles.modalCancelButton} onPress={() => setModalMode(null)}>
+                    <Text style={styles.modalCancelText}>Cancel</Text>
+                  </Pressable>
+                  <Pressable style={styles.modalSaveButton} onPress={confirmSave}>
+                    <Text style={styles.modalSaveText}>{modalMode?.editingId ? 'Save' : 'Add'}</Text>
+                  </Pressable>
+                </View>
               </View>
             </Pressable>
           </Pressable>
@@ -202,12 +206,23 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
   },
   lock: { fontSize: 13 },
-  requiredRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  requiredRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginTop: 10,
+    backgroundColor: colors.surface,
+  },
   requiredText: { flex: 1, paddingRight: 12 },
   requiredLabel: { fontSize: 15, fontWeight: '600', color: colors.text },
   requiredHelp: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
-  removeButton: { alignItems: 'center', paddingVertical: 12, marginBottom: 6 },
-  removeButtonText: { color: colors.danger, fontSize: 14, fontWeight: '700' },
+  removeButton: { paddingVertical: 12, paddingRight: 8 },
+  removeButtonText: { color: colors.danger, fontSize: 15, fontWeight: '600' },
   rowInfo: { flex: 1, flexShrink: 1 },
   rowName: { fontSize: 15, fontWeight: '600', color: colors.text },
   rowLinked: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
@@ -230,12 +245,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     marginBottom: 12,
   },
-  chipRow: { flexDirection: 'row', gap: 6, marginBottom: 8 },
+  chipRow: { flexDirection: 'row', gap: 8, marginTop: 12 },
   chip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 16, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
   chipSelected: { backgroundColor: colors.expected, borderColor: colors.expected },
   chipText: { fontSize: 12, color: colors.text },
   chipTextSelected: { color: '#fff', fontWeight: '600' },
-  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12, marginTop: 16 },
+  modalActions: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 20 },
+  modalActionsRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   modalCancelButton: { paddingVertical: 12, paddingHorizontal: 16 },
   modalCancelText: { color: colors.textMuted, fontSize: 15, fontWeight: '600' },
   modalSaveButton: { backgroundColor: colors.expected, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 20 },
