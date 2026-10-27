@@ -52,6 +52,7 @@ import { useAppData } from '../../context/AppDataContext';
 import { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { ExpectedItem, ExpectedCompletion, Gig, GigCompletion, ScheduleEventCategory } from '../../types/models';
 import { AppHeader } from '../../components/AppHeader';
+import { FamilyOverview } from '../../components/FamilyOverview';
 import { ExcuseTodaySheet } from '../../components/ExcuseTodaySheet';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { TaskIcon } from '../../components/icons/TaskIcons';
@@ -96,7 +97,7 @@ const STOP_SIZE = 50;
 
 type TrailStop =
   | { kind: 'expected'; id: string; name: string; done: boolean; excused: boolean }
-  | { kind: 'gig'; id: string; name: string; percentage: number | null; done: boolean };
+  | { kind: 'gig'; id: string; name: string; percentage: number | null; done: boolean; sibling: string | null };
 
 function trailPointAt(index: number): { x: number; y: number } {
   return { x: COLUMN_X[index % 2], y: FIRST_Y + index * STEP_Y };
@@ -381,6 +382,9 @@ export function ChildHomeScreen() {
     gigCompletions,
     gigPreviewPercentage,
     gigCompletionStatusToday,
+    siblingGigDoneToday,
+    viewingEveryone,
+    childProfiles,
     markGigDone,
     unmarkExpectedDone,
     unmarkGigDone,
@@ -457,6 +461,7 @@ export function ChildHomeScreen() {
       name: gig.name,
       percentage: gigPreviewPercentage(gig),
       done: gigCompletionStatusToday(gig.id) === 'approved',
+      sibling: siblingGigDoneToday(gig),
     })),
   ];
 
@@ -714,6 +719,15 @@ export function ChildHomeScreen() {
     if (gig) handleGigPress(gig, date);
   };
 
+  if (viewingEveryone && childProfiles.length > 1) {
+    return (
+      <View style={styles.screen}>
+        <AppHeader showEveryone />
+        <FamilyOverview />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.screen}>
       <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -726,7 +740,7 @@ export function ChildHomeScreen() {
       </Svg>
 
       <View style={styles.fixedHeader}>
-        <AppHeader />
+        <AppHeader showEveryone />
 
         <SettingsHintBadge onNavigateToSettings={() => navigation.navigate('Settings')} />
 
@@ -931,6 +945,9 @@ export function ChildHomeScreen() {
                     )}
                     {stop.kind === 'gig' && stop.percentage !== null && (
                       <Text style={styles.stopAmount}>+{stop.percentage}%</Text>
+                    )}
+                    {stop.kind === 'gig' && stop.sibling && !stop.done && (
+                      <Text style={styles.stopSibling}>Done by {stop.sibling} today</Text>
                     )}
                   </View>
                 </View>
@@ -1187,6 +1204,7 @@ const styles = StyleSheet.create({
   },
   stopLabelWrap: { position: 'absolute', width: 124, alignItems: 'center' },
   stopLabel: { fontWeight: '700', fontSize: 12, color: '#5c574b', textAlign: 'center', lineHeight: 15 },
+  stopSibling: { fontWeight: '700', fontSize: 9.5, color: '#7a7568', marginTop: 1 },
   stopAmount: { fontWeight: '800', fontSize: 10, color: '#B96A08', marginTop: 1 },
   emptyToday: { alignItems: 'center', paddingHorizontal: 32, paddingVertical: 40, gap: 6 },
   emptyTodayIcon: { fontSize: 40 },

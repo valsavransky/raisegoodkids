@@ -7,7 +7,7 @@ import { View, Text, Pressable, ScrollView, Modal, Alert, StyleSheet } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { SettingsSubHeader } from '../../components/SettingsSubHeader';
+import { ChildSettingsHeader } from '../../components/ChildSettingsHeader';
 import { DateRangeCalendar } from '../../components/DateRangeCalendar';
 import { EXCUSE_REASON_LABELS } from '../../components/ExcuseTodaySheet';
 import { useAppData } from '../../context/AppDataContext';
@@ -76,7 +76,7 @@ export function ExcusedDaysScreen({ navigation, route }: Props) {
 
   return (
     <View style={styles.screen}>
-      <SettingsSubHeader title="Excused days" onBack={() => navigation.goBack()} />
+      <ChildSettingsHeader title="Excused days" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
         <Text style={styles.helper}>
           On an excused day, Expected activities marked "Can be excused" (set under Expected Activities) are optional,

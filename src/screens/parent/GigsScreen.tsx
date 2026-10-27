@@ -7,7 +7,7 @@ import { View, Text, TextInput, Pressable, Modal, Alert, KeyboardAvoidingView, P
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { SettingsSubHeader } from '../../components/SettingsSubHeader';
+import { ChildSettingsHeader } from '../../components/ChildSettingsHeader';
 import { useAppData } from '../../context/AppDataContext';
 import { useSaveConfirmation } from '../../hooks/useSaveConfirmation';
 import { Gig, GigEffortTier, GigEffortValues } from '../../types/models';
@@ -31,13 +31,15 @@ type GigValuesStatus = 'idle' | 'invalid';
 
 export function GigsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { gigs, addGig, updateGig, deleteGig, setGigOrder, gigEffortValues, updateGigEffortValues } = useAppData();
+  const { gigs, addGig, updateGig, deleteGig, setGigOrder, gigEffortValues, updateGigEffortValues, childProfiles, childProfile } =
+    useAppData();
 
   const [subTab, setSubTab] = useState<SubTab>('list');
   const [dragging, setDragging] = useState(false);
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [draftName, setDraftName] = useState('');
   const [draftEffortTier, setDraftEffortTier] = useState<GigEffortTier>('quick');
+  const [draftForEveryone, setDraftForEveryone] = useState(false);
 
   const [gigValueDrafts, setGigValueDrafts] = useState(() => ({
     quick: String(gigEffortValues.quick),
@@ -69,6 +71,7 @@ export function GigsScreen({ navigation }: Props) {
   const openAdd = () => {
     setDraftName('');
     setDraftEffortTier('quick');
+    setDraftForEveryone(false);
     setModalMode({ editingId: null });
   };
 
@@ -83,7 +86,7 @@ export function GigsScreen({ navigation }: Props) {
     if (modalMode.editingId) {
       updateGig(modalMode.editingId, { name: draftName.trim(), effortTier: draftEffortTier });
     } else {
-      addGig({ name: draftName.trim(), effortTier: draftEffortTier });
+      addGig({ name: draftName.trim(), effortTier: draftEffortTier, forEveryone: draftForEveryone });
     }
     setModalMode(null);
   };
@@ -97,7 +100,7 @@ export function GigsScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <SettingsSubHeader title="Gigs" onBack={() => navigation.goBack()} />
+      <ChildSettingsHeader title="Gigs" onBack={() => navigation.goBack()} />
 
       <View style={styles.subTabRow}>
         <Pressable onPress={() => setSubTab('list')} style={styles.subTab}>
@@ -188,6 +191,24 @@ export function GigsScreen({ navigation }: Props) {
                   );
                 })}
               </View>
+              {!modalMode?.editingId && childProfiles.length > 1 && (
+                <View style={styles.chipRow}>
+                  <Pressable
+                    onPress={() => setDraftForEveryone(false)}
+                    style={[styles.chip, !draftForEveryone && styles.chipSelected]}
+                  >
+                    <Text style={[styles.chipText, !draftForEveryone && styles.chipTextSelected]}>
+                      Just {childProfile?.name.trim().split(' ')[0]}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setDraftForEveryone(true)}
+                    style={[styles.chip, draftForEveryone && styles.chipSelected]}
+                  >
+                    <Text style={[styles.chipText, draftForEveryone && styles.chipTextSelected]}>Everyone</Text>
+                  </Pressable>
+                </View>
+              )}
               <View style={styles.modalActions}>
                 <Pressable style={styles.modalCancelButton} onPress={() => setModalMode(null)}>
                   <Text style={styles.modalCancelText}>Cancel</Text>

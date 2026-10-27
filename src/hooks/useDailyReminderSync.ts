@@ -27,16 +27,26 @@ export function excusedDatesAhead(isDayExcused: (date: string) => boolean, days 
 }
 
 export function useDailyReminderSync() {
-  const { childProfile, expectedCompletions, gigCompletions, isDayExcused, dailyExcuses } = useAppData();
+  // The reminder is for the whole household: it counts anyone's check-offs, is
+  // skipped only on days everyone is excused, and names the child only when
+  // there is just the one.
+  const {
+    childProfile,
+    childProfiles,
+    householdExpectedCompletions: expectedCompletions,
+    householdGigCompletions: gigCompletions,
+    isDayExcusedForEveryone: isDayExcused,
+    dailyExcuses,
+  } = useAppData();
   const latest = useRef({
-    childName: childProfile?.name,
+    childName: childProfiles.length === 1 ? childProfile?.name : undefined,
     expectedCompletions,
     gigCompletions,
     hasProfile: !!childProfile,
     isDayExcused,
   });
   latest.current = {
-    childName: childProfile?.name,
+    childName: childProfiles.length === 1 ? childProfile?.name : undefined,
     expectedCompletions,
     gigCompletions,
     hasProfile: !!childProfile,
@@ -53,7 +63,7 @@ export function useDailyReminderSync() {
   useEffect(() => {
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [childProfile?.id, childProfile?.name, childProfile?.birthday, expectedCompletions.length, gigCompletions.length, dailyExcuses.length]);
+  }, [childProfile?.id, childProfile?.name, childProfile?.birthday, expectedCompletions.length, gigCompletions.length, dailyExcuses.length, childProfiles.length]);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {

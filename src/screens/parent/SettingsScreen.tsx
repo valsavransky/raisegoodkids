@@ -15,6 +15,7 @@ import { RootStackParamList } from '../../navigation/types';
 import { useAppData } from '../../context/AppDataContext';
 import { useAuth } from '../../context/AuthContext';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
+import { ChildChips } from '../../components/ChildChips';
 import { signOut as signOutOfGoogle } from '../../services/googleAuth';
 import { loadReminderSettings, hasNotificationPermission } from '../../services/dailyReminder';
 import { formatTime12h } from '../../utils/time';
@@ -63,6 +64,7 @@ export function SettingsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { childProfile, parentName, resetAllData, soundEnabled, setSoundEnabled, futureFund } = useAppData();
   const { isAutoAccount, accountEmail } = useAuth();
+  const childFirstName = childProfile?.name?.trim().split(' ')[0];
   const [reminderSubtitle, setReminderSubtitle] = useState('Off');
   const [shareUsage, setShareUsage] = useState(true);
   React.useEffect(() => {
@@ -113,6 +115,11 @@ export function SettingsScreen({ navigation }: Props) {
       </View>
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
+        {/* Which child's settings are shown below. */}
+        <View style={styles.chipsWrap}>
+          <ChildChips />
+        </View>
+
         <Pressable onPress={() => navigation.navigate('EditProfile')} style={styles.profileRow}>
           <AvatarGlyph avatarId={childProfile?.avatarId} size={36} />
           <View style={styles.rowInfo}>
@@ -122,7 +129,7 @@ export function SettingsScreen({ navigation }: Props) {
           <Text style={styles.chevron}>{'›'}</Text>
         </Pressable>
 
-        <Text style={styles.sectionLabel}>Activities and money</Text>
+        <Text style={styles.sectionLabel}>{childFirstName ? `${childFirstName}'s activities and money` : 'Activities and money'}</Text>
         <View style={styles.group}>
           <SettingsRow icon="🤝" label="Expected Activities" onPress={() => navigation.navigate('ExpectedItemsSettings')} />
           <SettingsRow icon="🪙" label="Gigs" onPress={() => navigation.navigate('GigsSettings')} />
@@ -131,25 +138,23 @@ export function SettingsScreen({ navigation }: Props) {
             label="Future Fund"
             value={futureFund && futureFund.percentage > 0 ? `${futureFund.percentage}% of every gig` : 'Off'}
             onPress={() => navigation.navigate('FutureFundSettings')}
-            last
           />
         </View>
 
-        <Text style={styles.sectionLabel}>Calendar and days</Text>
+        <Text style={styles.sectionLabel}>{childFirstName ? `${childFirstName}'s calendar and days` : 'Calendar and days'}</Text>
         <View style={styles.group}>
           <SettingsRow icon="🗓️" label="Schedule" onPress={() => navigation.navigate('ScheduleSettings')} />
-          <SettingsRow icon="🌴" label="Excused days" onPress={() => navigation.navigate('ExcusedDaysSettings')} />
+          <SettingsRow icon="🌴" label="Excused days" onPress={() => navigation.navigate('ExcusedDaysSettings')} last />
+        </View>
+
+        <Text style={styles.sectionLabel}>Whole family</Text>
+        <View style={styles.group}>
           <SettingsRow
             icon="🔔"
             label="Daily reminder"
             value={reminderSubtitle}
             onPress={() => navigation.navigate('NotificationSettings')}
-            last
           />
-        </View>
-
-        <Text style={styles.sectionLabel}>App</Text>
-        <View style={styles.group}>
           <SettingsRow
             icon="🔊"
             label="Sound effects"
@@ -245,6 +250,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
     marginBottom: 6,
   },
+  chipsWrap: { marginHorizontal: -20, marginBottom: 12 },
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',

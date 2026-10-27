@@ -46,6 +46,7 @@ const DEFAULT_FUTURE_FUND_PERCENTAGE = 0;
 const EMPTY_APP_DATA: PersistedAppData = {
   parentName: null,
   childProfile: null,
+  childProfiles: [],
   scheduleEvents: [],
   expectedItems: [],
   expectedCompletions: [],
@@ -53,6 +54,7 @@ const EMPTY_APP_DATA: PersistedAppData = {
   gigCompletions: [],
   goals: [],
   futureFund: null,
+  futureFunds: [],
   gigEffortValues: DEFAULT_GIG_EFFORT_VALUES,
   badges: [],
   dailyExcuses: [],
@@ -91,7 +93,14 @@ const STORAGE_KEY = '@merit/appData/v1';
 
 interface PersistedAppData {
   parentName: string | null;
+  /** The first child. Kept (alongside childProfiles) so a blob always reads
+   * as "has a child" to anything that only checks this field. */
   childProfile: ChildProfile | null;
+  /** Every child in the household. Missing on data saved before multiple
+   * children existed: then it's just [childProfile]. */
+  childProfiles?: ChildProfile[];
+  /** Which child was last open, restored on launch. */
+  selectedChildId?: string | null;
   scheduleEvents: ScheduleEvent[];
   expectedItems: ExpectedItem[];
   expectedCompletions: ExpectedCompletion[];
@@ -99,6 +108,8 @@ interface PersistedAppData {
   gigCompletions: GigCompletion[];
   goals: Goal[];
   futureFund: FutureFund | null;
+  /** One per child. Missing on older data: then it's just [futureFund]. */
+  futureFunds?: FutureFund[];
   gigEffortValues: GigEffortValues;
   badges: Badge[];
   /** Days a parent excused (sick, travel, family event…); a birthday is
@@ -144,6 +155,24 @@ export interface MarkExpectedDoneResult {
   completedPastDay?: { date: string; streak: number };
 }
 
+export interface AddChildDraft {
+  name: string;
+  avatarId: string;
+  birthday: string;
+  grade?: string;
+  expectedItems: { name: string; frequency: ExpectedItem['frequency'] }[];
+  gigs: { name: string; effortTier: Gig['effortTier'] }[];
+}
+
+export interface ChildSummary {
+  child: ChildProfile;
+  expected: { done: number; total: number };
+  streak: number;
+  goal: { name: string; percent: number } | null;
+  gigsDoneToday: string[];
+  excusedToday: boolean;
+}
+
 interface AppDataContextValue {
   /** False until persisted data (if any) has been loaded from storage —
    * callers should show a loading state rather than the setup wizard,
@@ -154,7 +183,27 @@ interface AppDataContextValue {
    * (see ChildProfile.parentAccountId), so this lives as its own top-level
    * field rather than awkwardly on the child's profile. */
   parentName: string | null;
+  /** The child currently being viewed or edited. Everything below (activities,
+   * gigs, goals, Future Fund, streak, badges, excused days…) is that child's. */
   childProfile: ChildProfile | null;
+  /** Every child in the household, in the order they were added. */
+  childProfiles: ChildProfile[];
+  selectChild: (childId: string) => void;
+  /** True while the parent is looking at the "Everyone" family overview on Today. */
+  viewingEveryone: boolean;
+  setViewingEveryone: (value: boolean) => void;
+  /** Adds a child to the household (household facts carry over from the first
+   * child) and switches to them. */
+  addChild: (draft: AddChildDraft) => string;
+  /** One card per child for the family overview. */
+  childSummaries: () => ChildSummary[];
+  /** Every child's check-offs, for the household-wide daily reminder. */
+  householdExpectedCompletions: ExpectedCompletion[];
+  householdGigCompletions: GigCompletion[];
+  /** True if every child has this date excused. */
+  isDayExcusedForEveryone: (date: string) => boolean;
+  /** First name of a sibling who already did a gig with this name today, if any. */
+  siblingGigDoneToday: (gig: Gig) => string | null;
   scheduleEvents: ScheduleEvent[];
   expectedItems: ExpectedItem[];
   expectedCompletions: ExpectedCompletion[];
@@ -276,7 +325,8 @@ interface AppDataContextValue {
   /** Sets the order of the Daily (or Weekly) Expected activities; this is the order of the Today trail. */
   setExpectedOrder: (frequency: ExpectedItem['frequency'], orderedIds: string[]) => void;
 
-  addGig: (gig: { name: string; effortTier: Gig['effortTier'] }) => void;
+  /** With forEveryone, the gig is added to every child's list. */
+  addGig: (gig: { name: string; effortTier: Gig['effortTier']; forEveryone?: boolean }) => void;
   updateGig: (id: string, fields: { name: string; effortTier: Gig['effortTier'] }) => void;
   deleteGig: (id: string) => void;
   /** Sets the order of the gigs on the Today trail. */
@@ -313,18 +363,77 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   // True while Reset all data is clearing the server copy — see resetAllData.
   const resettingRef = useRef(false);
   const [parentName, setParentName] = useState<string | null>(null);
-  const [childProfile, setChildProfile] = useState<ChildProfile | null>(null);
-  const [scheduleEvents, setScheduleEvents] = useState<ScheduleEvent[]>([]);
-  const [expectedItems, setExpectedItems] = useState<ExpectedItem[]>([]);
-  const [expectedCompletions, setExpectedCompletions] = useState<ExpectedCompletion[]>([]);
-  const [gigs, setGigs] = useState<Gig[]>([]);
-  const [gigCompletions, setGigCompletions] = useState<GigCompletion[]>([]);
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [futureFund, setFutureFund] = useState<FutureFund | null>(null);
+  // Everything below is stored for the whole household, each record tagged with
+  // its childProfileId. The values handed to screens (further down) are the
+  // selected child's slice, so existing screens and logic stay per-child.
+  const [childProfiles, setChildProfiles] = useState<ChildProfile[]>([]);
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+  const [viewingEveryone, setViewingEveryone] = useState(false);
+  const [allScheduleEvents, setScheduleEvents] = useState<ScheduleEvent[]>([]);
+  const [allExpectedItems, setExpectedItems] = useState<ExpectedItem[]>([]);
+  const [allExpectedCompletions, setExpectedCompletions] = useState<ExpectedCompletion[]>([]);
+  const [allGigs, setGigs] = useState<Gig[]>([]);
+  const [allGigCompletions, setGigCompletions] = useState<GigCompletion[]>([]);
+  const [allGoals, setGoals] = useState<Goal[]>([]);
+  const [futureFunds, setFutureFunds] = useState<FutureFund[]>([]);
   const [gigEffortValues, setGigEffortValues] = useState<GigEffortValues>(DEFAULT_GIG_EFFORT_VALUES);
-  const [badges, setBadges] = useState<Badge[]>([]);
-  const [dailyExcuses, setDailyExcuses] = useState<DailyExcuse[]>([]);
+  const [allBadges, setBadges] = useState<Badge[]>([]);
+  const [allDailyExcuses, setDailyExcuses] = useState<DailyExcuse[]>([]);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+
+  const childProfile = childProfiles.find((c) => c.id === selectedChildId) ?? childProfiles[0] ?? null;
+  const childId = childProfile?.id ?? '';
+  const ofChild = <T extends { childProfileId: string }>(list: T[]): T[] =>
+    list.filter((item) => item.childProfileId === childId);
+  const scheduleEvents = ofChild(allScheduleEvents);
+  const expectedItems = ofChild(allExpectedItems);
+  const expectedCompletions = ofChild(allExpectedCompletions);
+  const gigs = ofChild(allGigs);
+  const gigCompletions = ofChild(allGigCompletions);
+  const goals = ofChild(allGoals);
+  const badges = ofChild(allBadges);
+  const dailyExcuses = ofChild(allDailyExcuses);
+  const futureFund = futureFunds.find((f) => f.childProfileId === childId) ?? null;
+  /** Applies a change to the selected child's Future Fund. */
+  const updateFund = (change: (fund: FutureFund) => FutureFund) =>
+    setFutureFunds((prev) => prev.map((f) => (f.childProfileId === childId ? change(f) : f)));
+
+  const snapshot = (): PersistedAppData => ({
+    parentName,
+    childProfile: childProfiles[0] ?? null,
+    childProfiles,
+    selectedChildId: childProfile?.id ?? null,
+    scheduleEvents: allScheduleEvents,
+    expectedItems: allExpectedItems,
+    expectedCompletions: allExpectedCompletions,
+    gigs: allGigs,
+    gigCompletions: allGigCompletions,
+    goals: allGoals,
+    futureFund: futureFunds[0] ?? null,
+    futureFunds,
+    gigEffortValues,
+    badges: allBadges,
+    dailyExcuses: allDailyExcuses,
+    soundEnabled,
+  });
+
+  const applyPersisted = (data: PersistedAppData) => {
+    const kids = data.childProfiles ?? (data.childProfile ? [data.childProfile] : []);
+    setParentName(data.parentName ?? null);
+    setChildProfiles(kids);
+    setSelectedChildId(data.selectedChildId ?? kids[0]?.id ?? null);
+    setScheduleEvents(data.scheduleEvents);
+    setExpectedItems(data.expectedItems);
+    setExpectedCompletions(data.expectedCompletions);
+    setGigs(data.gigs);
+    setGigCompletions(data.gigCompletions);
+    setGoals(data.goals);
+    setFutureFunds(data.futureFunds ?? (data.futureFund ? [data.futureFund] : []));
+    setGigEffortValues(data.gigEffortValues ?? DEFAULT_GIG_EFFORT_VALUES);
+    setBadges(data.badges);
+    setDailyExcuses(data.dailyExcuses ?? []);
+    setSoundEnabled(data.soundEnabled ?? true);
+  };
 
   // Load once on mount. Until this resolves, isHydrated stays false so
   // callers don't mistake "haven't checked storage yet" for "new user."
@@ -333,20 +442,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw) {
-          const data: PersistedAppData = JSON.parse(raw);
-          setParentName(data.parentName ?? null);
-          setChildProfile(data.childProfile);
-          setScheduleEvents(data.scheduleEvents);
-          setExpectedItems(data.expectedItems);
-          setExpectedCompletions(data.expectedCompletions);
-          setGigs(data.gigs);
-          setGigCompletions(data.gigCompletions);
-          setGoals(data.goals);
-          setFutureFund(data.futureFund);
-          setGigEffortValues(data.gigEffortValues ?? DEFAULT_GIG_EFFORT_VALUES);
-          setBadges(data.badges);
-          setDailyExcuses(data.dailyExcuses ?? []);
-          setSoundEnabled(data.soundEnabled ?? true);
+          applyPersisted(JSON.parse(raw) as PersistedAppData);
         }
       } catch (e) {
         console.warn('Failed to load persisted app data', e);
@@ -371,36 +467,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         // reset leaves behind) has nothing to adopt and must not clobber
         // the fresh setup wizard.
         if ((serverData as PersistedAppData | null)?.childProfile && !childProfile) {
-          const data = serverData as PersistedAppData;
-          setParentName(data.parentName ?? null);
-          setChildProfile(data.childProfile);
-          setScheduleEvents(data.scheduleEvents);
-          setExpectedItems(data.expectedItems);
-          setExpectedCompletions(data.expectedCompletions);
-          setGigs(data.gigs);
-          setGigCompletions(data.gigCompletions);
-          setGoals(data.goals);
-          setFutureFund(data.futureFund);
-          setGigEffortValues(data.gigEffortValues ?? DEFAULT_GIG_EFFORT_VALUES);
-          setBadges(data.badges);
-          setDailyExcuses(data.dailyExcuses ?? []);
-          setSoundEnabled(data.soundEnabled ?? true);
+          applyPersisted(serverData as PersistedAppData);
         } else if (childProfile) {
-          await saveData(token, {
-            parentName,
-            childProfile,
-            scheduleEvents,
-            expectedItems,
-            expectedCompletions,
-            gigs,
-            gigCompletions,
-            goals,
-            futureFund,
-            gigEffortValues,
-            badges,
-            dailyExcuses,
-            soundEnabled,
-          });
+          await saveData(token, snapshot());
         }
       } catch (e) {
         console.warn('Initial server sync failed, continuing offline', e);
@@ -416,21 +485,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   // so day-to-day changes keep backing up automatically.
   useEffect(() => {
     if (!isHydrated) return;
-    const data: PersistedAppData = {
-      parentName,
-      childProfile,
-      scheduleEvents,
-      expectedItems,
-      expectedCompletions,
-      gigs,
-      gigCompletions,
-      goals,
-      futureFund,
-      gigEffortValues,
-      badges,
-      dailyExcuses,
-      soundEnabled,
-    };
+    const data = snapshot();
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data)).catch((e) =>
       console.warn('Failed to persist app data', e)
     );
@@ -442,22 +497,23 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     token,
     hasReconciled,
     parentName,
-    childProfile,
-    scheduleEvents,
-    expectedItems,
-    expectedCompletions,
-    gigs,
-    gigCompletions,
-    goals,
-    futureFund,
+    childProfiles,
+    selectedChildId,
+    allScheduleEvents,
+    allExpectedItems,
+    allExpectedCompletions,
+    allGigs,
+    allGigCompletions,
+    allGoals,
+    futureFunds,
     gigEffortValues,
-    badges,
-    dailyExcuses,
+    allBadges,
+    allDailyExcuses,
     soundEnabled,
   ]);
 
   const updateChildProfile: AppDataContextValue['updateChildProfile'] = (fields) => {
-    setChildProfile((prev) => (prev ? { ...prev, ...fields } : prev));
+    setChildProfiles((prev) => prev.map((c) => (c.id === childId ? { ...c, ...fields } : c)));
   };
 
   const updateParentName: AppDataContextValue['updateParentName'] = (name) => {
@@ -465,7 +521,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   };
 
   const completeSetup: AppDataContextValue['completeSetup'] = (draft) => {
-    const childId = makeId('child');
+    const newChildId = makeId('child');
     track('setup_completed', {
       grade: draft.childProfile.grade ?? 'none',
       expected_count: draft.expectedItems.filter((i) => i.active).length,
@@ -473,23 +529,26 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       schedule_events: draft.scheduleEvents.length,
       future_fund_percent: draft.futureFundPercentage ?? 0,
     });
-    setChildProfile({
-      id: childId,
-      parentAccountId: 'local-parent',
-      name: draft.childProfile.name,
-      avatarId: draft.childProfile.avatarId,
-      birthday: draft.childProfile.birthday,
-      grade: draft.childProfile.grade,
-      hasYard: draft.childProfile.hasYard,
-      hasCar: draft.childProfile.hasCar,
-      hasPet: draft.childProfile.hasPet,
-      petType: draft.childProfile.petType,
-      petName: draft.childProfile.petName,
-    });
+    setChildProfiles([
+      {
+        id: newChildId,
+        parentAccountId: 'local-parent',
+        name: draft.childProfile.name,
+        avatarId: draft.childProfile.avatarId,
+        birthday: draft.childProfile.birthday,
+        grade: draft.childProfile.grade,
+        hasYard: draft.childProfile.hasYard,
+        hasCar: draft.childProfile.hasCar,
+        hasPet: draft.childProfile.hasPet,
+        petType: draft.childProfile.petType,
+        petName: draft.childProfile.petName,
+      },
+    ]);
+    setSelectedChildId(newChildId);
     setScheduleEvents(
       draft.scheduleEvents.map((e) => ({
         id: makeId('scheduleEvent'),
-        childProfileId: childId,
+        childProfileId: newChildId,
         title: e.title,
         category: e.category,
         recurring: e.recurring,
@@ -506,7 +565,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         .filter((item) => item.active)
         .map((item) => ({
           id: makeId('expectedItem'),
-          childProfileId: childId,
+          childProfileId: newChildId,
           name: item.name,
           frequency: item.frequency,
           active: true,
@@ -518,39 +577,42 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         .filter((gig) => gig.active)
         .map((gig) => ({
           id: makeId('gig'),
-          childProfileId: childId,
+          childProfileId: newChildId,
           name: gig.name,
           effortTier: gig.effortTier,
           active: true,
         }))
     );
-    setFutureFund({
-      id: makeId('futureFund'),
-      childProfileId: childId,
-      percentage: draft.futureFundPercentage ?? DEFAULT_FUTURE_FUND_PERCENTAGE,
-      balance: 0,
-      // Lowered from the vision doc's $100 example to $50 so the milestone
-      // is reachable in testing without needing dozens of gigs.
-      milestoneThreshold: 50,
-    });
+    setFutureFunds([
+      {
+        id: makeId('futureFund'),
+        childProfileId: newChildId,
+        percentage: draft.futureFundPercentage ?? DEFAULT_FUTURE_FUND_PERCENTAGE,
+        balance: 0,
+        // Lowered from the vision doc's $100 example to $50 so the milestone
+        // is reachable in testing without needing dozens of gigs.
+        milestoneThreshold: 50,
+      },
+    ]);
   };
 
-  const excuseInfo: AppDataContextValue['excuseInfo'] = (date) => {
-    const manual = dailyExcuses.find((e) => e.date === date);
+  const excuseInfoFor = (child: ChildProfile | null, date: string): ReturnType<AppDataContextValue['excuseInfo']> => {
+    const manual = allDailyExcuses.find((e) => e.childProfileId === child?.id && e.date === date);
     if (manual) return { trigger: manual.trigger, reason: manual.reason };
-    if (isBirthdayOn(childProfile?.birthday, date)) return { trigger: 'birthday' };
+    if (isBirthdayOn(child?.birthday, date)) return { trigger: 'birthday' };
     return null;
   };
+  const excuseInfo: AppDataContextValue['excuseInfo'] = (date) => excuseInfoFor(childProfile, date);
   const isDayExcused = (date: string = todayString()): boolean => excuseInfo(date) !== null;
 
   const excuseDays: AppDataContextValue['excuseDays'] = (dates, reason) => {
     setDailyExcuses((prev) => {
-      const have = new Set(prev.map((e) => e.date));
+      const have = new Set(prev.filter((e) => e.childProfileId === childId).map((e) => e.date));
       const added = dates
         .filter((d) => !have.has(d))
         .map((date): DailyExcuse => ({
           id: makeId('dailyExcuse'),
-          childProfileId: childProfile?.id ?? '',
+          childProfileId: childId,
           date,
           trigger: 'manual',
           reason,
@@ -562,7 +624,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const removeExcuseDays: AppDataContextValue['removeExcuseDays'] = (dates) => {
     const gone = new Set(dates);
-    setDailyExcuses((prev) => prev.filter((e) => !gone.has(e.date)));
+    setDailyExcuses((prev) => prev.filter((e) => e.childProfileId !== childId || !gone.has(e.date)));
   };
 
   const setItemExcusable: AppDataContextValue['setItemExcusable'] = (id, excusable) => {
@@ -748,14 +810,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setGoals((prev) =>
       prev.map((g) => {
         if (g.id === goalId) return { ...g, status: 'active' as const };
-        if (g.status === 'active') return { ...g, status: 'queued' as const };
+        if (g.childProfileId === childId && g.status === 'active') return { ...g, status: 'queued' as const };
         return g;
       })
     );
   };
 
   const goalProgressPercentage = (goalId: string): number => {
-    return gigCompletions
+    return allGigCompletions
       .filter((c) => c.goalId === goalId && c.status === 'approved')
       .reduce((sum, c) => sum + c.percentageAwarded, 0);
   };
@@ -806,8 +868,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
    * there is one. Used both when a goal is achieved (immediately opens the
    * slot for the next one) and — defensively — nowhere else, since that's
    * the only place a slot opens up. */
-  const activateNextQueuedGoal = (list: Goal[]): Goal[] => {
-    const queued = list.filter((g) => g.status === 'queued').sort((a, b) => a.queuePosition - b.queuePosition);
+  const activateNextQueuedGoal = (list: Goal[], forChildId: string): Goal[] => {
+    const queued = list.filter((g) => g.childProfileId === forChildId && g.status === 'queued').sort((a, b) => a.queuePosition - b.queuePosition);
     const nextUp = queued[0];
     if (!nextUp) return list;
     return list.map((g) => (g.id === nextUp.id ? { ...g, status: 'active' as const } : g));
@@ -862,7 +924,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       completion.futureFundAmount ??
       (gig && futureFund ? (gigEffortValues[gig.effortTier] * futureFund.percentage) / 100 : 0);
     setGigCompletions((prev) => prev.filter((c) => c.id !== completion.id));
-    setFutureFund((prev) => (prev ? { ...prev, balance: Math.max(0, prev.balance - skim) } : prev));
+    updateFund((fund) => ({ ...fund, balance: Math.max(0, fund.balance - skim) }));
     track('gig_unchecked');
     return 'ok';
   };
@@ -899,8 +961,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       futureFundAmount: skimAmount,
     };
     const updatedCompletions = [...gigCompletions, completion];
-    setGigCompletions(updatedCompletions);
-    setFutureFund((prev) => (prev ? { ...prev, balance: prev.balance + skimAmount } : prev));
+    setGigCompletions((prev) => [...prev, completion]);
+    updateFund((fund) => ({ ...fund, balance: fund.balance + skimAmount }));
 
     const today = todayString();
     const activeGigs = gigs.filter((g) => g.active);
@@ -918,7 +980,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         );
         // The next queued goal activates immediately, not gated behind the
         // parent later confirming fulfillment — see markGoalFulfilled.
-        return activateNextQueuedGoal(withAchieved);
+        return activateNextQueuedGoal(withAchieved, goal.childProfileId);
       });
     }
 
@@ -956,12 +1018,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   };
 
   const recordFutureFundContribution = (amount: number) => {
-    setFutureFund((prev) => (prev ? { ...prev, balance: Math.max(0, prev.balance - amount) } : prev));
+    updateFund((fund) => ({ ...fund, balance: Math.max(0, fund.balance - amount) }));
   };
 
   const updateFutureFundPercentage = (percentage: number) => {
     track('future_fund_set', { percent: percentage, from: 'settings' });
-    setFutureFund((prev) => (prev ? { ...prev, percentage } : prev));
+    updateFund((fund) => ({ ...fund, percentage }));
   };
 
   const birthdayCelebrationDue = (): number | null => {
@@ -976,7 +1038,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const age = birthdayCelebrationDue();
     if (age === null) return null;
     const year = Number(todayString().slice(0, 4));
-    setChildProfile((prev) => (prev ? { ...prev, lastBirthdayCelebratedYear: year } : prev));
+    setChildProfiles((prev) => prev.map((c) => (c.id === childId ? { ...c, lastBirthdayCelebratedYear: year } : c)));
     const badgeCatalogId = `birthday_${age}`;
     if (!hasBadge(badgeCatalogId)) awardBadge(badgeCatalogId);
     track('birthday_celebrated');
@@ -1018,14 +1080,129 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   };
 
   const setExpectedOrder = (frequency: ExpectedItem['frequency'], orderedIds: string[]) => {
-    setExpectedItems((prev) => applyGroupOrder(prev, orderedIds, (item) => item.frequency === frequency));
+    setExpectedItems((prev) =>
+      applyGroupOrder(prev, orderedIds, (item) => item.childProfileId === childId && item.frequency === frequency)
+    );
   };
 
-  const addGig = (gig: { name: string; effortTier: Gig['effortTier'] }) => {
+  const addGig = (gig: { name: string; effortTier: Gig['effortTier']; forEveryone?: boolean }) => {
+    const owners = gig.forEveryone ? childProfiles.map((c) => c.id) : [childId];
     setGigs((prev) => [
       ...prev,
-      { id: makeId('gig'), childProfileId: childProfile?.id ?? '', name: gig.name, effortTier: gig.effortTier, active: true },
+      ...owners.map((owner) => ({
+        id: makeId('gig'),
+        childProfileId: owner,
+        name: gig.name,
+        effortTier: gig.effortTier,
+        active: true,
+      })),
     ]);
+  };
+
+  const sameGigName = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+  const siblingGigDoneToday = (gig: Gig): string | null => {
+    const today = todayString();
+    for (const done of allGigCompletions) {
+      if (done.childProfileId === childId || done.status === 'declined' || localDateOf(done.markedDoneAt) !== today) continue;
+      const theirGig = allGigs.find((g) => g.id === done.gigId);
+      if (!theirGig || !sameGigName(theirGig.name, gig.name)) continue;
+      const sibling = childProfiles.find((c) => c.id === done.childProfileId);
+      if (sibling) return sibling.name.trim().split(' ')[0];
+    }
+    return null;
+  };
+
+  const selectChild = (id: string) => {
+    if (childProfiles.some((c) => c.id === id)) setSelectedChildId(id);
+    setViewingEveryone(false);
+  };
+
+  const addChild: AppDataContextValue['addChild'] = (draft) => {
+    const newChildId = makeId('child');
+    const household = childProfiles[0];
+    setChildProfiles((prev) => [
+      ...prev,
+      {
+        id: newChildId,
+        parentAccountId: 'local-parent',
+        name: draft.name.trim(),
+        avatarId: draft.avatarId,
+        birthday: draft.birthday,
+        grade: draft.grade,
+        // Household facts belong to the home, not the child — carry them over.
+        hasYard: household?.hasYard,
+        hasCar: household?.hasCar,
+        hasPet: household?.hasPet,
+        petType: household?.petType,
+        petName: household?.petName,
+      },
+    ]);
+    setExpectedItems((prev) => [
+      ...prev,
+      ...draft.expectedItems.map((item) => ({
+        id: makeId('expectedItem'),
+        childProfileId: newChildId,
+        name: item.name,
+        frequency: item.frequency,
+        active: true,
+      })),
+    ]);
+    setGigs((prev) => [
+      ...prev,
+      ...draft.gigs.map((gig) => ({
+        id: makeId('gig'),
+        childProfileId: newChildId,
+        name: gig.name,
+        effortTier: gig.effortTier,
+        active: true,
+      })),
+    ]);
+    setFutureFunds((prev) => [
+      ...prev,
+      {
+        id: makeId('futureFund'),
+        childProfileId: newChildId,
+        // Starts from the same percentage as the first child; each child's own after that.
+        percentage: prev[0]?.percentage ?? DEFAULT_FUTURE_FUND_PERCENTAGE,
+        balance: 0,
+        milestoneThreshold: 50,
+      },
+    ]);
+    setSelectedChildId(newChildId);
+    setViewingEveryone(false);
+    track('child_added', { children: childProfiles.length + 1 });
+    return newChildId;
+  };
+
+  const childSummaries = (): ChildSummary[] => {
+    const today = todayString();
+    return childProfiles.map((child) => {
+      const items = allExpectedItems.filter((i) => i.childProfileId === child.id);
+      const completions = allExpectedCompletions.filter((c) => c.childProfileId === child.id);
+      const excusedFor = (date: string) => excuseInfoFor(child, date) !== null;
+      const excusedToday = excusedFor(today);
+      const daily = items.filter((i) => i.frequency === 'daily');
+      const done = daily.filter((i) => isExpectedItemSatisfied(i, completions, today)).length;
+      const goal = allGoals.find((g) => g.childProfileId === child.id && g.status === 'active');
+      const percent = goal
+        ? allGigCompletions
+            .filter((c) => c.goalId === goal.id && c.status === 'approved')
+            .reduce((sum, c) => sum + c.percentageAwarded, 0)
+        : 0;
+      const gigsDoneToday = allGigCompletions
+        .filter((c) => c.childProfileId === child.id && c.status !== 'declined' && localDateOf(c.markedDoneAt) === today)
+        .map((c) => allGigs.find((g) => g.id === c.gigId)?.name)
+        .filter((name): name is string => !!name);
+      return {
+        child,
+        expected: { done, total: daily.length },
+        streak: computeExpectedStreak(items, completions, today, excusedFor),
+        goal: goal ? { name: goal.name, percent } : null,
+        gigsDoneToday,
+        excusedToday,
+      };
+    });
   };
 
   const updateGig = (id: string, fields: { name: string; effortTier: Gig['effortTier'] }) => {
@@ -1033,7 +1210,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   };
 
   const setGigOrder = (orderedIds: string[]) => {
-    setGigs((prev) => applyGroupOrder(prev, orderedIds));
+    setGigs((prev) => applyGroupOrder(prev, orderedIds, (g) => g.childProfileId === childId));
   };
 
   const deleteGig = (id: string) => {
@@ -1121,14 +1298,16 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     await AsyncStorage.multiRemove([SETTINGS_HINT_SEEN_KEY, MONEY_HINT_SEEN_KEY]);
     await clearDailyReminder();
     setParentName(null);
-    setChildProfile(null);
+    setChildProfiles([]);
+    setSelectedChildId(null);
+    setViewingEveryone(false);
     setScheduleEvents([]);
     setExpectedItems([]);
     setExpectedCompletions([]);
     setGigs([]);
     setGigCompletions([]);
     setGoals([]);
-    setFutureFund(null);
+    setFutureFunds([]);
     setGigEffortValues(DEFAULT_GIG_EFFORT_VALUES);
     setBadges([]);
     setDailyExcuses([]);
@@ -1141,6 +1320,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         isHydrated,
         parentName,
         childProfile,
+        childProfiles,
+        selectChild,
+        viewingEveryone,
+        setViewingEveryone,
+        addChild,
+        childSummaries,
+        householdExpectedCompletions: allExpectedCompletions,
+        householdGigCompletions: allGigCompletions,
+        isDayExcusedForEveryone: (date: string) =>
+          childProfiles.length > 0 && childProfiles.every((c) => excuseInfoFor(c, date) !== null),
+        siblingGigDoneToday,
         updateChildProfile,
         updateParentName,
         scheduleEvents,

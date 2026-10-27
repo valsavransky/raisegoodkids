@@ -40,4 +40,5 @@ export type RootStackParamList = {
   Feedback: undefined;
   AccountSettings: undefined;
   EditProfile: undefined;
+  AddChild: undefined;
 };

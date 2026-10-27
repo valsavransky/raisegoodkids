@@ -10,7 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { SettingsSubHeader } from '../../components/SettingsSubHeader';
+import { ChildSettingsHeader } from '../../components/ChildSettingsHeader';
 import { useAppData } from '../../context/AppDataContext';
 import { useSaveConfirmation } from '../../hooks/useSaveConfirmation';
 import { GRADE_OPTIONS } from '../../data/contentLibrary';
@@ -93,7 +93,7 @@ export function EditProfileScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <SettingsSubHeader title="Edit Profile" onBack={() => navigation.goBack()} />
+      <ChildSettingsHeader title="Edit Profile" onBack={() => navigation.goBack()} />
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <KeyboardAwareScrollView avoid={false}

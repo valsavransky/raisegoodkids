@@ -19,12 +19,13 @@ import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../navigation/types';
 import { AvatarGlyph } from './AvatarGlyph';
 import { Logo } from './Logo';
+import { ChildChips } from './ChildChips';
 import { colors } from '../theme/colors';
 
-export function AppHeader() {
+export function AppHeader({ showEveryone = false }: { showEveryone?: boolean }) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { childProfile } = useAppData();
+  const { childProfile, childProfiles } = useAppData();
   const { isAutoAccount } = useAuth();
 
   const firstName = childProfile?.name?.trim().split(' ')[0];
@@ -45,12 +46,19 @@ export function AppHeader() {
           {isAutoAccount && <View style={styles.chipDot} />}
         </Pressable>
       </View>
+      {/* Hidden with one child, so single-child families see nothing new. */}
+      {childProfiles.length > 1 && (
+        <View style={styles.chipsWrap}>
+          <ChildChips showEveryone={showEveryone} />
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {},
+  chipsWrap: { paddingBottom: 12 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',

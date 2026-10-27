@@ -281,3 +281,15 @@ Content library authoring (age/grade-appropriate Expected items and Gigs, with s
 - Settings icon (top right) — where the excuse toggle, Future Fund percentage, and other account-level settings likely live (not yet mapped to a specific settings screen)
 
 **Clarification this surfaces:** approvals don't require the child to be present — a parent can review and approve/decline a Gig on their own time (e.g., at work), independent of a check-in session. Only the *result* (a badge unlock, the gentle decline feedback, a grit celebration) needs the child there, and that naturally surfaces at the next check-in. So tapping the pending-approvals count should open the approval queue directly, not trigger a child-facing session — "Check in with [Child]" and "review approvals" are two separate entry points from this screen, not one combined flow.
+
+## Multiple children (decided, built)
+
+- One parent account, any number of children (designed to feel good with up to three, no cap). The data blob stores every child's records tagged with `childProfileId`; screens see the selected child's slice via `useAppData()`.
+- **Switching:** name chips under the Trekker header (hidden with one child), plus an "Everyone" chip first on Today and a "+" to add a child. Settings has the same chips at the top.
+- **Everyone** (Today): one card per child (Expected done today, streak, active goal %) and a list of gigs done today.
+- **Adding a child:** avatar, name, birthday, grade, then grade-based Expected and gig suggestions that start ticked. Yard/car/pet carry over from the first child; the Future Fund percentage starts at the first child's.
+- **Gigs:** each child has their own list, goal and Future Fund. A gig a sibling already did today (matched by name) shows "Done by <name> today". When adding a gig with more than one child, the parent chooses "Just <child>" or "Everyone". Gig dollar values stay household-wide.
+- **Settings:** child-specific rows are headed with the child's name; "Whole family" holds the daily reminder, sound, usage sharing, account and feedback. Child-specific screens add the child's name to their title.
+- **Daily reminder** is household-wide: any child's check-off counts, it is skipped only on days everyone is excused, and it names the child only when there is one.
+- **Not in v1:** shared Expected activities, removing a child, a household gig board with claiming.
+- Data saved before this (one child) upgrades in place: `childProfile`/`futureFund` become `childProfiles[0]`/`futureFunds[0]`.

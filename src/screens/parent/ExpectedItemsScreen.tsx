@@ -6,7 +6,7 @@ import { View, Text, TextInput, Pressable, ScrollView, Modal, Alert, KeyboardAvo
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
-import { SettingsSubHeader } from '../../components/SettingsSubHeader';
+import { ChildSettingsHeader } from '../../components/ChildSettingsHeader';
 import { DraggableList } from '../../components/DraggableList';
 import { useAppData } from '../../context/AppDataContext';
 import { ExpectedItem } from '../../types/models';
@@ -64,7 +64,7 @@ export function ExpectedItemsScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <SettingsSubHeader title="Expected Activities" onBack={() => navigation.goBack()} />
+      <ChildSettingsHeader title="Expected Activities" onBack={() => navigation.goBack()} />
 
       <ScrollView scrollEnabled={!dragging} contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
         <Text style={styles.helper}>Drag the dots to set the order on the Today trail.</Text>
