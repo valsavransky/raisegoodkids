@@ -12,7 +12,11 @@
     ],
     "ios": {
       "bundleIdentifier": "com.valsavransky.merit",
-      "supportsTablet": true
+      "supportsTablet": false,
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.valsavransky.merit",
@@ -51,7 +55,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Trekker uses your photos to let you attach a picture to a goal."
+          "photosPermission": "Trekker uses your photos to let you attach a picture to a goal.",
+          "cameraPermission": false,
+          "microphonePermission": false
         }
       ]
     ],

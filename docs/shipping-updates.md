@@ -35,6 +35,15 @@ Needed when you add or upgrade a native package (anything installed with `npx ex
 
 On the free Expo plan builds queue slowly and have a monthly cap, so batch native changes together.
 
+## iPhone: TestFlight
+
+iPhone builds go to testers through TestFlight, not an install link. Use the `testflight` build profile (it is "store" distribution, listens to the `preview` update channel, and bumps the build number for you). The plain `preview` profile is Android-only: on iPhone it would need every tester's device registered by hand.
+
+1. First time only: in App Store Connect, create the app with bundle ID `com.valsavransky.merit`.
+2. `npx eas-cli build --platform ios --profile testflight` (it asks you to sign in with your Apple ID and approve a few prompts; say yes to enabling Push Notifications if asked).
+3. `npx eas-cli submit --platform ios --profile testflight` sends it to TestFlight. Add testers in App Store Connect. People outside your team need Apple's short Beta App Review and the privacy policy link.
+4. After that, JavaScript changes reach iPhone testers the same way as Android: `npm run ship:preview -- "message"` (it publishes to both platforms).
+
 ## Rule of thumb
 It is native if `package.json` gained a dependency, or `app.json`/`eas.json` changed. Otherwise it's JavaScript-only.
 

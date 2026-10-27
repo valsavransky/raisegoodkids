@@ -20,9 +20,15 @@
     },
     "production": {
       "channel": "production"
+    },
+    "testflight": {
+      "extends": "preview",
+      "distribution": "store",
+      "autoIncrement": true
     }
   },
   "submit": {
-    "production": {}
+    "production": {},
+    "testflight": {}
   }
 }
