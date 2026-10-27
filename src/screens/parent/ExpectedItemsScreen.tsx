@@ -26,16 +26,20 @@ export function ExpectedItemsScreen({ navigation }: Props) {
   const [dragging, setDragging] = useState(false);
   const [draftName, setDraftName] = useState('');
   const [draftFrequency, setDraftFrequency] = useState<ExpectedItem['frequency']>('daily');
+  // True when the activity stays on the list on a sick day, trip or birthday.
+  const [draftRequired, setDraftRequired] = useState(false);
 
   const openAdd = () => {
     setDraftName('');
     setDraftFrequency('daily');
+    setDraftRequired(false);
     setModalMode({ editingId: null });
   };
 
   const openEdit = (item: ExpectedItem) => {
     setDraftName(item.name);
     setDraftFrequency(item.frequency);
+    setDraftRequired(!isItemExcusable(item));
     setModalMode({ editingId: item.id });
   };
 
@@ -43,8 +47,10 @@ export function ExpectedItemsScreen({ navigation }: Props) {
     if (!draftName.trim() || !modalMode) return;
     if (modalMode.editingId) {
       updateExpectedItem(modalMode.editingId, { name: draftName.trim(), frequency: draftFrequency });
+      setItemExcusable(modalMode.editingId, !draftRequired);
     } else {
-      addExpectedItem({ name: draftName.trim(), frequency: draftFrequency });
+      // Left unset unless required, so personal-care names still default to required.
+      addExpectedItem({ name: draftName.trim(), frequency: draftFrequency, excusable: draftRequired ? false : undefined });
     }
     setModalMode(null);
   };
@@ -61,10 +67,7 @@ export function ExpectedItemsScreen({ navigation }: Props) {
       <SettingsSubHeader title="Expected Activities" onBack={() => navigation.goBack()} />
 
       <ScrollView scrollEnabled={!dragging} contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
-        <Text style={styles.helper}>
-          Everyday responsibilities that build good habits. These are unpaid. Drag the dots to set the order they
-          appear on the Today trail. On a sick day, trip or birthday, the ones marked "Can be excused" become optional.
-        </Text>
+        <Text style={styles.helper}>Drag the dots to set the order on the Today trail.</Text>
 
         {(['daily', 'weekly'] as const).map((frequency) => {
           const group = expectedItems.filter((item) => item.frequency === frequency);
@@ -86,26 +89,13 @@ export function ExpectedItemsScreen({ navigation }: Props) {
                       {item.linkedEventTitle && (
                         <Text style={styles.rowLinked}>🗓 From {item.linkedEventTitle}</Text>
                       )}
-                      {item.frequency === 'daily' && (
-                        <View style={styles.excuseRow}>
-                          <Switch
-                            value={isItemExcusable(item)}
-                            onValueChange={(value) => setItemExcusable(item.id, value)}
-                            trackColor={{ true: colors.expected }}
-                            style={styles.excuseSwitch}
-                          />
-                          <Text style={styles.excuseText}>
-                            {isItemExcusable(item) ? 'Can be excused' : 'Always required'}
-                          </Text>
-                        </View>
-                      )}
                     </View>
                     <View style={styles.rowActions}>
+                      {item.frequency === 'daily' && !isItemExcusable(item) && (
+                        <Text accessibilityLabel="Required even on days off" style={styles.lock}>🔒</Text>
+                      )}
                       <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => openEdit(item)}>
                         <Text style={styles.linkAction}>Edit</Text>
-                      </Pressable>
-                      <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => confirmDelete(item)}>
-                        <Text style={styles.linkActionDanger}>Remove</Text>
                       </Pressable>
                     </View>
                   </View>
@@ -141,6 +131,28 @@ export function ExpectedItemsScreen({ navigation }: Props) {
                   );
                 })}
               </View>
+              {draftFrequency === 'daily' && (
+                <View style={styles.requiredRow}>
+                  <View style={styles.requiredText}>
+                    <Text style={styles.requiredLabel}>Required even on days off</Text>
+                    <Text style={styles.requiredHelp}>Stays on the list on a sick day, trip or birthday.</Text>
+                  </View>
+                  <Switch value={draftRequired} onValueChange={setDraftRequired} trackColor={{ true: colors.expected }} />
+                </View>
+              )}
+              {modalMode?.editingId && (
+                <Pressable
+                  style={styles.removeButton}
+                  onPress={() => {
+                    const id = modalMode.editingId;
+                    const item = expectedItems.find((i) => i.id === id);
+                    setModalMode(null);
+                    if (item) confirmDelete(item);
+                  }}
+                >
+                  <Text style={styles.removeButtonText}>Remove activity</Text>
+                </Pressable>
+              )}
               <View style={styles.modalActions}>
                 <Pressable style={styles.modalCancelButton} onPress={() => setModalMode(null)}>
                   <Text style={styles.modalCancelText}>Cancel</Text>
@@ -189,13 +201,17 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 8 },
   },
-  excuseRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
-  excuseSwitch: { transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }], marginLeft: -6 },
-  excuseText: { fontSize: 12, color: colors.textMuted, fontWeight: '600' },
+  lock: { fontSize: 13 },
+  requiredRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  requiredText: { flex: 1, paddingRight: 12 },
+  requiredLabel: { fontSize: 15, fontWeight: '600', color: colors.text },
+  requiredHelp: { fontSize: 12, color: colors.textMuted, marginTop: 2 },
+  removeButton: { alignItems: 'center', paddingVertical: 12, marginBottom: 6 },
+  removeButtonText: { color: colors.danger, fontSize: 14, fontWeight: '700' },
   rowInfo: { flex: 1, flexShrink: 1 },
   rowName: { fontSize: 15, fontWeight: '600', color: colors.text },
   rowLinked: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
-  rowActions: { flexDirection: 'row', gap: 14 },
+  rowActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   linkAction: { color: colors.expected, fontSize: 13, fontWeight: '700' },
   linkActionDanger: { color: colors.danger, fontSize: 13, fontWeight: '700' },
   addLink: { paddingVertical: 10 },

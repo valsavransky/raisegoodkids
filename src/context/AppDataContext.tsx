@@ -270,7 +270,7 @@ interface AppDataContextValue {
   updateScheduleEvent: (id: string, fields: Omit<ScheduleEvent, 'id' | 'childProfileId'>) => void;
   deleteScheduleEvent: (id: string) => void;
 
-  addExpectedItem: (item: { name: string; frequency: ExpectedItem['frequency'] }) => void;
+  addExpectedItem: (item: { name: string; frequency: ExpectedItem['frequency']; excusable?: boolean }) => void;
   updateExpectedItem: (id: string, fields: { name: string; frequency: ExpectedItem['frequency'] }) => void;
   deleteExpectedItem: (id: string) => void;
   /** Sets the order of the Daily (or Weekly) Expected activities; this is the order of the Today trail. */
@@ -993,10 +993,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setScheduleEvents((prev) => prev.filter((e) => e.id !== id));
   };
 
-  const addExpectedItem = (item: { name: string; frequency: ExpectedItem['frequency'] }) => {
+  const addExpectedItem = (item: { name: string; frequency: ExpectedItem['frequency']; excusable?: boolean }) => {
     setExpectedItems((prev) => [
       ...prev,
-      { id: makeId('expectedItem'), childProfileId: childProfile?.id ?? '', name: item.name, frequency: item.frequency, active: true },
+      {
+        id: makeId('expectedItem'),
+        childProfileId: childProfile?.id ?? '',
+        name: item.name,
+        frequency: item.frequency,
+        active: true,
+        ...(item.excusable === undefined ? {} : { excusable: item.excusable }),
+      },
     ]);
   };
 
