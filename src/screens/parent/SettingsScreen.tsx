@@ -23,6 +23,41 @@ import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
+// One tight row inside a grouped card: icon, label, then either the current
+// value and a chevron, or a control (a switch) on the right.
+function SettingsRow({
+  icon,
+  label,
+  value,
+  onPress,
+  control,
+  attention,
+  last,
+}: {
+  icon: string;
+  label: string;
+  value?: string;
+  onPress?: () => void;
+  control?: React.ReactNode;
+  attention?: boolean;
+  last?: boolean;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={!onPress}
+      style={[styles.groupRow, !last && styles.groupRowDivider]}
+    >
+      <Text style={styles.rowIcon}>{icon}</Text>
+      <Text style={styles.rowLabel} numberOfLines={1}>{label}</Text>
+      <View style={styles.rowSpacer} />
+      {value ? <Text style={styles.rowValue} numberOfLines={1}>{value}</Text> : null}
+      {attention ? <View style={styles.attentionDot} /> : null}
+      {control ?? (onPress ? <Text style={styles.chevron}>{'›'}</Text> : null)}
+    </Pressable>
+  );
+}
+
 export function SettingsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { childProfile, parentName, resetAllData, soundEnabled, setSoundEnabled, futureFund } = useAppData();
@@ -86,104 +121,70 @@ export function SettingsScreen({ navigation }: Props) {
           <Text style={styles.chevron}>{'›'}</Text>
         </Pressable>
 
-        <Text style={styles.sectionLabel}>Household</Text>
-        <Pressable onPress={() => navigation.navigate('ExpectedItemsSettings')} style={styles.row}>
-          <Text style={styles.rowIcon}>🤝</Text>
-          <View style={styles.rowInfo}>
-            <Text style={styles.rowLabel}>Expected Activities</Text>
-          </View>
-          <Text style={styles.chevron}>{'›'}</Text>
-        </Pressable>
-        <Pressable onPress={() => navigation.navigate('GigsSettings')} style={styles.row}>
-          <Text style={styles.rowIcon}>🪙</Text>
-          <View style={styles.rowInfo}>
-            <Text style={styles.rowLabel}>Gigs</Text>
-          </View>
-          <Text style={styles.chevron}>{'›'}</Text>
-        </Pressable>
-        <Pressable onPress={() => navigation.navigate('ScheduleSettings')} style={styles.row}>
-          <Text style={styles.rowIcon}>🗓️</Text>
-          <View style={styles.rowInfo}>
-            <Text style={styles.rowLabel}>Schedule</Text>
-          </View>
-          <Text style={styles.chevron}>{'›'}</Text>
-        </Pressable>
-        <Pressable onPress={() => navigation.navigate('ExcusedDaysSettings')} style={styles.row}>
-          <Text style={styles.rowIcon}>🌴</Text>
-          <View style={styles.rowInfo}>
-            <Text style={styles.rowLabel}>Excused days</Text>
-            <Text style={styles.rowSubtitle}>Sick days, trips, holidays</Text>
-          </View>
-          <Text style={styles.chevron}>{'›'}</Text>
-        </Pressable>
-        <Pressable onPress={() => navigation.navigate('FutureFundSettings')} style={styles.row}>
-          <Text style={styles.rowIcon}>📈</Text>
-          <View style={styles.rowInfo}>
-            <Text style={styles.rowLabel}>Future Fund</Text>
-            <Text style={styles.rowSubtitle}>{futureFund && futureFund.percentage > 0 ? `${futureFund.percentage}% of every gig` : 'Off'}</Text>
-          </View>
-          <Text style={styles.chevron}>{'›'}</Text>
-        </Pressable>
-
-        <Text style={styles.sectionLabel}>Notifications</Text>
-        <Pressable onPress={() => navigation.navigate('NotificationSettings')} style={styles.row}>
-          <Text style={styles.rowIcon}>🔔</Text>
-          <View style={styles.rowInfo}>
-            <Text style={styles.rowLabel}>Daily reminder</Text>
-            <Text style={styles.rowSubtitle}>{reminderSubtitle}</Text>
-          </View>
-          <Text style={styles.chevron}>{'›'}</Text>
-        </Pressable>
-
-        <Text style={styles.sectionLabel}>Preferences</Text>
-        <View style={styles.row}>
-          <Text style={styles.rowIcon}>🔊</Text>
-          <View style={styles.rowInfo}>
-            <Text style={styles.rowLabel}>Sound effects</Text>
-            <Text style={styles.rowSubtitle}>Chimes for checkoffs and badge unlocks</Text>
-          </View>
-          <Switch
-            value={soundEnabled}
-            onValueChange={setSoundEnabled}
-            trackColor={{ true: colors.expected }}
-          />
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.rowIcon}>📊</Text>
-          <View style={styles.rowInfo}>
-            <Text style={styles.rowLabel}>Share anonymous usage</Text>
-            <Text style={styles.rowSubtitle}>Helps improve the app. Never includes names or personal details.</Text>
-          </View>
-          <Switch
-            value={shareUsage}
-            onValueChange={(value) => {
-              setShareUsage(value);
-              setAnalyticsEnabled(value);
-            }}
-            trackColor={{ true: colors.expected }}
+        <Text style={styles.sectionLabel}>Activities and money</Text>
+        <View style={styles.group}>
+          <SettingsRow icon="🤝" label="Expected Activities" onPress={() => navigation.navigate('ExpectedItemsSettings')} />
+          <SettingsRow icon="🪙" label="Gigs" onPress={() => navigation.navigate('GigsSettings')} />
+          <SettingsRow
+            icon="📈"
+            label="Future Fund"
+            value={futureFund && futureFund.percentage > 0 ? `${futureFund.percentage}% of every gig` : 'Off'}
+            onPress={() => navigation.navigate('FutureFundSettings')}
+            last
           />
         </View>
 
-        <Text style={styles.sectionLabel}>Account</Text>
-        <Pressable onPress={() => navigation.navigate('AccountSettings')} style={styles.row}>
-          <Text style={styles.rowIcon}>🔐</Text>
-          <View style={styles.rowInfo}>
-            <Text style={styles.rowLabel}>Account</Text>
-            <Text style={styles.rowSubtitle}>{isAutoAccount ? 'No email added yet' : accountEmail ?? 'Signed in'}</Text>
-          </View>
-          {isAutoAccount && <View style={styles.attentionDot} />}
-          <Text style={styles.chevron}>{'›'}</Text>
-        </Pressable>
+        <Text style={styles.sectionLabel}>Calendar and days</Text>
+        <View style={styles.group}>
+          <SettingsRow icon="🗓️" label="Schedule" onPress={() => navigation.navigate('ScheduleSettings')} />
+          <SettingsRow icon="🌴" label="Excused days" onPress={() => navigation.navigate('ExcusedDaysSettings')} />
+          <SettingsRow
+            icon="🔔"
+            label="Daily reminder"
+            value={reminderSubtitle}
+            onPress={() => navigation.navigate('NotificationSettings')}
+            last
+          />
+        </View>
 
-        <Text style={styles.sectionLabel}>Help</Text>
-        <Pressable onPress={() => navigation.navigate('Feedback')} style={styles.row}>
-          <Text style={styles.rowIcon}>💬</Text>
-          <View style={styles.rowInfo}>
-            <Text style={styles.rowLabel}>Send feedback</Text>
-            <Text style={styles.rowSubtitle}>Tell us what's working and what isn't</Text>
-          </View>
-          <Text style={styles.chevron}>{'›'}</Text>
-        </Pressable>
+        <Text style={styles.sectionLabel}>App</Text>
+        <View style={styles.group}>
+          <SettingsRow
+            icon="🔊"
+            label="Sound effects"
+            control={
+              <Switch value={soundEnabled} onValueChange={setSoundEnabled} trackColor={{ true: colors.expected }} />
+            }
+          />
+          <SettingsRow
+            icon="📊"
+            label="Share anonymous usage ⓘ"
+            onPress={() =>
+              Alert.alert(
+                'Share anonymous usage',
+                'Helps improve the app. Never includes names or personal details.'
+              )
+            }
+            control={
+              <Switch
+                value={shareUsage}
+                onValueChange={(value) => {
+                  setShareUsage(value);
+                  setAnalyticsEnabled(value);
+                }}
+                trackColor={{ true: colors.expected }}
+              />
+            }
+          />
+          <SettingsRow
+            icon="🔐"
+            label="Account"
+            value={isAutoAccount ? 'Add an email' : accountEmail ?? 'Signed in'}
+            attention={isAutoAccount}
+            onPress={() => navigation.navigate('AccountSettings')}
+          />
+          <SettingsRow icon="💬" label="Send feedback" onPress={() => navigation.navigate('Feedback')} last />
+        </View>
 
         {/* Developer conveniences — only in development builds (running through
          * Metro), never in a beta or store build. */}
@@ -230,8 +231,8 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-    marginTop: 24,
-    marginBottom: 8,
+    marginTop: 18,
+    marginBottom: 6,
   },
   profileRow: {
     flexDirection: 'row',
@@ -256,6 +257,17 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     gap: 12,
   },
+  group: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  groupRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, paddingHorizontal: 14, minHeight: 48 },
+  groupRowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+  rowSpacer: { flex: 1 },
+  rowValue: { fontSize: 13, color: colors.textMuted, maxWidth: '45%' },
   rowIcon: { fontSize: 20, width: 24, textAlign: 'center' },
   rowInfo: { flex: 1 },
   rowLabel: { fontSize: 15, fontWeight: '600', color: colors.text },
