@@ -14,9 +14,11 @@ interface SettingsSubHeaderProps {
   onBack: () => void;
   /** An "+ Add" pill on the right, for list screens (see AddPill). */
   action?: React.ReactNode;
+  /** Small line under the title, e.g. whose settings these are. */
+  subtitle?: string;
 }
 
-export function SettingsSubHeader({ title, onBack, action }: SettingsSubHeaderProps) {
+export function SettingsSubHeader({ title, onBack, action, subtitle }: SettingsSubHeaderProps) {
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
@@ -24,7 +26,10 @@ export function SettingsSubHeader({ title, onBack, action }: SettingsSubHeaderPr
         <Text style={styles.backArrow}>{'‹'}</Text>
       </Pressable>
       {/* A long title (say a child's name added) shrinks to leave room for the pill. */}
-      <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{title}</Text>
+      <View style={styles.titleWrap}>
+        <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{title}</Text>
+        {subtitle ? <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text> : null}
+      </View>
       <View style={styles.actionSlot}>{action}</View>
     </View>
   );
@@ -40,6 +45,8 @@ const styles = StyleSheet.create({
   },
   sideSlot: { width: 44, alignItems: 'flex-start', paddingLeft: 8 },
   backArrow: { fontSize: 28, color: colors.text },
-  title: { flex: 1, fontSize: 17, fontWeight: '700', color: colors.text, textAlign: 'center', marginHorizontal: 6 },
-  actionSlot: { minWidth: 44, alignItems: 'flex-end', paddingRight: 8 },
+  titleWrap: { flex: 1, alignItems: 'center', marginHorizontal: 10 },
+  title: { fontSize: 17, fontWeight: '700', color: colors.text, textAlign: 'center' },
+  subtitle: { fontSize: 12, color: colors.textMuted, marginTop: 1 },
+  actionSlot: { minWidth: 44, alignItems: 'flex-end', paddingRight: 12 },
 });

@@ -27,6 +27,6 @@ export function AddPill({ onPress, label = 'Add', color = colors.expected }: Add
 }
 
 const styles = StyleSheet.create({
-  pill: { borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
-  text: { color: '#fff', fontSize: 14, fontWeight: '800' },
+  pill: { borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
+  text: { color: '#fff', fontSize: 13, fontWeight: '800' },
 });
