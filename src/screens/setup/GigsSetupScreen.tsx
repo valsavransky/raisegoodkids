@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { AddPill } from '../../components/AddPill';
 import { useSetup, DraftGig, makeLocalId } from '../../context/SetupContext';
 import { getContentLibraryForGrade, SuggestedGig } from '../../data/contentLibrary';
 import { GigEffortTier } from '../../types/models';
@@ -106,6 +107,7 @@ export function GigsSetupScreen({ navigation }: Props) {
         childName={childProfile.name}
         childAvatarId={childProfile.avatarId}
         onPressProfile={() => navigation.navigate('ChildProfile')}
+        action={<AddPill onPress={openAddModal} color={colors.gigs} />}
       />
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -147,9 +149,6 @@ export function GigsSetupScreen({ navigation }: Props) {
             </View>
           </View>
         ))}
-        <Pressable style={styles.addLink} onPress={openAddModal}>
-          <Text style={styles.addLinkText}>+ Add custom gig</Text>
-        </Pressable>
       </ScrollView>
 
       <Pressable
@@ -229,8 +228,6 @@ const styles = StyleSheet.create({
   effortChipSelected: { backgroundColor: colors.gigs, borderColor: colors.gigs },
   effortChipText: { fontSize: 12, color: colors.text },
   effortChipTextSelected: { color: '#fff', fontWeight: '600' },
-  addLink: { paddingVertical: 10 },
-  addLinkText: { color: colors.expected, fontSize: 14, fontWeight: '600' },
   finishButton: {
     marginHorizontal: 20,
     marginTop: 4,

@@ -19,6 +19,7 @@ import { useAppData } from '../../context/AppDataContext';
 import { ScheduleEvent, ScheduleEventCategory, CADENCE_LABELS } from '../../types/models';
 import { RootStackParamList } from '../../navigation/types';
 import { ChildSettingsHeader } from '../../components/ChildSettingsHeader';
+import { AddPill } from '../../components/AddPill';
 import { ScheduleEventModal, ScheduleEventDraft, BLANK_SCHEDULE_EVENT_DRAFT } from '../../components/ScheduleEventModal';
 import { formatTimeRange12h } from '../../utils/time';
 import { colors } from '../../theme/colors';
@@ -118,7 +119,7 @@ export function ScheduleScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <ChildSettingsHeader title="Schedule" onBack={() => navigation.goBack()} />
+      <ChildSettingsHeader title="Schedule" onBack={() => navigation.goBack()} action={<AddPill onPress={openAddModal} />} />
 
       <SectionList
         style={styles.list}
@@ -151,9 +152,6 @@ export function ScheduleScreen({ navigation }: Props) {
       />
 
       <View style={[styles.actionsRow, { paddingBottom: 12 + insets.bottom }]}>
-        <Pressable style={styles.actionButton} onPress={openAddModal}>
-          <Text style={styles.actionButtonText}>+ Add event</Text>
-        </Pressable>
         <Pressable style={styles.actionButton} onPress={() => navigation.navigate('ImportGoogleCalendar')}>
           <Text style={styles.actionButtonText}>Import from Google Calendar</Text>
         </Pressable>

@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { ChildSettingsHeader } from '../../components/ChildSettingsHeader';
+import { AddPill } from '../../components/AddPill';
 import { DraggableList } from '../../components/DraggableList';
 import { useAppData } from '../../context/AppDataContext';
 import { ExpectedItem } from '../../types/models';
@@ -64,14 +65,11 @@ export function ExpectedItemsScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <ChildSettingsHeader title="Expected Activities" onBack={() => navigation.goBack()} />
+      <ChildSettingsHeader title="Expected Activities" onBack={() => navigation.goBack()} action={<AddPill onPress={openAdd} />} />
 
       <ScrollView scrollEnabled={!dragging} contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
         <Text style={styles.helper}>Drag the dots to set the order on the Today trail.</Text>
 
-        <Pressable style={styles.addLink} onPress={openAdd}>
-          <Text style={styles.addLinkText}>+ Add Expected activity</Text>
-        </Pressable>
         {(['daily', 'weekly'] as const).map((frequency) => {
           const group = expectedItems.filter((item) => item.frequency === frequency);
           if (group.length === 0) return null;
@@ -229,8 +227,6 @@ const styles = StyleSheet.create({
   rowActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   linkAction: { color: colors.expected, fontSize: 13, fontWeight: '700' },
   linkActionDanger: { color: colors.danger, fontSize: 13, fontWeight: '700' },
-  addLink: { paddingVertical: 10, marginBottom: 6 },
-  addLinkText: { color: colors.expected, fontSize: 14, fontWeight: '600' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalCard: { backgroundColor: colors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
   modalTitle: { fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 16 },

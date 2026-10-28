@@ -32,6 +32,8 @@ interface ScreenHeaderProps {
    * step whose content starts sparse (e.g. just two fields), so the title
    * doesn't feel cramped up against the progress bar. */
   titleMarginTop?: number;
+  /** An "+ Add" pill shown at the right of the top row (see AddPill). */
+  action?: React.ReactNode;
 }
 
 export function ScreenHeader({
@@ -43,6 +45,7 @@ export function ScreenHeader({
   childAvatarId,
   onPressProfile,
   titleMarginTop,
+  action,
 }: ScreenHeaderProps) {
   const insets = useSafeAreaInsets();
   const firstName = childName?.trim().split(' ')[0];
@@ -54,14 +57,17 @@ export function ScreenHeader({
           <Text style={[styles.backArrow, !onBack && styles.backArrowHidden]}>{'←'}</Text>
         </Pressable>
 
-        {firstName ? (
-          <Pressable onPress={onPressProfile} hitSlop={8} style={styles.profileChip}>
-            <AvatarGlyph avatarId={childAvatarId} size={18} />
-            <Text style={styles.profileName}>{firstName}</Text>
-          </Pressable>
-        ) : (
-          <View style={styles.sideSlot} />
-        )}
+        <View style={styles.rightGroup}>
+          {action}
+          {firstName ? (
+            <Pressable onPress={onPressProfile} hitSlop={8} style={styles.profileChip}>
+              <AvatarGlyph avatarId={childAvatarId} size={18} />
+              <Text style={styles.profileName}>{firstName}</Text>
+            </Pressable>
+          ) : (
+            <View style={styles.sideSlot} />
+          )}
+        </View>
       </View>
 
       {step != null && totalSteps != null && (
@@ -92,6 +98,7 @@ const styles = StyleSheet.create({
   sideSlot: {
     width: 32,
   },
+  rightGroup: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   backArrow: {
     fontSize: 20,
     color: colors.text,

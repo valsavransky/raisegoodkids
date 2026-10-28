@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { AddPill } from '../../components/AddPill';
 import { useSetup, DraftScheduleEvent, makeLocalId } from '../../context/SetupContext';
 import { ScheduleEventCategory, CADENCE_LABELS } from '../../types/models';
 import { ScheduleEventModal, ScheduleEventDraft, BLANK_SCHEDULE_EVENT_DRAFT } from '../../components/ScheduleEventModal';
@@ -191,6 +192,7 @@ export function ScheduleReviewScreen({ navigation }: Props) {
         childName={childProfile.name}
         childAvatarId={childProfile.avatarId}
         onPressProfile={() => navigation.navigate('ChildProfile')}
+        action={<AddPill onPress={openAddModal} />}
       />
 
       <FlatList
@@ -400,10 +402,6 @@ export function ScheduleReviewScreen({ navigation }: Props) {
         }}
       />
 
-      <Pressable style={styles.addButton} onPress={openAddModal}>
-        <Text style={styles.addButtonText}>+ Add event manually</Text>
-      </Pressable>
-
       <Pressable
         style={[styles.continueButton, { marginBottom: 20 + insets.bottom }]}
         onPress={() => navigation.navigate('ExpectedSetup')}
@@ -564,8 +562,6 @@ const styles = StyleSheet.create({
   categoryChipSelected: { backgroundColor: colors.text, borderColor: colors.text },
   categoryChipText: { fontSize: 12, color: colors.text },
   categoryChipTextSelected: { color: '#fff', fontWeight: '600' },
-  addButton: { marginHorizontal: 20, paddingVertical: 12, alignItems: 'center' },
-  addButtonText: { color: colors.expected, fontSize: 15, fontWeight: '600' },
   continueButton: {
     marginHorizontal: 20,
     marginTop: 4,

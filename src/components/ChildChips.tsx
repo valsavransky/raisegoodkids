@@ -51,7 +51,7 @@ export function ChildChips({ showEveryone = false }: { showEveryone?: boolean })
         style={[styles.chip, styles.addChip]}
         accessibilityLabel="Add a child"
       >
-        <Text style={styles.addText}>Add child +</Text>
+        <Text style={styles.addText}>+ Add child</Text>
       </Pressable>
     </ScrollView>
   );

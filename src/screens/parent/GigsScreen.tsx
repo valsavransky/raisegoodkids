@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { ChildSettingsHeader } from '../../components/ChildSettingsHeader';
+import { AddPill } from '../../components/AddPill';
 import { useAppData } from '../../context/AppDataContext';
 import { useSaveConfirmation } from '../../hooks/useSaveConfirmation';
 import { Gig, GigEffortTier, GigEffortValues } from '../../types/models';
@@ -100,7 +101,11 @@ export function GigsScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <ChildSettingsHeader title="Gigs" onBack={() => navigation.goBack()} />
+      <ChildSettingsHeader
+        title="Gigs"
+        onBack={() => navigation.goBack()}
+        action={subTab === 'list' ? <AddPill onPress={openAdd} color={colors.gigs} /> : undefined}
+      />
 
       <View style={styles.subTabRow}>
         <Pressable onPress={() => setSubTab('list')} style={styles.subTab}>
@@ -116,9 +121,6 @@ export function GigsScreen({ navigation }: Props) {
           <>
             <Text style={styles.helper}>Optional, paid work they choose that builds toward their goal. Drag the dots to set the order they appear on the Today trail.</Text>
 
-            <Pressable style={styles.addLink} onPress={openAdd}>
-              <Text style={styles.addLinkText}>+ Add gig</Text>
-            </Pressable>
             <DraggableList
               items={gigs}
               keyOf={(gig) => gig.id}
@@ -264,8 +266,6 @@ const styles = StyleSheet.create({
   rowActions: { flexDirection: 'row', gap: 14 },
   linkAction: { color: colors.expected, fontSize: 13, fontWeight: '700' },
   linkActionDanger: { color: colors.danger, fontSize: 13, fontWeight: '700' },
-  addLink: { paddingVertical: 10, marginBottom: 6 },
-  addLinkText: { color: colors.expected, fontSize: 14, fontWeight: '600' },
   helper: { fontSize: 12, color: colors.textMuted, marginBottom: 10, lineHeight: 17 },
   gigValueRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 },
   gigValueLabel: { fontSize: 15, color: colors.text },

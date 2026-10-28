@@ -36,6 +36,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Goal } from '../../types/models';
 import { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { AppHeader } from '../../components/AppHeader';
+import { AddPill } from '../../components/AddPill';
 import { Confetti } from '../../components/Confetti';
 import { CATEGORY_EMOJI, GoalIdea, guessGoalCategory, suggestGoalIdeas } from '../../data/goalIdeas';
 import { classifyGoalCategory } from '../../services/api';
@@ -316,7 +317,10 @@ export function GoalPickerScreen() {
       {confettiTrigger > 0 && <Confetti trigger={confettiTrigger} pieceCount={16} />}
       <AppHeader />
       <View style={styles.header}>
-        <Text style={styles.title}>{goals.length === 0 ? `What's ${childName} working toward?` : 'Your goals'}</Text>
+        <Text style={styles.title} numberOfLines={2}>
+          {goals.length === 0 ? `What's ${childName} working toward?` : 'Your goals'}
+        </Text>
+        <AddPill onPress={openAddModal} color={colors.gigs} />
       </View>
 
       <SectionList
@@ -356,10 +360,6 @@ export function GoalPickerScreen() {
                 </View>
               </View>
             )}
-
-            <Pressable style={styles.addButton} onPress={openAddModal}>
-              <Text style={styles.addButtonText}>+ Add a new goal</Text>
-            </Pressable>
 
             {futureFund && (futureFund.percentage > 0 || futureFund.balance > 0) && (
               <View style={styles.futureFundCard}>
@@ -550,8 +550,8 @@ export function GoalPickerScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  header: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 8 },
-  title: { fontSize: 22, fontWeight: '700', color: colors.text },
+  header: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  title: { flex: 1, fontSize: 22, fontWeight: '700', color: colors.text },
   list: { flex: 1 },
   listContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20 },
   emptyText: { fontSize: 14, color: colors.textMuted, textAlign: 'center', marginTop: 24 },
@@ -586,8 +586,6 @@ const styles = StyleSheet.create({
   goalRowActions: { flexDirection: 'row', gap: 16, marginTop: 10 },
   linkAction: { color: colors.expected, fontSize: 13, fontWeight: '700' },
   linkActionDanger: { color: colors.danger, fontSize: 13, fontWeight: '700' },
-  addButton: { paddingVertical: 12, alignItems: 'center' },
-  addButtonText: { color: colors.expected, fontSize: 15, fontWeight: '600' },
   suggestedSection: { marginTop: 4, marginBottom: 4 },
   suggestedLabel: {
     fontSize: 12,

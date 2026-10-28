@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { AddPill } from '../../components/AddPill';
 import { useSetup, DraftExpectedItem, makeLocalId } from '../../context/SetupContext';
 import { getContentLibraryForGrade } from '../../data/contentLibrary';
 import { useTrackSetupStep } from '../../hooks/useTrackScreen';
@@ -99,6 +100,7 @@ export function ExpectedSetupScreen({ navigation }: Props) {
         childName={childProfile.name}
         childAvatarId={childProfile.avatarId}
         onPressProfile={() => navigation.navigate('ChildProfile')}
+        action={<AddPill onPress={openAddModal} />}
       />
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -139,9 +141,6 @@ export function ExpectedSetupScreen({ navigation }: Props) {
             ))}
           </>
         )}
-        <Pressable style={styles.addLink} onPress={openAddModal}>
-          <Text style={styles.addLinkText}>+ Add custom Expected activity</Text>
-        </Pressable>
       </ScrollView>
 
       <Pressable
@@ -229,8 +228,6 @@ const styles = StyleSheet.create({
   effortChipSelected: { backgroundColor: colors.expected, borderColor: colors.expected },
   effortChipText: { fontSize: 12, color: colors.text },
   effortChipTextSelected: { color: '#fff', fontWeight: '600' },
-  addLink: { paddingVertical: 10 },
-  addLinkText: { color: colors.expected, fontSize: 14, fontWeight: '600' },
   continueButton: {
     marginHorizontal: 20,
     marginTop: 4,
