@@ -46,7 +46,7 @@ export function FamilyOverview() {
           {gigsToday.map((g, i) => (
             <View key={`${g.who}-${g.name}-${i}`} style={styles.gigRow}>
               <Text style={styles.gigCheck}>✓</Text>
-              <Text style={styles.gigName} numberOfLines={1}>{g.name}</Text>
+              <Text style={styles.gigName}>{g.name}</Text>
               <Text style={styles.gigWho}>{g.who}</Text>
             </View>
           ))}
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 14,
   },
-  gigRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11 },
+  gigRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 11 },
   gigCheck: { color: colors.gigs, fontWeight: '800' },
   gigName: { flex: 1, fontSize: 14, fontWeight: '600', color: colors.text },
   gigWho: { fontSize: 13, color: colors.textMuted },
