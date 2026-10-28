@@ -69,6 +69,9 @@ export function ExpectedItemsScreen({ navigation }: Props) {
       <ScrollView scrollEnabled={!dragging} contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
         <Text style={styles.helper}>Drag the dots to set the order on the Today trail.</Text>
 
+        <Pressable style={styles.addLink} onPress={openAdd}>
+          <Text style={styles.addLinkText}>+ Add Expected activity</Text>
+        </Pressable>
         {(['daily', 'weekly'] as const).map((frequency) => {
           const group = expectedItems.filter((item) => item.frequency === frequency);
           if (group.length === 0) return null;
@@ -104,9 +107,6 @@ export function ExpectedItemsScreen({ navigation }: Props) {
             </React.Fragment>
           );
         })}
-        <Pressable style={styles.addLink} onPress={openAdd}>
-          <Text style={styles.addLinkText}>+ Add Expected activity</Text>
-        </Pressable>
       </ScrollView>
 
       <Modal visible={modalMode !== null} animationType="slide" transparent onRequestClose={() => setModalMode(null)}>
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
   rowActions: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   linkAction: { color: colors.expected, fontSize: 13, fontWeight: '700' },
   linkActionDanger: { color: colors.danger, fontSize: 13, fontWeight: '700' },
-  addLink: { paddingVertical: 10 },
+  addLink: { paddingVertical: 10, marginBottom: 6 },
   addLinkText: { color: colors.expected, fontSize: 14, fontWeight: '600' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalCard: { backgroundColor: colors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
