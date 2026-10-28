@@ -195,6 +195,9 @@ interface AppDataContextValue {
   /** Adds a child to the household (household facts carry over from the first
    * child) and switches to them. */
   addChild: (draft: AddChildDraft) => string;
+  /** Permanently removes a child and everything recorded for them. The last
+   * remaining child can't be removed (use Delete account for that). */
+  removeChild: (childId: string) => boolean;
   /** One card per child for the family overview. */
   childSummaries: () => ChildSummary[];
   /** Every child's check-offs, for the household-wide daily reminder. */
@@ -1175,6 +1178,26 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return newChildId;
   };
 
+  const removeChild: AppDataContextValue['removeChild'] = (id) => {
+    if (childProfiles.length <= 1 || !childProfiles.some((c) => c.id === id)) return false;
+    const remaining = childProfiles.filter((c) => c.id !== id);
+    const keep = <T extends { childProfileId: string }>(list: T[]) => list.filter((item) => item.childProfileId !== id);
+    setChildProfiles(remaining);
+    setScheduleEvents(keep);
+    setExpectedItems(keep);
+    setExpectedCompletions(keep);
+    setGigs(keep);
+    setGigCompletions(keep);
+    setGoals(keep);
+    setFutureFunds(keep);
+    setBadges(keep);
+    setDailyExcuses(keep);
+    if (childId === id) setSelectedChildId(remaining[0].id);
+    if (remaining.length < 2) setViewingEveryone(false);
+    track('child_removed', { children: remaining.length });
+    return true;
+  };
+
   const childSummaries = (): ChildSummary[] => {
     const today = todayString();
     return childProfiles.map((child) => {
@@ -1325,6 +1348,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         viewingEveryone,
         setViewingEveryone,
         addChild,
+        removeChild,
         childSummaries,
         householdExpectedCompletions: allExpectedCompletions,
         householdGigCompletions: allGigCompletions,

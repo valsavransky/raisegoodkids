@@ -291,5 +291,6 @@ Content library authoring (age/grade-appropriate Expected items and Gigs, with s
 - **Gigs:** each child has their own list, goal and Future Fund. A gig a sibling already did today (matched by name) shows "Done by <name> today". When adding a gig with more than one child, the parent chooses "Just <child>" or "Everyone". Gig dollar values stay household-wide.
 - **Settings:** child-specific rows are headed with the child's name; "Whole family" holds the daily reminder, sound, usage sharing, account and feedback. Child-specific screens add the child's name to their title.
 - **Daily reminder** is household-wide: any child's check-off counts, it is skipped only on days everyone is excused, and it names the child only when there is one.
-- **Not in v1:** shared Expected activities, removing a child, a household gig board with claiming.
+- **Removing a child:** Settings → Edit Profile → "Remove <name>" (only with 2+ children; confirmation names what is deleted; the last child can't be removed — use Delete account). It deletes every record tagged with that child.
+- **Not in v1:** shared Expected activities, a household gig board with claiming.
 - Data saved before this (one child) upgrades in place: `childProfile`/`futureFund` become `childProfiles[0]`/`futureFunds[0]`.

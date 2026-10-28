@@ -5,7 +5,7 @@
 // Save (like the rest of Settings) rather than writing straight through on
 // every keystroke.
 import React, { useMemo, useState } from 'react';
-import { View, Text, TextInput, Pressable, Modal, Platform, KeyboardAvoidingView, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, Modal, Alert, Platform, KeyboardAvoidingView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -35,7 +35,7 @@ function eighteenYearsAgo(): Date {
 
 export function EditProfileScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { parentName, updateParentName, childProfile, updateChildProfile } = useAppData();
+  const { parentName, updateParentName, childProfile, childProfiles, updateChildProfile, removeChild } = useAppData();
 
   const [parentNameDraft, setParentNameDraft] = useState(parentName ?? '');
   const [avatarId, setAvatarId] = useState(childProfile?.avatarId ?? '');
@@ -89,6 +89,25 @@ export function EditProfileScreen({ navigation }: Props) {
       petName: hasPet ? petName : undefined,
     });
     showSavedThenGoBack();
+  };
+
+  const confirmRemove = () => {
+    if (!childProfile) return;
+    const first = childProfile.name.trim().split(' ')[0] || 'this child';
+    Alert.alert(
+      `Remove ${first}?`,
+      `This permanently deletes ${first}'s Expected activities, gigs, goals, badges, streak, schedule and Future Fund balance. It can't be undone. The other children aren't affected.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: `Remove ${first}`,
+          style: 'destructive',
+          onPress: () => {
+            if (removeChild(childProfile.id)) navigation.navigate('Settings');
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -293,6 +312,13 @@ export function EditProfileScreen({ navigation }: Props) {
         >
           <Text style={styles.saveButtonText}>{saved ? '✓ Saved' : 'Save'}</Text>
         </Pressable>
+
+        {/* Only with more than one child; the last child can't be removed. */}
+        {childProfiles.length > 1 && (
+          <Pressable style={styles.removeButton} onPress={confirmRemove} hitSlop={8}>
+            <Text style={styles.removeButtonText}>Remove {name.trim().split(' ')[0] || 'this child'}</Text>
+          </Pressable>
+        )}
       </KeyboardAwareScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -354,6 +380,8 @@ const styles = StyleSheet.create({
   saveButtonDisabled: { opacity: 0.4 },
   saveButtonSaved: { backgroundColor: colors.success },
   saveButtonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  removeButton: { marginTop: 28, alignItems: 'center', paddingVertical: 12 },
+  removeButtonText: { color: colors.danger, fontSize: 15, fontWeight: '700' },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalCard: {
     backgroundColor: colors.background,
