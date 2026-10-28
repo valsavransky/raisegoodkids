@@ -51,7 +51,7 @@ export function ChildChips({ showEveryone = false }: { showEveryone?: boolean })
         style={[styles.chip, styles.addChip]}
         accessibilityLabel="Add a child"
       >
-        <Text style={styles.addText}>+</Text>
+        <Text style={styles.addText}>Add child +</Text>
       </Pressable>
     </ScrollView>
   );
@@ -64,11 +64,11 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 18,
     backgroundColor: colors.surface,
-    maxWidth: 140,
+    maxWidth: 160,
   },
   chipOn: { backgroundColor: colors.expected },
   text: { fontSize: 14, fontWeight: '700', color: colors.text },
   textOn: { color: '#fff' },
   addChip: { backgroundColor: colors.background, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.textMuted },
-  addText: { fontSize: 15, fontWeight: '700', color: colors.textMuted },
+  addText: { fontSize: 14, fontWeight: '700', color: colors.textMuted },
 });
