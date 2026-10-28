@@ -15,25 +15,38 @@ export function FamilyOverview() {
   return (
     <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 32 + insets.bottom }]}>
       {summaries.map(({ child, expected, streak, goal, excusedToday }) => {
-        const allDone = expected.total > 0 && expected.done === expected.total;
+        const expectedPct = expected.total > 0 ? Math.min(100, (expected.done / expected.total) * 100) : 0;
         return (
           <Pressable key={child.id} style={styles.card} onPress={() => selectChild(child.id)}>
-            <AvatarGlyph avatarId={child.avatarId} size={40} />
-            <View style={styles.info}>
-              <Text style={styles.name}>{child.name}</Text>
-              <Text style={styles.detail}>
-                {excusedToday
-                  ? '🌴 Day off today'
-                  : expected.total === 0
-                    ? 'No Expected activities yet'
-                    : `${expected.done} of ${expected.total} Expected done${allDone ? ' ✓' : ''}`}
-                {streak > 0 ? ` · ${streak}-day streak` : ''}
-              </Text>
-              <Text style={styles.goal} numberOfLines={1}>
-                {goal ? `🎯 ${goal.name} · ${goal.percent}%` : '🎯 No goal yet'}
-              </Text>
+            <View style={styles.cardHeader}>
+              <AvatarGlyph avatarId={child.avatarId} size={32} />
+              <Text style={styles.name} numberOfLines={1}>{child.name}</Text>
+              <View style={[styles.pill, streak === 0 && styles.pillMuted]}>
+                <Text style={[styles.pillText, streak === 0 && styles.pillTextMuted]}>
+                  {streak > 0 ? `🔥 ${streak}-day streak` : 'No streak yet'}
+                </Text>
+              </View>
             </View>
-            <Text style={styles.chevron}>{'›'}</Text>
+
+            <View style={styles.labelRow}>
+              <Text style={styles.label}>{excusedToday ? '🌴 Day off today' : 'Expected today'}</Text>
+              {!excusedToday && (
+                <Text style={styles.label}>{expected.total === 0 ? 'None yet' : `${expected.done} of ${expected.total}`}</Text>
+              )}
+            </View>
+            <View style={styles.track}>
+              <View style={[styles.fill, { width: `${excusedToday ? 0 : expectedPct}%`, backgroundColor: colors.expected }]} />
+            </View>
+
+            <View style={styles.labelRow}>
+              <Text style={[styles.label, styles.goalLabel]} numberOfLines={1}>
+                {goal ? `🎯 ${goal.name}` : '🎯 No goal yet'}
+              </Text>
+              {goal && <Text style={styles.label}>{goal.percent}%</Text>}
+            </View>
+            <View style={styles.track}>
+              <View style={[styles.fill, { width: `${goal ? Math.min(100, goal.percent) : 0}%`, backgroundColor: colors.gigs }]} />
+            </View>
           </Pressable>
         );
       })}
@@ -59,20 +72,23 @@ export function FamilyOverview() {
 const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingTop: 16, gap: 10 },
   card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
     backgroundColor: colors.background,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 14,
     padding: 14,
   },
-  info: { flex: 1 },
-  name: { fontSize: 16, fontWeight: '800', color: colors.text },
-  detail: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
-  goal: { fontSize: 13, color: '#B96A08', fontWeight: '700', marginTop: 3 },
-  chevron: { fontSize: 20, color: colors.textMuted },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  name: { flex: 1, fontSize: 16, fontWeight: '800', color: colors.text },
+  pill: { backgroundColor: '#FCEBD2', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  pillMuted: { backgroundColor: colors.surface },
+  pillText: { fontSize: 12, fontWeight: '800', color: '#B96A08' },
+  pillTextMuted: { color: colors.textMuted },
+  labelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8, marginTop: 12, marginBottom: 5 },
+  label: { fontSize: 12.5, fontWeight: '700', color: colors.textMuted },
+  goalLabel: { flex: 1 },
+  track: { height: 7, borderRadius: 4, backgroundColor: '#EEE9DD', overflow: 'hidden' },
+  fill: { height: '100%', borderRadius: 4 },
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
