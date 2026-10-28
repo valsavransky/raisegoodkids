@@ -12,7 +12,7 @@
 // used by the onboarding wizard's ScheduleReviewScreen — previously each
 // screen had its own near-duplicate modal that had drifted out of sync.
 import React, { useState } from 'react';
-import { View, Text, Pressable, SectionList, Alert, StyleSheet } from 'react-native';
+import { View, Text, Pressable, SectionList, Alert, Modal, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useAppData } from '../../context/AppDataContext';
@@ -20,6 +20,7 @@ import { ScheduleEvent, ScheduleEventCategory, CADENCE_LABELS } from '../../type
 import { RootStackParamList } from '../../navigation/types';
 import { ChildSettingsHeader } from '../../components/ChildSettingsHeader';
 import { AddPill } from '../../components/AddPill';
+import { GoogleCalendarLogo } from '../../components/GoogleCalendarLogo';
 import { ScheduleEventModal, ScheduleEventDraft, BLANK_SCHEDULE_EVENT_DRAFT } from '../../components/ScheduleEventModal';
 import { formatTimeRange12h } from '../../utils/time';
 import { colors } from '../../theme/colors';
@@ -40,6 +41,7 @@ const CATEGORY_LABELS: Record<ScheduleEventCategory, string> = {
 export function ScheduleScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { scheduleEvents, addScheduleEvent, updateScheduleEvent, deleteScheduleEvent } = useAppData();
+  const [menuVisible, setMenuVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ScheduleEventDraft>(BLANK_SCHEDULE_EVENT_DRAFT);
@@ -117,16 +119,29 @@ export function ScheduleScreen({ navigation }: Props) {
     ]);
   };
 
+  const openImport = () => {
+    setMenuVisible(false);
+    navigation.navigate('ImportGoogleCalendar');
+  };
+
   return (
     <View style={styles.screen}>
-      <ChildSettingsHeader title="Schedule" onBack={() => navigation.goBack()} action={<AddPill onPress={openAddModal} />} />
+      <ChildSettingsHeader title="Schedule" onBack={() => navigation.goBack()} action={<AddPill onPress={() => setMenuVisible(true)} />} />
 
       <SectionList
         style={styles.list}
         contentContainerStyle={styles.listContent}
         sections={sections}
         keyExtractor={(item) => item.id}
-        ListEmptyComponent={<Text style={styles.emptyText}>No schedule events yet. Add school, sports or music so we can suggest Expected activities.</Text>}
+        ListEmptyComponent={
+          <View>
+            <Text style={styles.emptyText}>No schedule events yet. Add school, sports or music so we can suggest Expected activities.</Text>
+            <Pressable style={styles.importButton} onPress={openImport}>
+              <GoogleCalendarLogo size={20} />
+              <Text style={styles.importButtonText}>Import from Google Calendar</Text>
+            </Pressable>
+          </View>
+        }
         renderSectionHeader={({ section }) => <Text style={styles.sectionHeader}>{section.title}</Text>}
         renderItem={({ item }) => (
           <Pressable style={styles.eventRow} onPress={() => openEditModal(item)}>
@@ -151,11 +166,27 @@ export function ScheduleScreen({ navigation }: Props) {
         )}
       />
 
-      <View style={[styles.actionsRow, { paddingBottom: 12 + insets.bottom }]}>
-        <Pressable style={styles.actionButton} onPress={() => navigation.navigate('ImportGoogleCalendar')}>
-          <Text style={styles.actionButtonText}>Import from Google Calendar</Text>
+      {/* "+ Add" opens a short menu with both ways to add events. */}
+      <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
+        <Pressable style={styles.menuBackdrop} onPress={() => setMenuVisible(false)}>
+          <View style={[styles.menu, { top: insets.top + 56 }]}>
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                openAddModal();
+              }}
+            >
+              <Text style={styles.menuItemIcon}>✏️</Text>
+              <Text style={styles.menuItemText}>Add an event</Text>
+            </Pressable>
+            <Pressable style={[styles.menuItem, styles.menuItemDivider]} onPress={openImport}>
+              <GoogleCalendarLogo size={20} />
+              <Text style={styles.menuItemText}>Import from Google Calendar</Text>
+            </Pressable>
+          </View>
         </Pressable>
-      </View>
+      </Modal>
 
       <ScheduleEventModal
         visible={modalVisible}
@@ -202,7 +233,35 @@ const styles = StyleSheet.create({
   cadenceTagText: { fontSize: 11, color: colors.expected, fontWeight: '700' },
   categoryTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
   categoryTagText: { fontSize: 11, color: colors.textMuted, fontWeight: '600' },
-  actionsRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingVertical: 12 },
-  actionButton: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
-  actionButtonText: { fontSize: 13, fontWeight: '700', color: colors.expected, textAlign: 'center' },
+  menuBackdrop: { flex: 1 },
+  menu: {
+    position: 'absolute',
+    right: 16,
+    width: 260,
+    backgroundColor: colors.background,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  menuItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 14, paddingHorizontal: 16 },
+  menuItemDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+  menuItemIcon: { fontSize: 17, width: 20, textAlign: 'center' },
+  menuItemText: { fontSize: 15, fontWeight: '600', color: colors.text, flexShrink: 1 },
+  importButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingVertical: 12,
+  },
+  importButtonText: { fontSize: 14, fontWeight: '700', color: colors.expected },
 });
