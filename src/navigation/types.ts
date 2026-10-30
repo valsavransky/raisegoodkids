@@ -41,4 +41,6 @@ export type RootStackParamList = {
   AccountSettings: undefined;
   EditProfile: undefined;
   AddChild: undefined;
+  History: undefined;
+  HistoryWeek: { weekStart: string };
 };

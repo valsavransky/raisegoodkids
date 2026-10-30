@@ -53,6 +53,7 @@ import { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { ExpectedItem, ExpectedCompletion, Gig, GigCompletion, ScheduleEventCategory } from '../../types/models';
 import { AppHeader } from '../../components/AppHeader';
 import { FamilyOverview } from '../../components/FamilyOverview';
+import { HistoryButton } from '../../components/HistoryButton';
 import { ExcuseTodaySheet } from '../../components/ExcuseTodaySheet';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { TaskIcon } from '../../components/icons/TaskIcons';
@@ -794,9 +795,11 @@ export function ChildHomeScreen() {
               </Pressable>
             )}
           </View>
+          {view === 'week' && <HistoryButton />}
           {view === 'today' && (
             <View style={styles.streakRow}>
               <Text style={styles.streakText}>{streak > 0 ? `${streak}-day streak` : 'Start your streak!'}</Text>
+              <HistoryButton />
               <Pressable
                 onPress={() => setExcuseSheetVisible(true)}
                 hitSlop={10}

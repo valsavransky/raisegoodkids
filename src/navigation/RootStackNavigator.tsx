@@ -25,6 +25,8 @@ import { NotificationSettingsScreen } from '../screens/parent/NotificationSettin
 import { AccountScreen } from '../screens/parent/AccountScreen';
 import { EditProfileScreen } from '../screens/parent/EditProfileScreen';
 import { AddChildScreen } from '../screens/parent/AddChildScreen';
+import { HistoryScreen } from '../screens/child/HistoryScreen';
+import { HistoryWeekScreen } from '../screens/child/HistoryWeekScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -32,6 +34,8 @@ export function RootStackNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MainTabs" component={MainNavigator} />
+      <Stack.Screen name="History" component={HistoryScreen} />
+      <Stack.Screen name="HistoryWeek" component={HistoryWeekScreen} />
       <Stack.Group screenOptions={{ presentation: 'fullScreenModal' }}>
         <Stack.Screen name="GoalAchieved" component={GoalAchievedScreen} />
         <Stack.Screen name="FulfillGoal" component={FulfillGoalScreen} />
