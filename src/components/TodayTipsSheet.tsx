@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     maxHeight: '85%',
   },
   title: { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 10 },
-  list: { flexGrow: 0 },
+  list: { flexGrow: 0, flexShrink: 1 },
   tip: { flexDirection: 'row', gap: 14, paddingVertical: 9 },
   icon: { fontSize: 22, width: 30, textAlign: 'center' },
   tipText: { flex: 1 },
