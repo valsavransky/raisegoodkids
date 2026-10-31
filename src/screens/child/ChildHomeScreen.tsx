@@ -510,6 +510,20 @@ export function ChildHomeScreen() {
   const weeklyDoneCount = weeklyItems.filter((item) => isExpectedDoneToday(item.id)).length;
 
   const goalPercent = goal ? Math.min(goalProgressPercentage(goal.id), 100) : 0;
+  // "16% to go · about 3 more gigs": the gap divided by what a typical gig is
+  // worth toward this goal (percentages only, never dollars).
+  const goalToGoText = (() => {
+    if (!goal) return '';
+    const toGo = Math.max(0, Math.round(100 - goalPercent));
+    if (toGo === 0) return '';
+    const worth = gigs.map((g) => gigPreviewPercentage(g)).filter((p): p is number => p !== null && p > 0);
+    if (worth.length === 0) return `${toGo}% to go`;
+    const typical = worth.reduce((a, b) => a + b, 0) / worth.length;
+    const gigsLeft = Math.ceil(toGo / typical);
+    return gigsLeft > 30
+      ? `${toGo}% to go`
+      : `${toGo}% to go · about ${gigsLeft} more gig${gigsLeft === 1 ? '' : 's'}`;
+  })();
 
   // Keep the avatar (which marks the next thing to do) on screen: a long
   // trail can leave it below the fold, which reads as "nothing's happening".
@@ -769,12 +783,24 @@ export function ChildHomeScreen() {
             </Pressable>
           ) : (
             <View style={styles.goalCard}>
-              {goal.photoUri && <Image source={{ uri: goal.photoUri }} style={styles.goalPhoto} />}
-              <Text style={styles.goalName} numberOfLines={1}>{goal.name}</Text>
+              <View style={styles.goalTop}>
+                {goal.photoUri ? (
+                  <Image source={{ uri: goal.photoUri }} style={styles.goalPhoto} />
+                ) : (
+                  <View style={[styles.goalPhoto, styles.goalPhotoPlaceholder]}>
+                    <Text style={styles.goalPhotoIcon}>🎯</Text>
+                  </View>
+                )}
+                <View style={styles.goalTitleWrap}>
+                  <Text style={styles.goalKicker}>Saving toward</Text>
+                  <Text style={styles.goalName} numberOfLines={2}>{goal.name}</Text>
+                </View>
+                <Text style={styles.goalProgressText}>{Math.round(goalPercent)}%</Text>
+              </View>
               <View style={styles.progressBarTrack}>
                 <View style={[styles.progressBarFill, { width: `${goalPercent}%` }]} />
               </View>
-              <Text style={styles.goalProgressText}>{goalPercent}%</Text>
+              {goalToGoText ? <Text style={styles.goalToGo}>{goalToGoText}</Text> : null}
             </View>
           )}
         </View>
@@ -1163,13 +1189,35 @@ const styles = StyleSheet.create({
   emptyGoalIcon: { fontSize: 20 },
   emptyGoalText: { fontSize: 16, fontWeight: '800', color: '#FFFFFF' },
   emptyGoalChevron: { fontSize: 22, fontWeight: '700', color: '#FFFFFF' },
-  // One slim line: photo (if any), name, a short progress bar, and the percent.
-  goalCard: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FDF1E2', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 14, marginBottom: 4 },
-  goalPhoto: { width: 28, height: 28, borderRadius: 7 },
-  goalName: { flex: 1, fontSize: 14, fontWeight: '800', color: colors.text },
-  progressBarTrack: { width: 72, height: 7, borderRadius: 999, backgroundColor: '#F7DFC0', overflow: 'hidden' },
-  progressBarFill: { height: 7, borderRadius: 999, backgroundColor: colors.gigs },
-  goalProgressText: { fontSize: 12.5, color: '#B96A08', fontWeight: '800', minWidth: 32, textAlign: 'right' },
+  // The goal is the point of the screen, so its card is the biggest on it: a
+  // white card with an amber edge, the photo, the name, a big percentage, a
+  // full-width bar and a "to go" line. (Schedule events use slate-blue so they
+  // no longer look like the goal.)
+  goalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#F0C98E',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 4,
+    shadowColor: colors.gigs,
+    shadowOpacity: 0.14,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  goalTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  goalPhoto: { width: 44, height: 44, borderRadius: 11 },
+  goalPhotoPlaceholder: { backgroundColor: '#FDF1E2', alignItems: 'center', justifyContent: 'center' },
+  goalPhotoIcon: { fontSize: 22 },
+  goalTitleWrap: { flex: 1 },
+  goalKicker: { fontSize: 10, fontWeight: '800', letterSpacing: 0.8, color: '#B96A08', textTransform: 'uppercase' },
+  goalName: { fontSize: 15, fontWeight: '800', color: colors.text, marginTop: 1 },
+  progressBarTrack: { height: 8, borderRadius: 999, backgroundColor: '#F7DFC0', overflow: 'hidden', marginTop: 10 },
+  progressBarFill: { height: 8, borderRadius: 999, backgroundColor: colors.gigs },
+  goalProgressText: { fontSize: 22, color: '#B96A08', fontWeight: '800' },
+  goalToGo: { fontSize: 12, fontWeight: '700', color: '#8a8578', marginTop: 6 },
   viewToggleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1241,10 +1289,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     borderRadius: 10,
   },
-  scheduleRowNext: { backgroundColor: '#FDF1E2' },
+  scheduleRowNext: { backgroundColor: '#EEF1F6' },
   scheduleIcon: { fontSize: 14 },
   scheduleTitle: { flex: 1, fontSize: 13, fontWeight: '600', color: colors.text },
-  scheduleTitleNext: { fontWeight: '800', color: '#B96A08' },
+  scheduleTitleNext: { fontWeight: '800', color: '#3B4A66' },
   scheduleTitlePast: { color: colors.textMuted, fontWeight: '500' },
   scheduleTime: { fontSize: 12, fontWeight: '600', color: colors.textMuted },
   weekHint: { fontSize: 12.5, color: '#8a8578', marginBottom: 10 },
