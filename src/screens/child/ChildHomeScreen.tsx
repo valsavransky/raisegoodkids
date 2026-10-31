@@ -54,6 +54,7 @@ import { ExpectedItem, ExpectedCompletion, Gig, GigCompletion, ScheduleEventCate
 import { AppHeader } from '../../components/AppHeader';
 import { FamilyOverview } from '../../components/FamilyOverview';
 import { HistoryIcon } from '../../components/HistoryIcon';
+import { TodayTipsSheet, TAP_HINT } from '../../components/TodayTipsSheet';
 import { ExcuseTodaySheet } from '../../components/ExcuseTodaySheet';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { TaskIcon } from '../../components/icons/TaskIcons';
@@ -82,7 +83,6 @@ type ChildHomeNavigationProp = CompositeNavigationProp<
 // same as the mockup. A fixed illustration width (350, centered) rather
 // than a percentage layout, since this is a deliberate zigzag shape, not a
 // fluid one; comfortably fits standard phone widths (390+).
-const TAP_HINT = 'Tap an activity to mark it complete. Tap again to undo.';
 const TRAIL_WIDTH = 350;
 const COLUMN_X: [number, number] = [66, 284];
 const STEP_Y = 78;
@@ -407,6 +407,7 @@ export function ChildHomeScreen() {
 
   const [excuseSheetVisible, setExcuseSheetVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  const [tipsVisible, setTipsVisible] = useState(false);
   const [menuTop, setMenuTop] = useState(160);
   const moreRef = useRef<View>(null);
   const openMenu = () => {
@@ -875,7 +876,7 @@ export function ChildHomeScreen() {
               <Text style={styles.confirmBannerText}>✓ {confirmation}</Text>
             </View>
           ) : (
-            // Only until anything has been checked off; "How Today works" in the ⋯ menu brings it back.
+            // Only until anything has been checked off; "Tips about this page" in the ⋯ menu brings it back.
             !hasCheckedOffAnything && <Text style={styles.tapHint}>{TAP_HINT}</Text>
           ))}
 
@@ -1111,15 +1112,17 @@ export function ChildHomeScreen() {
               style={[styles.menuItem, styles.menuItemDivider]}
               onPress={() => {
                 setMenuVisible(false);
-                Alert.alert('How Today works', TAP_HINT);
+                setTipsVisible(true);
               }}
             >
               <Text style={[styles.menuIcon, styles.menuEmoji]}>💡</Text>
-              <Text style={styles.menuItemText}>How Today works</Text>
+              <Text style={styles.menuItemText}>Tips about this page</Text>
             </Pressable>
           </View>
         </Pressable>
       </Modal>
+
+      <TodayTipsSheet visible={tipsVisible} onClose={() => setTipsVisible(false)} />
 
       <ExcuseTodaySheet
         visible={excuseSheetVisible}

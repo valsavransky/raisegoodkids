@@ -295,4 +295,4 @@ Content library authoring (age/grade-appropriate Expected items and Gigs, with s
 - **Not in v1:** shared Expected activities, a household gig board with claiming.
 - Data saved before this (one child) upgrades in place: `childProfile`/`futureFund` become `childProfiles[0]`/`futureFunds[0]`.
 
-- **Today header (Oct 31):** the child pills row was removed (the switcher sheet replaced it). Streak is a small 🔥 count beside a ⋯ menu holding History, Excuse today and How Today works. The "Tap an activity…" hint shows only until anything has been checked off.
+- **Today header (Oct 31):** the child pills row was removed (the switcher sheet replaced it). Streak is a small 🔥 count beside a ⋯ menu holding History, Excuse today and Tips about this page. The "Tap an activity…" hint shows only until anything has been checked off.
