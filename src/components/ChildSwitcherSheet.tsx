@@ -5,6 +5,7 @@ import { View, Text, Pressable, Modal, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppData } from '../context/AppDataContext';
 import { AvatarGlyph } from './AvatarGlyph';
+import { EveryoneIcon } from './EveryoneIcon';
 import { colors } from '../theme/colors';
 
 interface Props {
@@ -27,7 +28,7 @@ export function ChildSwitcherSheet({ visible, onClose, onEveryone, onAddChild, o
 
           <Pressable style={styles.row} onPress={onEveryone}>
             <View style={[styles.circle, styles.everyoneCircle]}>
-              <Text style={styles.everyoneIcon}>👪</Text>
+              <EveryoneIcon size={22} />
             </View>
             <Text style={styles.name}>Everyone</Text>
             {viewingEveryone && <Text style={styles.check}>✓</Text>}
@@ -82,7 +83,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 17, fontWeight: '800', color: colors.text, marginBottom: 6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10 },
   circle: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  everyoneCircle: { backgroundColor: '#EEE9DD' },
+  everyoneCircle: { backgroundColor: '#E4F4F1' },
   settingsCircle: { backgroundColor: colors.surface },
   addCircle: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.textMuted },
   everyoneIcon: { fontSize: 18 },

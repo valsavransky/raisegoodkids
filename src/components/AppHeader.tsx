@@ -20,6 +20,7 @@ import { RootStackParamList } from '../navigation/types';
 import { AvatarGlyph } from './AvatarGlyph';
 import { Logo } from './Logo';
 import { ChildSwitcherSheet } from './ChildSwitcherSheet';
+import { EveryoneIcon } from './EveryoneIcon';
 import { colors } from '../theme/colors';
 
 export function AppHeader() {
@@ -48,7 +49,7 @@ export function AppHeader() {
           style={styles.chip}
         >
           {hasSeveralChildren && viewingEveryone ? (
-            <Text style={styles.everyoneIcon}>👪</Text>
+            <EveryoneIcon size={18} />
           ) : (
             <AvatarGlyph avatarId={childProfile?.avatarId} size={20} />
           )}
@@ -82,7 +83,6 @@ export function AppHeader() {
 
 const styles = StyleSheet.create({
   wrap: {},
-  everyoneIcon: { fontSize: 15 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
