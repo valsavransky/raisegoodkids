@@ -285,7 +285,7 @@ Content library authoring (age/grade-appropriate Expected items and Gigs, with s
 ## Multiple children (decided, built)
 
 - One parent account, any number of children (designed to feel good with up to three, no cap). The data blob stores every child's records tagged with `childProfileId`; screens see the selected child's slice via `useAppData()`.
-- **Switching:** name chips under the Trekker header (hidden with one child), plus an "Everyone" chip first on Today and a "+" to add a child. Settings has the same chips at the top.
+- **Switching:** the chip at the top right of every main screen shows the selected child. With one child it opens Settings; with two or more it opens a sheet (Everyone, each child, Add child, Settings). Settings has name chips at the top for choosing whose settings to edit.
 - **Everyone** (Today): one card per child (Expected done today, streak, active goal %) and a list of gigs done today.
 - **Adding a child:** avatar, name, birthday, grade, then grade-based Expected and gig suggestions that start ticked. Yard/car/pet carry over from the first child; the Future Fund percentage starts at the first child's.
 - **Gigs:** each child has their own list, goal and Future Fund. A gig a sibling already did today (matched by name) shows "Done by <name> today". When adding a gig with more than one child, the parent chooses "Just <child>" or "Everyone". Gig dollar values stay household-wide.
@@ -294,3 +294,5 @@ Content library authoring (age/grade-appropriate Expected items and Gigs, with s
 - **Removing a child:** Settings → Edit Profile → "Remove <name>" (only with 2+ children; confirmation names what is deleted; the last child can't be removed — use Delete account). It deletes every record tagged with that child.
 - **Not in v1:** shared Expected activities, a household gig board with claiming.
 - Data saved before this (one child) upgrades in place: `childProfile`/`futureFund` become `childProfiles[0]`/`futureFunds[0]`.
+
+- **Today header (Oct 31):** the child pills row was removed (the switcher sheet replaced it). Streak is a small 🔥 count beside a ⋯ menu holding History, Excuse today and How Today works. The "Tap an activity…" hint shows only until anything has been checked off.

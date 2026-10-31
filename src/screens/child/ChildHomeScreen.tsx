@@ -41,7 +41,7 @@
 // live-ticking clock — precise enough for a glance-at-it-during-check-in
 // use case, without the battery/complexity cost of a real-time timer.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, Pressable, ScrollView, Alert, StyleSheet, Image, Animated, LayoutAnimation } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert, Modal, StyleSheet, Image, Animated, LayoutAnimation } from 'react-native';
 import Svg, { Path, Defs, Pattern, Rect, Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -53,7 +53,7 @@ import { MainTabParamList, RootStackParamList } from '../../navigation/types';
 import { ExpectedItem, ExpectedCompletion, Gig, GigCompletion, ScheduleEventCategory } from '../../types/models';
 import { AppHeader } from '../../components/AppHeader';
 import { FamilyOverview } from '../../components/FamilyOverview';
-import { HistoryButton } from '../../components/HistoryButton';
+import { HistoryIcon } from '../../components/HistoryIcon';
 import { ExcuseTodaySheet } from '../../components/ExcuseTodaySheet';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { TaskIcon } from '../../components/icons/TaskIcons';
@@ -82,6 +82,7 @@ type ChildHomeNavigationProp = CompositeNavigationProp<
 // same as the mockup. A fixed illustration width (350, centered) rather
 // than a percentage layout, since this is a deliberate zigzag shape, not a
 // fluid one; comfortably fits standard phone widths (390+).
+const TAP_HINT = 'Tap an activity to mark it complete. Tap again to undo.';
 const TRAIL_WIDTH = 350;
 const COLUMN_X: [number, number] = [66, 284];
 const STEP_Y = 78;
@@ -383,6 +384,8 @@ export function ChildHomeScreen() {
     gigCompletions,
     gigPreviewPercentage,
     gigCompletionStatusToday,
+    householdExpectedCompletions,
+    householdGigCompletions,
     siblingGigDoneToday,
     viewingEveryone,
     childProfiles,
@@ -403,6 +406,16 @@ export function ChildHomeScreen() {
   const [weekSubTab, setWeekSubTab] = useState<'daily' | 'gigs' | 'weekly'>('daily');
 
   const [excuseSheetVisible, setExcuseSheetVisible] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [menuTop, setMenuTop] = useState(160);
+  const moreRef = useRef<View>(null);
+  const openMenu = () => {
+    // Place the menu just under the ⋯ button.
+    moreRef.current?.measureInWindow((_x, y, _w, h) => {
+      setMenuTop(y + h + 4);
+      setMenuVisible(true);
+    });
+  };
 
   const [focusedAt, setFocusedAt] = useState(() => Date.now());
   useFocusEffect(
@@ -443,6 +456,8 @@ export function ChildHomeScreen() {
   const { done, total } = expectedDoneCountToday();
   const required = expectedRequiredCountToday();
   const todayExcused = isDayExcused();
+  // The how-to hint is only for a family that hasn't checked anything off yet.
+  const hasCheckedOffAnything = householdExpectedCompletions.length > 0 || householdGigCompletions.length > 0;
   const gigsUnlocked = allExpectedDoneToday();
   const streak = expectedStreak();
   const dailyItems = expectedItems.filter((item) => item.frequency === 'daily');
@@ -723,7 +738,7 @@ export function ChildHomeScreen() {
   if (viewingEveryone && childProfiles.length > 1) {
     return (
       <View style={styles.screen}>
-        <AppHeader showEveryone />
+        <AppHeader />
         <FamilyOverview />
       </View>
     );
@@ -741,7 +756,7 @@ export function ChildHomeScreen() {
       </Svg>
 
       <View style={styles.fixedHeader}>
-        <AppHeader showEveryone />
+        <AppHeader />
 
         <SettingsHintBadge onNavigateToSettings={() => navigation.navigate('Settings')} />
 
@@ -795,21 +810,22 @@ export function ChildHomeScreen() {
               </Pressable>
             )}
           </View>
-          {view === 'week' && <HistoryButton />}
-          {view === 'today' && (
-            <View style={styles.streakRow}>
-              <Text style={styles.streakText}>{streak > 0 ? `${streak}-day streak` : 'Start your streak!'}</Text>
-              <HistoryButton />
-              <Pressable
-                onPress={() => setExcuseSheetVisible(true)}
-                hitSlop={10}
-                accessibilityLabel="More options: excuse today"
-                style={styles.moreButton}
-              >
-                <Text style={styles.moreButtonText}>⋯</Text>
-              </Pressable>
-            </View>
-          )}
+          <View style={styles.streakRow}>
+            {view === 'today' && streak > 0 && (
+              <Text style={styles.streakText} accessibilityLabel={`${streak}-day streak`}>
+                🔥 {streak}
+              </Text>
+            )}
+            <Pressable
+              ref={moreRef}
+              onPress={openMenu}
+              hitSlop={10}
+              accessibilityLabel="More options"
+              style={styles.moreButton}
+            >
+              <Text style={styles.moreButtonText}>⋯</Text>
+            </Pressable>
+          </View>
         </View>
 
         {view === 'today' && !childProfile?.birthday && childProfile && (
@@ -833,7 +849,8 @@ export function ChildHomeScreen() {
               <Text style={styles.confirmBannerText}>✓ {confirmation}</Text>
             </View>
           ) : (
-            <Text style={styles.tapHint}>Tap an activity to mark it complete. Tap again to undo.</Text>
+            // Only until anything has been checked off; "How Today works" in the ⋯ menu brings it back.
+            !hasCheckedOffAnything && <Text style={styles.tapHint}>{TAP_HINT}</Text>
           ))}
 
         {view === 'today' && todaysEvents.length > 0 && (
@@ -1040,6 +1057,44 @@ export function ChildHomeScreen() {
         )}
       </ScrollView>
 
+      <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
+        <Pressable style={styles.menuBackdrop} onPress={() => setMenuVisible(false)}>
+          <View style={[styles.menu, { top: menuTop }]}>
+            <Pressable
+              style={styles.menuItem}
+              onPress={() => {
+                setMenuVisible(false);
+                track('history_opened');
+                navigation.navigate('History');
+              }}
+            >
+              <View style={styles.menuIcon}><HistoryIcon size={18} /></View>
+              <Text style={styles.menuItemText}>History</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.menuItem, styles.menuItemDivider]}
+              onPress={() => {
+                setMenuVisible(false);
+                setExcuseSheetVisible(true);
+              }}
+            >
+              <Text style={[styles.menuIcon, styles.menuEmoji]}>🌴</Text>
+              <Text style={styles.menuItemText}>Excuse today</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.menuItem, styles.menuItemDivider]}
+              onPress={() => {
+                setMenuVisible(false);
+                Alert.alert('How Today works', TAP_HINT);
+              }}
+            >
+              <Text style={[styles.menuIcon, styles.menuEmoji]}>💡</Text>
+              <Text style={styles.menuItemText}>How Today works</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
+
       <ExcuseTodaySheet
         visible={excuseSheetVisible}
         onClose={() => setExcuseSheetVisible(false)}
@@ -1130,6 +1185,26 @@ const styles = StyleSheet.create({
   toggleTabTextActive: { color: '#FFFFFF' },
   streakRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   moreButton: { paddingHorizontal: 6, paddingBottom: 4 },
+  menuBackdrop: { flex: 1 },
+  menu: {
+    position: 'absolute',
+    right: 20,
+    width: 230,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  menuItem: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13, paddingHorizontal: 16 },
+  menuItemDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+  menuIcon: { width: 22, alignItems: 'center', justifyContent: 'center' },
+  menuEmoji: { fontSize: 17, textAlign: 'center' },
+  menuItemText: { fontSize: 15, fontWeight: '600', color: colors.text },
   moreButtonText: { fontSize: 22, fontWeight: '800', color: colors.textMuted, lineHeight: 22 },
   excusedNote: {
     marginHorizontal: 20,

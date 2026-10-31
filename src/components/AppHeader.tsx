@@ -9,7 +9,7 @@
 // SettingsHintBadge), floating near the goal card so they land somewhere a
 // parent is actually looking, rather than the small corner chip. AppHeader
 // stays a plain header.
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -19,16 +19,19 @@ import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../navigation/types';
 import { AvatarGlyph } from './AvatarGlyph';
 import { Logo } from './Logo';
-import { ChildChips } from './ChildChips';
+import { ChildSwitcherSheet } from './ChildSwitcherSheet';
 import { colors } from '../theme/colors';
 
-export function AppHeader({ showEveryone = false }: { showEveryone?: boolean }) {
+export function AppHeader() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { childProfile, childProfiles } = useAppData();
+  const { childProfile, childProfiles, viewingEveryone, setViewingEveryone } = useAppData();
+  const [switcherVisible, setSwitcherVisible] = useState(false);
   const { isAutoAccount } = useAuth();
 
-  const firstName = childProfile?.name?.trim().split(' ')[0];
+  const hasSeveralChildren = childProfiles.length > 1;
+  const firstName = hasSeveralChildren && viewingEveryone ? 'Everyone' : childProfile?.name?.trim().split(' ')[0];
+  const goTo = (screen: 'Home') => (navigation as unknown as { navigate: (name: string) => void }).navigate(screen);
 
   return (
     <View style={styles.wrap}>
@@ -37,28 +40,49 @@ export function AppHeader({ showEveryone = false }: { showEveryone?: boolean }) 
           <Logo size={26} />
           <Text style={styles.wordmark}>Trekker</Text>
         </View>
-        <Pressable onPress={() => navigation.navigate('Settings')} hitSlop={8} style={styles.chip}>
-          <AvatarGlyph avatarId={childProfile?.avatarId} size={20} />
-          {firstName && <Text style={styles.name}>{firstName}</Text>}
+        {/* One child: this chip opens Settings. Several: it opens the switcher
+         * (children, Everyone, Add child, Settings). */}
+        <Pressable
+          onPress={() => (hasSeveralChildren ? setSwitcherVisible(true) : navigation.navigate('Settings'))}
+          hitSlop={8}
+          style={styles.chip}
+        >
+          {hasSeveralChildren && viewingEveryone ? (
+            <Text style={styles.everyoneIcon}>👪</Text>
+          ) : (
+            <AvatarGlyph avatarId={childProfile?.avatarId} size={20} />
+          )}
+          {firstName && <Text style={styles.name}>{firstName}{hasSeveralChildren ? ' ▾' : ''}</Text>}
           {/* Nudges the parent toward the Account tab's "Secure your
            * account" flow — the account exists and is already backing up
            * data invisibly, so nothing else surfaces this on its own. */}
           {isAutoAccount && <View style={styles.chipDot} />}
         </Pressable>
       </View>
-      {/* Hidden with one child, so single-child families see nothing new. */}
-      {childProfiles.length > 1 && (
-        <View style={styles.chipsWrap}>
-          <ChildChips showEveryone={showEveryone} />
-        </View>
-      )}
+      <ChildSwitcherSheet
+        visible={switcherVisible}
+        onClose={() => setSwitcherVisible(false)}
+        onEveryone={() => {
+          setViewingEveryone(true);
+          setSwitcherVisible(false);
+          goTo('Home');
+        }}
+        onAddChild={() => {
+          setSwitcherVisible(false);
+          navigation.navigate('AddChild');
+        }}
+        onSettings={() => {
+          setSwitcherVisible(false);
+          navigation.navigate('Settings');
+        }}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {},
-  chipsWrap: { paddingBottom: 12 },
+  everyoneIcon: { fontSize: 15 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
