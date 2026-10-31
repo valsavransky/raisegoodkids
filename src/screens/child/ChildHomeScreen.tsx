@@ -478,13 +478,13 @@ export function ChildHomeScreen() {
   const expectedProgress = Math.min(shownProgress, expectedCount);
   const gigJunction = Math.max(expectedCount - 1, 0);
   const showGigProgress = shownProgress > expectedCount && stops.length > expectedCount;
-  // On an excused day the avatar skips past excused activities to the next
-  // thing that's actually asked of them (or the first gig).
+  // The avatar marks the next thing to do: the first stop that isn't done, in
+  // trail order. So it stays with the Expected activities until they're all
+  // done (even if a gig or a later activity was checked off first), then moves
+  // on to the gigs, and rests on the last stop once everything is done. On an
+  // excused day it skips past excused activities.
   const nextAskedIdx = stops.findIndex((s) => !s.done && !(s.kind === 'expected' && s.excused));
-  const avatarIdx =
-    todayExcused && nextAskedIdx >= 0
-      ? nextAskedIdx
-      : Math.min(doneCount, Math.max(points.length - 1, 0));
+  const avatarIdx = nextAskedIdx >= 0 ? nextAskedIdx : Math.max(points.length - 1, 0);
   const avatarPoint = points[avatarIdx] ?? trailPointAt(0);
   const trailHeight = points.length > 0 ? points[points.length - 1].y + 70 : 0;
   const gigsDoneToday = gigs.some((gig) => gigCompletionStatusToday(gig.id) === 'approved');
