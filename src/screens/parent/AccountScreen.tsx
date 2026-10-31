@@ -11,6 +11,7 @@ import { SettingsSubHeader } from '../../components/SettingsSubHeader';
 import { useAuth } from '../../context/AuthContext';
 import { useAppData } from '../../context/AppDataContext';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
+import { signOut as signOutOfGoogle } from '../../services/googleAuth';
 import { colors } from '../../theme/colors';
 
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
@@ -33,8 +34,27 @@ type Status = 'idle' | 'saving' | 'saved' | 'error';
 export function AccountScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { isAutoAccount, accountEmail, claimAccount } = useAuth();
-  const { deleteAccountAndData } = useAppData();
+  const { deleteAccountAndData, signOutOfAccount } = useAppData();
   const [deleting, setDeleting] = useState(false);
+
+  const confirmSignOut = () => {
+    Alert.alert(
+      'Sign out?',
+      `This phone will go back to the sign-in screen. Your data stays safe in your account${
+        accountEmail ? ` (${accountEmail})` : ''
+      }, and you can get it all back by logging in again.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign out',
+          onPress: async () => {
+            await signOutOfGoogle();
+            await signOutOfAccount();
+          },
+        },
+      ]
+    );
+  };
 
   const confirmDeleteAccount = () => {
     Alert.alert(
@@ -170,10 +190,15 @@ export function AccountScreen({ navigation }: Props) {
             {status === 'error' && <Text style={styles.errorText}>{error}</Text>}
           </>
         ) : (
-          <Text style={styles.helper}>
-            ✓ Signed in{accountEmail ? ` — ${accountEmail}` : ''}. You can log in with this email on another
-            phone if you ever need to.
-          </Text>
+          <>
+            <Text style={styles.helper}>
+              ✓ Signed in{accountEmail ? ` — ${accountEmail}` : ''}. You can log in with this email on another
+              phone if you ever need to.
+            </Text>
+            <Pressable style={styles.signOutButton} onPress={confirmSignOut}>
+              <Text style={styles.signOutButtonText}>Sign out</Text>
+            </Pressable>
+          </>
         )}
 
         <View style={styles.dangerZone}>
@@ -195,6 +220,8 @@ export function AccountScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 20, paddingTop: 8 },
+  signOutButton: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 4 },
+  signOutButtonText: { color: colors.text, fontSize: 14, fontWeight: '700' },
   dangerZone: { marginTop: 36, paddingTop: 20, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   dangerTitle: { fontSize: 14, fontWeight: '800', color: colors.text, marginBottom: 6 },
   deleteButton: { borderWidth: 1, borderColor: colors.danger, borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 4 },

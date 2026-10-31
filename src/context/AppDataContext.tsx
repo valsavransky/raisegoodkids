@@ -342,6 +342,8 @@ interface AppDataContextValue {
   /** Clears persisted storage and all in-memory state — a testing
    * convenience now that data survives restarts. */
   resetAllData: () => Promise<void>;
+  /** Signs out of this phone: clears this phone's copy and returns to the sign-in screen. The account and its cloud data are left untouched. */
+  signOutOfAccount: () => Promise<void>;
   /** Permanently deletes the account's server data and this phone's copy. Resolves false if the server couldn't confirm. */
   deleteAccountAndData: () => Promise<boolean>;
 }
@@ -1312,6 +1314,18 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
+  /** Keeps the cloud copy: the ordinary push-to-server is held off for the whole
+   * wipe, so the emptied local data can never overwrite the account's real data. */
+  const signOutOfAccount = async () => {
+    track('signed_out');
+    resettingRef.current = true;
+    try {
+      await wipeLocalData();
+    } finally {
+      resettingRef.current = false;
+    }
+  };
+
   const wipeLocalData = async () => {
     await AsyncStorage.removeItem(STORAGE_KEY);
     // Also local-only but not part of PersistedAppData — a reset should
@@ -1417,6 +1431,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         setGigOrder,
         updateGigEffortValues,
         resetAllData,
+        signOutOfAccount,
         deleteAccountAndData,
       }}
     >
