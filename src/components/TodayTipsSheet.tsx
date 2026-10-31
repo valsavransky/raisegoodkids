@@ -2,7 +2,7 @@
 // opened from the ⋯ menu. (The one-line hint on Today itself disappears after
 // the first check-off; this brings the explanation back.)
 import React from 'react';
-import { View, Text, Pressable, Modal, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Pressable, Modal, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
 
@@ -19,12 +19,17 @@ const TIPS: { icon: string; title: string; body: string }[] = [
 
 export function TodayTipsSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  // An explicit height cap for the list (the sheet's title, button and padding
+  // take about 150), so a long list always scrolls inside the sheet instead of
+  // running off the bottom.
+  const listMaxHeight = Math.max(160, height * 0.85 - 150 - insets.bottom);
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose}>
         <Pressable style={[styles.sheet, { paddingBottom: 16 + insets.bottom }]} onPress={() => {}}>
           <Text style={styles.title}>Tips about this page</Text>
-          <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+          <ScrollView style={[styles.list, { maxHeight: listMaxHeight }]} showsVerticalScrollIndicator nestedScrollEnabled>
             {TIPS.map((tip) => (
               <View key={tip.title} style={styles.tip}>
                 <Text style={styles.icon}>{tip.icon}</Text>
@@ -52,7 +57,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     paddingHorizontal: 20,
     paddingTop: 18,
-    maxHeight: '85%',
   },
   title: { fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 10 },
   list: { flexGrow: 0, flexShrink: 1 },
