@@ -11,9 +11,9 @@ export const TAP_HINT = 'Tap an activity to mark it complete. Tap again to undo.
 const TIPS: { icon: string; title: string; body: string }[] = [
   { icon: '👆', title: 'Check things off', body: TAP_HINT },
   { icon: '🧭', title: 'Follow the avatar', body: 'It sits on the next thing to do, and moves along as things get done.' },
-  { icon: '🎨', title: 'Teal and amber', body: 'Teal stops are Expected activities. Amber stops are gigs, and each one adds to the goal.' },
-  { icon: '✅', title: 'Expected first', body: 'If some Expected activities are left, Trekker asks before starting a gig.' },
-  { icon: '🔥', title: 'Streaks', body: 'The streak counts days in a row with every daily Expected activity done. Excused days pause it instead of breaking it.' },
+  { icon: '✅', title: 'Expected first', body: 'Gigs add to the goal. If some Expected activities are left, Trekker asks before starting a gig.' },
+  { icon: '🔥', title: 'Streaks', body: 'The streak counts days in a row with every daily Expected activity done.' },
+  { icon: '🌴', title: 'Days off', body: 'Sick, traveling, or a holiday? Tap ⋯ then Excuse today. Most Expected activities become optional and the streak is kept; any marked required, like brushing teeth, still count. Birthdays are excused automatically.' },
   { icon: '🗓️', title: 'Missed something?', body: 'On This Week, tap a day from the past week to fill in anything that was forgotten.' },
 ];
 
