@@ -15,6 +15,7 @@ const TIPS: { icon: string; title: string; body: string }[] = [
   { icon: '🔥', title: 'Streaks', body: 'The streak counts days in a row with every daily Expected activity done.' },
   { icon: '🌴', title: 'Days off', body: 'Sick, traveling, or a holiday? Tap ⋯ then Excuse today. Most Expected activities become optional and the streak is kept; any marked required, like brushing teeth, still count. Birthdays are excused automatically.' },
   { icon: '🗓️', title: 'Missed something?', body: 'On This Week, tap a day from the past week to fill in anything that was forgotten.' },
+  { icon: '⚙️', title: 'Make it yours', body: 'Tap the name at the top right to open Settings (choose Settings in the list if you have more than one child). There you can change activities and gigs, their order, gig values, the daily reminder and more.' },
 ];
 
 export function TodayTipsSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
