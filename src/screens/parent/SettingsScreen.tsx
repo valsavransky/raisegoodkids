@@ -22,6 +22,7 @@ import { formatTime12h } from '../../utils/time';
 import { isAnalyticsEnabled, setAnalyticsEnabled } from '../../services/analytics';
 import { colors } from '../../theme/colors';
 import { PRIVACY_URL, TERMS_URL } from '../../config';
+import { appVersionDisplay } from '../../utils/appVersion';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
@@ -202,6 +203,8 @@ export function SettingsScreen({ navigation }: Props) {
           </Pressable>
         </View>
 
+        <Text style={styles.versionText} selectable>{appVersionDisplay()}</Text>
+
         {/* Developer conveniences — only in development builds (running through
          * Metro), never in a beta or store build. */}
         {__DEV__ && (
@@ -276,6 +279,7 @@ const styles = StyleSheet.create({
   },
   legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16 },
   legalLink: { fontSize: 13, color: colors.textMuted, textDecorationLine: 'underline' },
+  versionText: { fontSize: 12, color: colors.textMuted, textAlign: 'center', marginTop: 10 },
   legalDot: { fontSize: 13, color: colors.textMuted },
   group: {
     borderWidth: 1,
