@@ -6,6 +6,7 @@ import { goalsRouter } from './goals';
 import { eventsRouter, feedbackRouter } from './events';
 import { adminRouter } from './admin';
 import { legalRouter } from './legal';
+import { familyRouter } from './family';
 
 const app = express();
 app.use(cors());
@@ -21,6 +22,7 @@ app.use('/events', eventsRouter);
 app.use('/feedback', feedbackRouter);
 app.use('/admin', adminRouter);
 app.use('/', legalRouter);
+app.use('/', familyRouter);
 
 // Deletes the signed-in account and everything stored for it (the data blob
 // goes with it via ON DELETE CASCADE). Anonymous usage counts and feedback are

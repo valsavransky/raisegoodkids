@@ -49,6 +49,40 @@ export async function runMigrations(): Promise<void> {
       platform TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
+    -- Family devices (see family.ts): a tablet or old phone a child uses. It is
+    -- linked once with a short-lived code and can only do child things.
+    CREATE TABLE IF NOT EXISTS family_devices (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      last_seen_at TIMESTAMPTZ,
+      revoked_at TIMESTAMPTZ
+    );
+    CREATE TABLE IF NOT EXISTS pairing_codes (
+      code_hash TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used_at TIMESTAMPTZ
+    );
+    -- What a child tapped on a family device, waiting for a parent. Once a
+    -- parent decides, their own phone turns an approval into a real completion.
+    CREATE TABLE IF NOT EXISTS submissions (
+      id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      device_id INTEGER REFERENCES family_devices(id) ON DELETE SET NULL,
+      child_id TEXT NOT NULL,
+      kind TEXT NOT NULL CHECK (kind IN ('expected', 'gig')),
+      item_id TEXT NOT NULL,
+      day TEXT NOT NULL,
+      submitted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'declined')),
+      decided_at TIMESTAMPTZ,
+      note TEXT
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS submissions_one_pending_idx
+      ON submissions (user_id, kind, item_id, day) WHERE status = 'pending';
+    CREATE INDEX IF NOT EXISTS submissions_user_status_idx ON submissions (user_id, status);
     CREATE INDEX IF NOT EXISTS events_name_received_idx ON events (name, received_at);
     CREATE INDEX IF NOT EXISTS events_install_received_idx ON events (install_id, received_at);
   `);

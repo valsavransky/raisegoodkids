@@ -33,7 +33,12 @@ export function requireAuth(req: AuthedRequest, res: Response, next: NextFunctio
     return;
   }
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as { userId: number };
+    const payload = jwt.verify(token, JWT_SECRET) as { userId: number; role?: string };
+    // A family device's token is for the child routes only (see family.ts).
+    if (payload.role === 'child') {
+      res.status(403).json({ error: 'Not allowed from a family device' });
+      return;
+    }
     req.userId = payload.userId;
     next();
   } catch {
