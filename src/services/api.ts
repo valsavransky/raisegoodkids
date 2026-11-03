@@ -119,3 +119,20 @@ export function decideSubmission(
 export function pairFamilyDevice(code: string, deviceName: string): Promise<{ token: string; deviceId: number }> {
   return request('/family/pair', { method: 'POST', body: { code, deviceName } });
 }
+
+// ---- Family device (child) calls: these use the device's own token. ----
+
+export function fetchChildData(token: string): Promise<{ data: unknown | null; submissions: Submission[] }> {
+  return request('/child/data', { token });
+}
+
+export function sendChildSubmission(
+  token: string,
+  sub: { id: string; childId: string; kind: Submission['kind']; itemId: string; day: string; payload?: { name?: string } }
+): Promise<{ ok: true }> {
+  return request('/child/submissions', { method: 'POST', token, body: sub });
+}
+
+export function takeBackChildSubmission(token: string, id: string): Promise<{ ok: true; removed: boolean }> {
+  return request(`/child/submissions/${encodeURIComponent(id)}`, { method: 'DELETE', token });
+}

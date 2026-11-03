@@ -94,8 +94,14 @@ export function ApprovalsProvider({ children }: { children: ReactNode }) {
   return <ApprovalsContext.Provider value={value}>{children}</ApprovalsContext.Provider>;
 }
 
+const NO_APPROVALS: ApprovalsValue = {
+  submissions: [],
+  pending: [],
+  refresh: async () => {},
+  decide: async () => 'error',
+};
+
 export function useApprovals(): ApprovalsValue {
-  const ctx = useContext(ApprovalsContext);
-  if (!ctx) throw new Error('useApprovals must be used within an ApprovalsProvider');
-  return ctx;
+  // A family device has no ApprovalsProvider: nothing is ever waiting for it to decide.
+  return useContext(ApprovalsContext) ?? NO_APPROVALS;
 }

@@ -11,9 +11,10 @@ import { colors } from '../theme/colors';
 interface Props {
   visible: boolean;
   onClose: () => void;
-  onEveryone: () => void;
-  onAddChild: () => void;
-  onSettings: () => void;
+  /** Left out on a family device: a child can only pick who they are. */
+  onEveryone?: () => void;
+  onAddChild?: () => void;
+  onSettings?: () => void;
 }
 
 export function ChildSwitcherSheet({ visible, onClose, onEveryone, onAddChild, onSettings }: Props) {
@@ -26,13 +27,15 @@ export function ChildSwitcherSheet({ visible, onClose, onEveryone, onAddChild, o
         <Pressable style={[styles.sheet, { paddingBottom: 16 + insets.bottom }]} onPress={() => {}}>
           <Text style={styles.title}>Who's using Trekker?</Text>
 
-          <Pressable style={styles.row} onPress={onEveryone}>
-            <View style={[styles.circle, styles.everyoneCircle]}>
-              <EveryoneIcon size={22} />
-            </View>
-            <Text style={styles.name}>Everyone</Text>
-            {viewingEveryone && <Text style={styles.check}>✓</Text>}
-          </Pressable>
+          {onEveryone && (
+            <Pressable style={styles.row} onPress={onEveryone}>
+              <View style={[styles.circle, styles.everyoneCircle]}>
+                <EveryoneIcon size={22} />
+              </View>
+              <Text style={styles.name}>Everyone</Text>
+              {viewingEveryone && <Text style={styles.check}>✓</Text>}
+            </Pressable>
+          )}
 
           {childProfiles.map((child) => (
             <Pressable
@@ -49,22 +52,27 @@ export function ChildSwitcherSheet({ visible, onClose, onEveryone, onAddChild, o
             </Pressable>
           ))}
 
-          <Pressable style={styles.row} onPress={onAddChild}>
-            <View style={[styles.circle, styles.addCircle]}>
-              <Text style={styles.addIcon}>+</Text>
-            </View>
-            <Text style={[styles.name, styles.addLabel]}>Add child</Text>
-          </Pressable>
+          {onAddChild && (
+            <Pressable style={styles.row} onPress={onAddChild}>
+              <View style={[styles.circle, styles.addCircle]}>
+                <Text style={styles.addIcon}>+</Text>
+              </View>
+              <Text style={[styles.name, styles.addLabel]}>Add child</Text>
+            </Pressable>
+          )}
 
-          <View style={styles.divider} />
-
-          <Pressable style={styles.row} onPress={onSettings}>
-            <View style={[styles.circle, styles.settingsCircle]}>
-              <Text style={styles.everyoneIcon}>⚙</Text>
-            </View>
-            <Text style={styles.name}>Settings</Text>
-            <Text style={styles.chevron}>›</Text>
-          </Pressable>
+          {onSettings && (
+            <>
+              <View style={styles.divider} />
+              <Pressable style={styles.row} onPress={onSettings}>
+                <View style={[styles.circle, styles.settingsCircle]}>
+                  <Text style={styles.everyoneIcon}>⚙</Text>
+                </View>
+                <Text style={styles.name}>Settings</Text>
+                <Text style={styles.chevron}>›</Text>
+              </Pressable>
+            </>
+          )}
         </Pressable>
       </Pressable>
     </Modal>

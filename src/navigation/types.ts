@@ -12,6 +12,7 @@ export type SetupStackParamList = {
   GigsSetup: undefined;
   FutureFundSetup: undefined;
   FamilyDeviceIntro: undefined;
+  PairDevice: undefined;
 };
 
 export type MainTabParamList = {

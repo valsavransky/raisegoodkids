@@ -27,7 +27,7 @@ import { colors } from '../theme/colors';
 export function AppHeader() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { childProfile, childProfiles, viewingEveryone, setViewingEveryone } = useAppData();
+  const { childProfile, childProfiles, viewingEveryone, setViewingEveryone, deviceMode } = useAppData();
   const [switcherVisible, setSwitcherVisible] = useState(false);
   const { isAutoAccount } = useAuth();
   const { pending } = useApprovals();
@@ -46,7 +46,10 @@ export function AppHeader() {
         {/* One child: this chip opens Settings. Several: it opens the switcher
          * (children, Everyone, Add child, Settings). */}
         <Pressable
-          onPress={() => (hasSeveralChildren ? setSwitcherVisible(true) : navigation.navigate('Settings'))}
+          onPress={() => {
+            if (hasSeveralChildren) setSwitcherVisible(true);
+            else if (!deviceMode) navigation.navigate('Settings');
+          }}
           hitSlop={8}
           style={styles.chip}
         >
@@ -59,7 +62,7 @@ export function AppHeader() {
           {/* Nudges the parent toward the Account tab's "Secure your
            * account" flow — the account exists and is already backing up
            * data invisibly, so nothing else surfaces this on its own. */}
-          {isAutoAccount && pending.length === 0 && <View style={styles.chipDot} />}
+          {!deviceMode && isAutoAccount && pending.length === 0 && <View style={styles.chipDot} />}
           {/* How many things children have sent in, waiting for a parent. */}
           {pending.length > 0 && (
             <View style={styles.countBadge}>
@@ -71,19 +74,31 @@ export function AppHeader() {
       <ChildSwitcherSheet
         visible={switcherVisible}
         onClose={() => setSwitcherVisible(false)}
-        onEveryone={() => {
-          setViewingEveryone(true);
-          setSwitcherVisible(false);
-          goTo('Home');
-        }}
-        onAddChild={() => {
-          setSwitcherVisible(false);
-          navigation.navigate('AddChild');
-        }}
-        onSettings={() => {
-          setSwitcherVisible(false);
-          navigation.navigate('Settings');
-        }}
+        onEveryone={
+          deviceMode
+            ? undefined
+            : () => {
+                setViewingEveryone(true);
+                setSwitcherVisible(false);
+                goTo('Home');
+              }
+        }
+        onAddChild={
+          deviceMode
+            ? undefined
+            : () => {
+                setSwitcherVisible(false);
+                navigation.navigate('AddChild');
+              }
+        }
+        onSettings={
+          deviceMode
+            ? undefined
+            : () => {
+                setSwitcherVisible(false);
+                navigation.navigate('Settings');
+              }
+        }
       />
     </View>
   );

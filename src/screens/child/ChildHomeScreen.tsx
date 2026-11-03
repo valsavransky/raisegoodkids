@@ -59,6 +59,7 @@ import { WaitingBanner } from '../../components/WaitingBanner';
 import { FamilyDeviceCard } from '../../components/FamilyDeviceCard';
 import { useApprovals } from '../../context/ApprovalsContext';
 import { useNewTag } from '../../hooks/useNewTag';
+import { useSubmissionLabels } from '../../hooks/useSubmissionLabels';
 import { consumeOpenFamilyDevicesAfterSetup } from '../../utils/familyIntro';
 import { ExcuseTodaySheet } from '../../components/ExcuseTodaySheet';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
@@ -103,8 +104,8 @@ const HEADROOM_TRIM = 55;
 const STOP_SIZE = 50;
 
 type TrailStop =
-  | { kind: 'expected'; id: string; name: string; done: boolean; excused: boolean }
-  | { kind: 'gig'; id: string; name: string; percentage: number | null; done: boolean; sibling: string | null };
+  | { kind: 'expected'; id: string; name: string; done: boolean; waiting: boolean; excused: boolean }
+  | { kind: 'gig'; id: string; name: string; percentage: number | null; done: boolean; waiting: boolean; sibling: string | null };
 
 function trailPointAt(index: number): { x: number; y: number } {
   return { x: COLUMN_X[index % 2], y: FIRST_Y + index * STEP_Y };
@@ -159,6 +160,7 @@ function DailyGridSection({
   todayStr,
   isDoneOn,
   isTappableOn,
+  isWaitingOn,
   onPressCell,
   color,
   ringColor,
@@ -169,6 +171,8 @@ function DailyGridSection({
   todayStr: string;
   isDoneOn: (itemId: string, date: string) => boolean;
   isTappableOn: (itemId: string, date: string) => boolean;
+  /** Family device: sent to a parent and not answered yet. */
+  isWaitingOn?: (itemId: string, date: string) => boolean;
   onPressCell: (itemId: string, date: string) => void;
   color: string;
   ringColor: string;
@@ -202,6 +206,7 @@ function DailyGridSection({
             const isDone = isDoneOn(item.id, d);
             const isToday = d === todayStr;
             const isFuture = d > todayStr;
+            const isWaiting = !isDone && !!isWaitingOn?.(item.id, d);
             const tappable = isTappableOn(item.id, d);
             return (
               <Pressable key={d} disabled={!tappable} onPress={() => onPressCell(item.id, d)} style={styles.gridCell}>
@@ -211,6 +216,7 @@ function DailyGridSection({
                     { borderColor: ringColor },
                     isDone && { backgroundColor: color, borderColor: color },
                     isToday && !isDone && { borderColor: color },
+                    isWaiting && { borderColor: color, borderStyle: 'dashed' },
                     isFuture && !isDone && styles.gridDotFuture,
                   ]}
                 >
@@ -239,6 +245,7 @@ function WeeklyStopSection({
   todayStr,
   expectedCompletions,
   isExpectedDoneToday,
+  isWaiting,
   onPressStop,
 }: {
   items: ExpectedItem[];
@@ -246,6 +253,7 @@ function WeeklyStopSection({
   todayStr: string;
   expectedCompletions: ExpectedCompletion[];
   isExpectedDoneToday: (id: string) => boolean;
+  isWaiting?: (id: string) => boolean;
   onPressStop: (itemId: string) => void;
 }) {
   if (items.length === 0) {
@@ -262,6 +270,7 @@ function WeeklyStopSection({
           .map((d) => expectedCompletions.find((c) => c.expectedItemId === item.id && c.date === d))
           .find(Boolean);
         const done = !!completion;
+        const waiting = !done && !!isWaiting?.(item.id);
         const doneDayName = completion ? STOP_WEEKDAY_NAMES[new Date(`${completion.date}T00:00:00`).getDay()] : null;
         return (
           <Pressable
@@ -269,13 +278,19 @@ function WeeklyStopSection({
             onPress={() => onPressStop(item.id)}
             style={styles.stopRow}
           >
-            <View style={[styles.stopCircle, done && styles.stopCircleDone]}>
-              <TaskIcon name={guessTaskIcon(item.name)} size={16} color={done ? '#FFFFFF' : '#B3AA96'} />
+            <View
+              style={[
+                styles.stopCircle,
+                done && styles.stopCircleDone,
+                waiting && { borderStyle: 'dashed', borderColor: colors.expected },
+              ]}
+            >
+              <TaskIcon name={guessTaskIcon(item.name)} size={16} color={done ? '#FFFFFF' : waiting ? colors.expected : '#B3AA96'} />
             </View>
             <View style={styles.stopBody}>
               <Text style={styles.stopName}>{item.name}</Text>
               <Text style={[styles.stopStatus, done && styles.stopStatusDone]}>
-                {done ? `Done ${doneDayName}` : 'This week · tap to do'}
+                {done ? `Done ${doneDayName}` : waiting ? 'Waiting for a parent' : 'This week · tap to do'}
               </Text>
             </View>
           </Pressable>
@@ -400,7 +415,12 @@ export function ChildHomeScreen() {
     soundEnabled,
     expectedStreak,
     scheduleEvents,
+    deviceMode,
+    isWaiting,
+    childNotices,
+    dismissNotice,
   } = useAppData();
+  const labelFor = useSubmissionLabels();
 
   const [view, setView] = useState<'today' | 'week'>('today');
   // "This Week" sub-tabs — Daily/Gigs/Weekly used to stack as three
@@ -416,6 +436,7 @@ export function ChildHomeScreen() {
   const familyIsNew = useNewTag('family-devices');
   // Setup's family-device step asks for Family devices to open once the app is ready.
   useEffect(() => {
+    if (deviceMode) return;
     consumeOpenFamilyDevicesAfterSetup().then((wanted) => {
       if (wanted) navigation.navigate('FamilyDevices');
     });
@@ -484,6 +505,7 @@ export function ChildHomeScreen() {
       id: item.id,
       name: item.name,
       done: isExpectedDoneToday(item.id),
+      waiting: deviceMode && !isExpectedDoneToday(item.id) && isWaiting('expected', item.id, todayString()),
       excused: isItemExcusedToday(item.id),
     })),
     ...gigs.map((gig): TrailStop => ({
@@ -492,6 +514,7 @@ export function ChildHomeScreen() {
       name: gig.name,
       percentage: gigPreviewPercentage(gig),
       done: gigCompletionStatusToday(gig.id) === 'approved',
+      waiting: deviceMode && gigCompletionStatusToday(gig.id) === null && isWaiting('gig', gig.id, todayString()),
       sibling: siblingGigDoneToday(gig),
     })),
   ];
@@ -513,7 +536,7 @@ export function ChildHomeScreen() {
   // done (even if a gig or a later activity was checked off first), then moves
   // on to the gigs, and rests on the last stop once everything is done. On an
   // excused day it skips past excused activities.
-  const nextAskedIdx = stops.findIndex((s) => !s.done && !(s.kind === 'expected' && s.excused));
+  const nextAskedIdx = stops.findIndex((s) => !s.done && !s.waiting && !(s.kind === 'expected' && s.excused));
   const avatarIdx = nextAskedIdx >= 0 ? nextAskedIdx : Math.max(points.length - 1, 0);
   const avatarPoint = points[avatarIdx] ?? trailPointAt(0);
   const trailHeight = points.length > 0 ? points[points.length - 1].y + 70 : 0;
@@ -637,7 +660,44 @@ export function ChildHomeScreen() {
     );
   };
 
+  // Family device: a tap asks a parent; tapping something already sent offers to take it back.
+  const handleDeviceTap = (kind: 'expected' | 'gig', itemId: string, name: string, date?: string) => {
+    const day = date ?? todayStr;
+    if (isWaiting(kind, itemId, day)) {
+      Alert.alert(`Take back "${name}"?`, "It's waiting for a parent. Taking it back puts it back on your list.", [
+        { text: 'Keep it sent', style: 'cancel' },
+        {
+          text: 'Take it back',
+          onPress: () => (kind === 'expected' ? unmarkExpectedDone(itemId, day) : unmarkGigDone(itemId, day)),
+        },
+      ]);
+      return;
+    }
+    const alreadyDone =
+      kind === 'expected'
+        ? date && date !== todayStr
+          ? dailyIsDoneOn(itemId, date)
+          : isExpectedDoneToday(itemId)
+        : gigIsDoneOn(itemId, day);
+    if (alreadyDone) return; // a parent already said yes
+    const send = () => {
+      kind === 'expected' ? celebrateCheckoff() : celebrateGig();
+      showMessage(`Sent "${name}" to a parent`);
+      kind === 'expected' ? markExpectedDone(itemId, day) : markGigDone(itemId, day);
+    };
+    if (date && date !== todayStr) {
+      confirmPastChange(name, date, false, send);
+      return;
+    }
+    send();
+  };
+
   const handleExpectedPress = (itemId: string, date?: string) => {
+    if (deviceMode) {
+      const item = expectedItems.find((i) => i.id === itemId);
+      if (item) handleDeviceTap('expected', itemId, item.name, date);
+      return;
+    }
     if (date && date !== todayStr) {
       const item = expectedItems.find((i) => i.id === itemId);
       if (!item) return;
@@ -680,6 +740,17 @@ export function ChildHomeScreen() {
   };
 
   const handleGigPress = (gig: Gig, date?: string) => {
+    if (deviceMode) {
+      if (!goal && !isWaiting('gig', gig.id, date ?? todayStr)) {
+        Alert.alert('Pick a goal first!', 'Gigs add progress toward a goal. Pick one to get started.', [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Pick a goal', onPress: () => navigation.navigate('Goal') },
+        ]);
+        return;
+      }
+      handleDeviceTap('gig', gig.id, gig.name, date);
+      return;
+    }
     if (date && date !== todayStr) {
       const isDone = gigIsDoneOn(gig.id, date);
       if (!isDone && !goal) {
@@ -787,9 +858,27 @@ export function ChildHomeScreen() {
       <View style={styles.fixedHeader}>
         <AppHeader />
 
-        <SettingsHintBadge onNavigateToSettings={() => navigation.navigate('Settings')} />
+        {!deviceMode && <SettingsHintBadge onNavigateToSettings={() => navigation.navigate('Settings')} />}
 
-        {pending.length > 0 ? (
+        {deviceMode ? (
+          childNotices.slice(0, 2).map((n) => {
+            const label = labelFor(n);
+            const approved = n.status === 'approved';
+            return (
+              <View key={n.id} style={[styles.noticeCard, approved ? styles.noticeGood : styles.noticeBack]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.noticeTitle}>
+                    {approved ? `🎉 Approved: ${label.title}` : `Back on your list: ${label.title}`}
+                  </Text>
+                  {!approved && n.note ? <Text style={styles.noticeNote}>“{n.note}”</Text> : null}
+                </View>
+                <Pressable onPress={() => dismissNotice(n.id)} hitSlop={10}>
+                  <Text style={styles.noticeClose}>×</Text>
+                </Pressable>
+              </View>
+            );
+          })
+        ) : pending.length > 0 ? (
           <WaitingBanner count={pending.length} onReview={() => navigation.navigate('Approvals')} />
         ) : (
           <FamilyDeviceCard onSetUp={() => navigation.navigate('FamilyDevices')} />
@@ -863,19 +952,21 @@ export function ChildHomeScreen() {
                 🔥 {streak}
               </Text>
             )}
-            <Pressable
-              ref={moreRef}
-              onPress={openMenu}
-              hitSlop={10}
-              accessibilityLabel="More options"
-              style={styles.moreButton}
-            >
-              <Text style={styles.moreButtonText}>⋯</Text>
-            </Pressable>
+            {!deviceMode && (
+              <Pressable
+                ref={moreRef}
+                onPress={openMenu}
+                hitSlop={10}
+                accessibilityLabel="More options"
+                style={styles.moreButton}
+              >
+                <Text style={styles.moreButtonText}>⋯</Text>
+              </Pressable>
+            )}
           </View>
         </View>
 
-        {view === 'today' && !childProfile?.birthday && childProfile && (
+        {view === 'today' && !deviceMode && !childProfile?.birthday && childProfile && (
           <Pressable style={styles.birthdayCard} onPress={() => navigation.navigate('EditProfile')}>
             <Text style={styles.birthdayCardText}>
               🎂 Add {childProfile.name.trim().split(/\s+/)[0]}'s birthday for a birthday celebration
@@ -987,9 +1078,10 @@ export function ChildHomeScreen() {
               // neutral — otherwise an undone Expected and an undone Gig
               // are indistinguishable until the moment they're completed.
               const mutedRingColor = stop.kind === 'gig' ? '#E9CB9A' : '#B7D9D3';
-              const ringColor = stop.done ? categoryColor : mutedRingColor;
+              // Sent to a parent and not answered: a dashed ring in the category color.
+              const ringColor = stop.done || stop.waiting ? categoryColor : mutedRingColor;
               const bgColor = stop.done ? categoryColor : '#FFFFFF';
-              const iconColor = stop.done ? '#FFFFFF' : '#B3AA96';
+              const iconColor = stop.done ? '#FFFFFF' : stop.waiting ? categoryColor : '#B3AA96';
               return (
                 <View key={`${stop.kind}-${stop.id}`}>
                   <Pressable
@@ -1001,16 +1093,18 @@ export function ChildHomeScreen() {
                     style={[
                       styles.stopButton,
                       { left: point.x - STOP_SIZE / 2, top: point.y - STOP_SIZE / 2, borderColor: ringColor, backgroundColor: bgColor },
+                      stop.waiting && { borderStyle: 'dashed' },
                     ]}
                   >
                     <TaskIcon name={guessTaskIcon(stop.name)} size={22} color={iconColor} />
                   </Pressable>
                   <View style={[styles.stopLabelWrap, { left: point.x - 62, top: point.y + 32 }]}>
                     <Text style={styles.stopLabel} numberOfLines={2}>{stop.name}</Text>
+                    {stop.waiting && <Text style={[styles.stopWaiting, { color: categoryColor }]}>Waiting for a parent</Text>}
                     {stop.kind === 'expected' && stop.excused && !stop.done && (
                       <Text style={styles.stopExcused}>Excused</Text>
                     )}
-                    {stop.kind === 'gig' && stop.percentage !== null && (
+                    {stop.kind === 'gig' && stop.percentage !== null && !stop.waiting && (
                       <Text style={styles.stopAmount}>+{stop.percentage}%</Text>
                     )}
                     {stop.kind === 'gig' && stop.sibling && !stop.done && (
@@ -1072,6 +1166,7 @@ export function ChildHomeScreen() {
                 todayStr={todayStr}
                 isDoneOn={dailyIsDoneOn}
                 isTappableOn={dailyIsTappableOn}
+                isWaitingOn={deviceMode ? (id, d) => isWaiting('expected', id, d) : undefined}
                 onPressCell={handleExpectedPress}
                 color={colors.expected}
                 ringColor="#B7D9D3"
@@ -1085,6 +1180,7 @@ export function ChildHomeScreen() {
                 todayStr={todayStr}
                 isDoneOn={gigIsDoneOn}
                 isTappableOn={gigIsTappableOn}
+                isWaitingOn={deviceMode ? (id, d) => isWaiting('gig', id, d) : undefined}
                 onPressCell={handleGigPressById}
                 color={colors.gigs}
                 ringColor="#E9CB9A"
@@ -1097,6 +1193,7 @@ export function ChildHomeScreen() {
                 todayStr={todayStr}
                 expectedCompletions={expectedCompletions}
                 isExpectedDoneToday={isExpectedDoneToday}
+                isWaiting={deviceMode ? (id) => isWaiting('expected', id, todayStr) : undefined}
                 onPressStop={handleExpectedPress}
               />
             )}
@@ -1169,6 +1266,22 @@ export function ChildHomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  noticeCard: {
+    marginHorizontal: 20,
+    marginBottom: 8,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  noticeGood: { backgroundColor: '#E4F7EA' },
+  noticeBack: { backgroundColor: '#FCEBD2' },
+  noticeTitle: { fontSize: 14, fontWeight: '800', color: colors.text },
+  noticeNote: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
+  noticeClose: { fontSize: 22, color: colors.textMuted, paddingHorizontal: 4 },
+  stopWaiting: { fontSize: 11, fontWeight: '700', textAlign: 'center' },
   screen: { flex: 1, backgroundColor: '#FFF8F0' },
   fixedHeader: { paddingBottom: 12, backgroundColor: '#FFF8F0' },
   goalCardWrapper: { paddingHorizontal: 20 },

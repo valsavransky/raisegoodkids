@@ -296,3 +296,14 @@ Content library authoring (age/grade-appropriate Expected items and Gigs, with s
 - Data saved before this (one child) upgrades in place: `childProfile`/`futureFund` become `childProfiles[0]`/`futureFunds[0]`.
 
 - **Today header (Oct 31):** the child pills row was removed (the switcher sheet replaced it). Streak is a small 🔥 count beside a ⋯ menu holding History, Excuse today and Tips about this page. The "Tap an activity…" hint shows only until anything has been checked off.
+
+## Family devices and approvals (decided, built — not yet released)
+
+A kid's tablet or an old phone becomes a **family device** by typing a one-time 6-character code (made on the parent's phone: Settings → Family devices → + Add; valid 10 minutes, single use). The device then shows the child's own Today / Goal / Badges — same trail and This Week as the parent sees — but no Settings, History, money, Future Fund, or Add child.
+
+- **Nothing a child taps changes the family's data.** Every tap (Expected or Gig) becomes a *request* the parent approves on their phone; Expected items are not auto-approved. Waiting items show a dashed ring on the trail (teal for Expected, amber for Gigs) and "Waiting for a parent". Tapping a waiting item offers to take it back.
+- **Goals:** a child can ask for a new goal (name only — the parent sets the price when approving), rename one, or switch the active one; all need approval.
+- **Parent side:** a "N things waiting for you" banner on Today and a count on the top-right chip open *Waiting for you*, grouped by child, then Goals / Expected / Gigs. Everything is ticked by default; unticked items are sent back (optionally with a note). Goal requests open their own screen.
+- **Answers** come back to the child's device as "🎉 Approved: …" or "Back on your list: … (note)".
+- **Architecture:** requests live in a `submissions` table on the server; the parent's phone decides via the server and then applies approved ones to its own data (idempotent via `appliedSubmissions`). The device only reads `/child/data` and posts/deletes its own pending requests — no multi-device merge. Removing a device on the parent's phone signs it out on its next refresh.
+- **Later:** push notifications (needs a native build), iPad layout, child web app, multiple parents.

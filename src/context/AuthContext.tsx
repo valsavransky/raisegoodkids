@@ -49,6 +49,28 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+/** On a family device there is no parent account to sign in to (and none must be created):
+ * this stands in for AuthProvider with no token, so nothing syncs from here. */
+export function NoAccountProvider({ children }: { children: ReactNode }) {
+  const none = async () => ({ ok: false as const, error: 'Not available on a family device.' });
+  return (
+    <AuthContext.Provider
+      value={{
+        isReady: true,
+        token: null,
+        isAutoAccount: true,
+        accountEmail: null,
+        claimAccount: none,
+        login: none,
+        loginWithGoogle: none,
+        disconnectAndStartFresh: async () => {},
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isReady, setIsReady] = useState(false);
   const [token, setToken] = useState<string | null>(null);

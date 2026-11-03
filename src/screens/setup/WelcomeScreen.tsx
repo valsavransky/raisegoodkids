@@ -149,6 +149,9 @@ export function WelcomeScreen({ navigation }: Props) {
             <Text style={styles.buttonText}>{isLastSlide ? 'Get started' : 'Next'}</Text>
           </Animated.View>
         </Pressable>
+        <Pressable onPress={() => navigation.navigate('PairDevice')} hitSlop={8} style={styles.deviceLink}>
+          <Text style={styles.deviceLinkText}>Set up a family device</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -168,4 +171,6 @@ const styles = StyleSheet.create({
   dotActive: { backgroundColor: colors.expected, width: 22 },
   button: { backgroundColor: colors.expected, borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  deviceLink: { alignItems: 'center', paddingTop: 18 },
+  deviceLinkText: { color: colors.textMuted, fontSize: 14, textDecorationLine: 'underline' },
 });

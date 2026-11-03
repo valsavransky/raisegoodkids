@@ -72,6 +72,9 @@ export function GoalPickerScreen() {
     moveTodaysGigProgressToGoal,
     futureFund,
     recordFutureFundContribution,
+    deviceMode,
+    waitingGoalRequests,
+    householdGoals,
   } = useAppData();
   const { token } = useAuth();
   const childName = childProfile?.name.trim() || 'your child';
@@ -111,6 +114,18 @@ export function GoalPickerScreen() {
   // comment for why anything earned on an earlier day stays exactly where
   // it was earned.
   const handleMakeActive = (goal: Goal) => {
+    if (deviceMode) {
+      Alert.alert(`Switch to "${goal.name}"?`, 'A parent has to say yes before it changes.', [
+        { text: 'Not now', style: 'cancel' },
+        {
+          text: 'Ask a parent',
+          onPress: () => {
+            setActiveGoal(goal.id);
+          },
+        },
+      ]);
+      return;
+    }
     const current = active;
     if (!current || current.id === goal.id) {
       setActiveGoal(goal.id);
@@ -151,7 +166,7 @@ export function GoalPickerScreen() {
     setDraftIdea(idea);
     setEditingGoalId(null);
     setDraftName(idea.name);
-    setDraftCost(String(idea.typicalCost));
+    setDraftCost(deviceMode ? '' : String(idea.typicalCost));
     setDraftPhotoUri(undefined);
     setModalVisible(true);
   };
@@ -176,6 +191,16 @@ export function GoalPickerScreen() {
   };
 
   const confirmSave = async () => {
+    if (deviceMode) {
+      // A child only picks the name: a parent sets the price when they say yes.
+      const name = draftName.trim();
+      if (!name) return;
+      if (editingGoalId) updateGoal(editingGoalId, { name, realWorldCost: 0 });
+      else addGoal(name, 0);
+      setModalVisible(false);
+      Alert.alert('Sent!', 'A parent will take a look.');
+      return;
+    }
     const cost = parseFloat(draftCost);
     if (!draftName.trim() || Number.isNaN(cost) || cost <= 0) return;
     const name = draftName.trim();
@@ -251,15 +276,19 @@ export function GoalPickerScreen() {
             </View>
           </View>
           <View style={styles.goalRowActions}>
-            <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => handleMakeActive(item)}>
-              <Text style={styles.linkAction}>Make active</Text>
-            </Pressable>
+            {deviceMode && waitingGoalRequests.some((r) => r.kind === 'goal_switch' && r.itemId === item.id) ? (
+              <Text style={styles.waitingText}>Waiting for a parent</Text>
+            ) : (
+              <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => handleMakeActive(item)}>
+                <Text style={styles.linkAction}>{deviceMode ? 'Ask to make active' : 'Make active'}</Text>
+              </Pressable>
+            )}
             {modifiable && (
               <>
                 <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => openEditModal(item)}>
                   <Text style={styles.linkAction}>Edit</Text>
                 </Pressable>
-                {deleteConfirmId === item.id ? (
+                {deviceMode ? null : deleteConfirmId === item.id ? (
                   <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => deleteGoal(item.id)}>
                     <Text style={styles.linkActionDanger}>Confirm delete</Text>
                   </Pressable>
@@ -285,9 +314,13 @@ export function GoalPickerScreen() {
             </View>
             <Text style={styles.achievedLabel}>🏆 Achieved</Text>
           </View>
-          <Pressable style={styles.makeActiveButton} onPress={() => navigation.navigate('FulfillGoal', { goalId: item.id })}>
-            <Text style={styles.makeActiveButtonText}>Finish up</Text>
-          </Pressable>
+          {deviceMode ? (
+            <Text style={styles.waitingText}>You did it! Ask a grown-up about your reward.</Text>
+          ) : (
+            <Pressable style={styles.makeActiveButton} onPress={() => navigation.navigate('FulfillGoal', { goalId: item.id })}>
+              <Text style={styles.makeActiveButtonText}>Finish up</Text>
+            </Pressable>
+          )}
         </View>
       );
     }
@@ -342,6 +375,25 @@ export function GoalPickerScreen() {
         renderItem={({ item }) => renderGoalRow(item)}
         ListFooterComponent={
           <>
+            {deviceMode && waitingGoalRequests.length > 0 && (
+              <View style={styles.suggestedSection}>
+                <Text style={styles.suggestedLabel}>Waiting for a parent</Text>
+                {waitingGoalRequests.map((r) => {
+                  const target = householdGoals.find((g) => g.id === r.itemId)?.name ?? 'a goal';
+                  const text =
+                    r.kind === 'goal_add'
+                      ? r.payload.name ?? 'New goal'
+                      : r.kind === 'goal_rename'
+                        ? `${target} → ${r.payload.name ?? ''}`
+                        : `Switch to ${target}`;
+                  return (
+                    <View key={r.id} style={styles.waitingRow}>
+                      <Text style={styles.waitingRowText} numberOfLines={2}>{text}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
             {suggestedIdeas.length > 0 && (
               <View style={styles.suggestedSection}>
                 <Text style={styles.suggestedLabel}>Suggested for you</Text>
@@ -354,7 +406,7 @@ export function GoalPickerScreen() {
                     >
                       <Text style={styles.suggestedChipEmoji}>{CATEGORY_EMOJI[idea.category]}</Text>
                       <Text style={styles.suggestedChipText}>{idea.name}</Text>
-                      <Text style={styles.suggestedChipCost}>~${idea.typicalCost}</Text>
+                      {!deviceMode && <Text style={styles.suggestedChipCost}>~${idea.typicalCost}</Text>}
                     </Pressable>
                   ))}
                 </View>
@@ -412,9 +464,9 @@ export function GoalPickerScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <Pressable style={styles.modalBackdrop} onPress={() => setModalVisible(false)}>
           <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
-            <Text style={styles.modalTitle}>{editingGoalId ? 'Edit goal' : 'Add a goal'}</Text>
+            <Text style={styles.modalTitle}>{editingGoalId ? 'Edit goal' : deviceMode ? 'Ask for a goal' : 'Add a goal'}</Text>
             <TextInput style={styles.input} placeholder="What are you saving for?" value={draftName} onChangeText={setDraftName} />
-            {draftName.trim().length > 0 && (
+            {!deviceMode && draftName.trim().length > 0 && (
               <View style={styles.photoHelperSection}>
                 <View style={styles.photoHelperStep}>
                   <Pressable
@@ -447,13 +499,17 @@ export function GoalPickerScreen() {
                 </View>
               </View>
             )}
-            <CurrencyInput placeholder="How much does it cost?" value={draftCost} onChangeText={setDraftCost} />
+            {deviceMode ? (
+              <Text style={styles.photoHelperCaption}>A parent will look at it and set it up with you.</Text>
+            ) : (
+              <CurrencyInput placeholder="How much does it cost?" value={draftCost} onChangeText={setDraftCost} />
+            )}
             <View style={styles.modalActions}>
               <Pressable style={styles.modalCancelButton} onPress={() => setModalVisible(false)}>
                 <Text style={styles.modalCancelText}>Cancel</Text>
               </Pressable>
               <Pressable style={styles.modalAddButton} onPress={confirmSave}>
-                <Text style={styles.modalAddText}>{editingGoalId ? 'Save' : 'Add'}</Text>
+                <Text style={styles.modalAddText}>{deviceMode ? 'Ask a parent' : editingGoalId ? 'Save' : 'Add'}</Text>
               </Pressable>
             </View>
           </Pressable>
@@ -549,6 +605,17 @@ export function GoalPickerScreen() {
 }
 
 const styles = StyleSheet.create({
+  waitingText: { fontSize: 14, fontWeight: '700', color: colors.gigs },
+  waitingRow: {
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: colors.gigs,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginTop: 8,
+  },
+  waitingRowText: { fontSize: 15, fontWeight: '700', color: colors.text },
   screen: { flex: 1, backgroundColor: colors.background },
   header: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   title: { flex: 1, fontSize: 22, fontWeight: '700', color: colors.text },

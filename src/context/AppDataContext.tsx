@@ -6,10 +6,19 @@
 // wizard on restart is a minor inconvenience, unlike losing days of
 // accumulated progress.
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import { Alert } from 'react-native';
+import { Alert, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
-import { fetchData, saveData, deleteAccount as deleteAccountOnServer } from '../services/api';
+import {
+  fetchData,
+  saveData,
+  deleteAccount as deleteAccountOnServer,
+  fetchChildData,
+  sendChildSubmission,
+  takeBackChildSubmission,
+  ApiError,
+} from '../services/api';
+import { randomToken } from '../utils/randomToken';
 import {
   ChildProfile,
   ScheduleEvent,
@@ -91,6 +100,11 @@ async function clearServerData(token: string): Promise<string | null> {
   return attempt();
 }
 const STORAGE_KEY = '@merit/appData/v1';
+// A family device keeps its own copy of the family's data (read-only) and which child uses it.
+const CHILD_STORAGE_KEY = '@trekker/childDevice/data/v1';
+const CHILD_CHOSEN_KEY = '@trekker/childDevice/child';
+const CHILD_SEEN_KEY = '@trekker/childDevice/seen';
+const CHILD_REFRESH_MS = 40_000;
 
 interface PersistedAppData {
   parentName: string | null;
@@ -358,13 +372,32 @@ interface AppDataContextValue {
   resetAllData: () => Promise<void>;
   /** Signs out of this phone: clears this phone's copy and returns to the sign-in screen. The account and its cloud data are left untouched. */
   signOutOfAccount: () => Promise<void>;
+  /** True on a family device: taps become requests a parent approves instead of changing anything. */
+  deviceMode: boolean;
+  /** Family device only: a child has been picked on this device. */
+  deviceChildChosen: boolean;
+  /** Family device only: something this child sent in for this kind/item (and day) is still with a parent. */
+  isWaiting: (kind: 'expected' | 'gig', itemId: string, day?: string) => boolean;
+  /** Family device only: this child's goal requests that are still with a parent. */
+  waitingGoalRequests: Submission[];
+  /** Family device only: answers from a parent this child hasn't seen yet. */
+  childNotices: Submission[];
+  dismissNotice: (id: string) => void;
+  /** Family device only: pull the latest from the family's account. */
+  refreshChildData: () => Promise<void>;
   /** Permanently deletes the account's server data and this phone's copy. Resolves false if the server couldn't confirm. */
   deleteAccountAndData: () => Promise<boolean>;
 }
 
 const AppDataContext = createContext<AppDataContextValue | undefined>(undefined);
 
-export function AppDataProvider({ children }: { children: ReactNode }) {
+export interface ChildDeviceLink {
+  token: string;
+  /** The parent removed this device (or the token is no longer good). */
+  onRemoved: () => void;
+}
+
+export function AppDataProvider({ children, childDevice }: { children: ReactNode; childDevice?: ChildDeviceLink }) {
   const { token, isReady: authIsReady, disconnectAndStartFresh } = useAuth();
   const [isHydrated, setIsHydrated] = useState(false);
   // Set once the very first server reconcile (adopt server data on a fresh
@@ -400,6 +433,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [allDailyExcuses, setDailyExcuses] = useState<DailyExcuse[]>([]);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [appliedSubmissions, setAppliedSubmissions] = useState<string[]>([]);
+  // ---- Family device (child) state ----
+  const deviceMode = !!childDevice;
+  const dataKey = deviceMode ? CHILD_STORAGE_KEY : STORAGE_KEY;
+  const [deviceSubs, setDeviceSubs] = useState<Submission[]>([]);
+  const [chosenChildId, setChosenChildId] = useState<string | null>(null);
+  const chosenRef = useRef<string | null>(null);
+  chosenRef.current = chosenChildId;
+  // Answers already shown on this device; null until loaded.
+  const [seenAnswers, setSeenAnswers] = useState<string[] | null>(null);
 
   const childProfile = childProfiles.find((c) => c.id === selectedChildId) ?? childProfiles[0] ?? null;
   const childId = childProfile?.id ?? '';
@@ -442,7 +484,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const kids = data.childProfiles ?? (data.childProfile ? [data.childProfile] : []);
     setParentName(data.parentName ?? null);
     setChildProfiles(kids);
-    setSelectedChildId(data.selectedChildId ?? kids[0]?.id ?? null);
+    setSelectedChildId(
+      childDevice
+        ? kids.find((c) => c.id === chosenRef.current)?.id ?? kids[0]?.id ?? null
+        : data.selectedChildId ?? kids[0]?.id ?? null
+    );
     setScheduleEvents(data.scheduleEvents);
     setExpectedItems(data.expectedItems);
     setExpectedCompletions(data.expectedCompletions);
@@ -462,7 +508,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        if (childDevice) {
+          const chosen = await AsyncStorage.getItem(CHILD_CHOSEN_KEY);
+          chosenRef.current = chosen;
+          setChosenChildId(chosen);
+          const seenRaw = await AsyncStorage.getItem(CHILD_SEEN_KEY);
+          setSeenAnswers(seenRaw ? (JSON.parse(seenRaw) as string[]) : null);
+        }
+        const raw = await AsyncStorage.getItem(dataKey);
         if (raw) {
           applyPersisted(JSON.parse(raw) as PersistedAppData);
         }
@@ -508,10 +561,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isHydrated) return;
     const data = snapshot();
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data)).catch((e) =>
+    AsyncStorage.setItem(dataKey, JSON.stringify(data)).catch((e) =>
       console.warn('Failed to persist app data', e)
     );
-    if (token && hasReconciled && !resettingRef.current) {
+    if (!deviceMode && token && hasReconciled && !resettingRef.current) {
       saveData(token, data).catch((e) => console.warn('Failed to sync app data to server', e));
     }
   }, [
@@ -1139,6 +1192,118 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const selectChild = (id: string) => {
     if (childProfiles.some((c) => c.id === id)) setSelectedChildId(id);
     setViewingEveryone(false);
+    if (deviceMode) {
+      setChosenChildId(id);
+      AsyncStorage.setItem(CHILD_CHOSEN_KEY, id).catch(() => {});
+    }
+  };
+
+  // ---- Family device: read the family's data, send requests ----
+  const refreshChildData = async () => {
+    if (!childDevice) return;
+    try {
+      const { data, submissions } = await fetchChildData(childDevice.token);
+      const fresh = data as PersistedAppData | null;
+      if (fresh?.childProfile) {
+        const kids = fresh.childProfiles ?? [fresh.childProfile];
+        if (chosenRef.current && !kids.some((c) => c.id === chosenRef.current)) {
+          // The child this device was set to is gone: ask again.
+          chosenRef.current = null;
+          setChosenChildId(null);
+          AsyncStorage.removeItem(CHILD_CHOSEN_KEY).catch(() => {});
+        }
+        applyPersisted(fresh);
+      }
+      setDeviceSubs(submissions);
+      // First time on this device: don't replay old answers.
+      setSeenAnswers((prev) => {
+        if (prev !== null) return prev;
+        const seeded = submissions.filter((s) => s.status !== 'pending').map((s) => s.id);
+        AsyncStorage.setItem(CHILD_SEEN_KEY, JSON.stringify(seeded)).catch(() => {});
+        return seeded;
+      });
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) childDevice.onRemoved();
+      // Otherwise offline: keep showing what we have.
+    }
+  };
+  const refreshChildDataRef = useRef(refreshChildData);
+  refreshChildDataRef.current = refreshChildData;
+  useEffect(() => {
+    if (!childDevice || !isHydrated) return;
+    refreshChildDataRef.current();
+    const timer = setInterval(() => refreshChildDataRef.current(), CHILD_REFRESH_MS);
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshChildDataRef.current();
+    });
+    return () => {
+      clearInterval(timer);
+      sub.remove();
+    };
+  }, [childDevice?.token, isHydrated]);
+
+  const sendRequest = async (
+    kind: Submission['kind'],
+    itemId: string,
+    day: string,
+    payload: { name?: string } = {}
+  ): Promise<boolean> => {
+    if (!childDevice || !childId) return false;
+    const sub: Submission = {
+      id: `${makeId('sub')}-${randomToken(6)}`,
+      childId,
+      kind,
+      itemId,
+      day,
+      status: 'pending',
+      payload,
+      submittedAt: new Date().toISOString(),
+    };
+    setDeviceSubs((prev) => [...prev, sub]);
+    try {
+      await sendChildSubmission(childDevice.token, { id: sub.id, childId, kind, itemId, day, payload });
+      return true;
+    } catch (e) {
+      setDeviceSubs((prev) => prev.filter((s) => s.id !== sub.id));
+      if (e instanceof ApiError && e.status === 401) {
+        childDevice.onRemoved();
+      } else {
+        Alert.alert(
+          "Couldn't send that",
+          e instanceof ApiError ? e.message : 'Check the internet connection and try again.'
+        );
+      }
+      return false;
+    }
+  };
+
+  const waitingFor = (kind: 'expected' | 'gig', itemId: string, day?: string) =>
+    deviceSubs.find(
+      (s) => s.status === 'pending' && s.childId === childId && s.kind === kind && s.itemId === itemId && (!day || s.day === day)
+    );
+  const isWaiting: AppDataContextValue['isWaiting'] = (kind, itemId, day) => !!waitingFor(kind, itemId, day);
+  const takeBack = async (kind: 'expected' | 'gig', itemId: string, day?: string) => {
+    const sub = waitingFor(kind, itemId, day);
+    if (!sub || !childDevice) return;
+    setDeviceSubs((prev) => prev.filter((s) => s.id !== sub.id));
+    try {
+      await takeBackChildSubmission(childDevice.token, sub.id);
+    } catch {
+      refreshChildDataRef.current();
+    }
+  };
+  const waitingGoalRequests = deviceSubs.filter(
+    (s) => s.status === 'pending' && s.childId === childId && s.kind.startsWith('goal_')
+  );
+  const childNotices = deviceSubs.filter(
+    (s) => s.status !== 'pending' && s.childId === childId && seenAnswers !== null && !seenAnswers.includes(s.id)
+  );
+  const dismissNotice = (id: string) => {
+    setSeenAnswers((prev) => {
+      const next = [...(prev ?? []), id].slice(-200);
+      AsyncStorage.setItem(CHILD_SEEN_KEY, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
   };
 
   const addChild: AppDataContextValue['addChild'] = (draft) => {
@@ -1472,6 +1637,45 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     await disconnectAndStartFresh();
   };
 
+  // On a family device these replace the parent's versions: a tap becomes a request.
+  const noExpectedResult: MarkExpectedDoneResult = {
+    newBadgeCatalogId: null,
+    allDoneToday: false,
+    allWeeklyDoneThisWeek: false,
+  };
+  const noGigResult: MarkGigDoneResult = { achievedGoal: false, newBadgeCatalogId: null, allGigsDoneToday: false };
+  const deviceOverrides = deviceMode
+    ? {
+        markExpectedDone: (itemId: string, date?: string): MarkExpectedDoneResult => {
+          sendRequest('expected', itemId, date ?? todayString());
+          return noExpectedResult;
+        },
+        markGigDone: (gigId: string, date?: string): MarkGigDoneResult => {
+          sendRequest('gig', gigId, date ?? todayString());
+          return noGigResult;
+        },
+        unmarkExpectedDone: (itemId: string, date?: string) => {
+          takeBack('expected', itemId, date ?? todayString());
+        },
+        unmarkGigDone: (gigId: string, date?: string): 'ok' | 'goal_reached' | 'not_found' => {
+          takeBack('gig', gigId, date ?? todayString());
+          return 'ok';
+        },
+        addGoal: (name: string) => {
+          sendRequest('goal_add', makeId('goal'), todayString(), { name });
+        },
+        updateGoal: (goalId: string, fields: { name: string }) => {
+          sendRequest('goal_rename', goalId, todayString(), { name: fields.name });
+        },
+        setActiveGoal: (goalId: string) => {
+          sendRequest('goal_switch', goalId, todayString());
+        },
+        deleteGoal: () => {},
+        markGoalFulfilled: () => {},
+        birthdayCelebrationDue: () => null,
+      }
+    : {};
+
   return (
     <AppDataContext.Provider
       value={{
@@ -1560,6 +1764,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         resetAllData,
         signOutOfAccount,
         deleteAccountAndData,
+        deviceMode,
+        deviceChildChosen: !!chosenChildId && childProfiles.some((c) => c.id === chosenChildId),
+        isWaiting,
+        waitingGoalRequests,
+        childNotices,
+        dismissNotice,
+        refreshChildData,
+        ...deviceOverrides,
       }}
     >
       {children}
