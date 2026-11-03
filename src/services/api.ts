@@ -4,7 +4,7 @@
 // on-device storage, since the household's data must never depend on the
 // network being up.
 import { API_BASE_URL } from '../config';
-import { GoalCategory } from '../types/models';
+import { GoalCategory, Submission, FamilyDevice } from '../types/models';
 
 export class ApiError extends Error {
   status: number;
@@ -84,4 +84,38 @@ export async function classifyGoalCategory(token: string, name: string): Promise
   } catch {
     return null;
   }
+}
+
+// ---- Family devices and approvals (see server/src/family.ts) -----------------
+
+
+/** Parent: a 6-character code to type on the family device. */
+export function createFamilyCode(token: string): Promise<{ code: string; expiresAt: string }> {
+  return request('/family/codes', { method: 'POST', token });
+}
+
+export function listFamilyDevices(token: string): Promise<{ devices: FamilyDevice[] }> {
+  return request('/family/devices', { token });
+}
+
+export function removeFamilyDevice(token: string, id: number): Promise<{ ok: true }> {
+  return request(`/family/devices/${id}`, { method: 'DELETE', token });
+}
+
+/** Everything waiting for a parent, plus recent decisions. */
+export function listSubmissions(token: string): Promise<{ submissions: Submission[] }> {
+  return request('/family/submissions', { token });
+}
+
+export function decideSubmission(
+  token: string,
+  id: string,
+  body: { decision: 'approved' | 'declined'; note?: string; price?: number }
+): Promise<{ submission: Submission }> {
+  return request(`/family/submissions/${encodeURIComponent(id)}/decide`, { method: 'POST', token, body });
+}
+
+/** Child device: connect with the code from a parent's phone. */
+export function pairFamilyDevice(code: string, deviceName: string): Promise<{ token: string; deviceId: number }> {
+  return request('/family/pair', { method: 'POST', body: { code, deviceName } });
 }

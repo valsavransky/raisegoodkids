@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SetupProvider } from './src/context/SetupContext';
 import { AuthProvider } from './src/context/AuthContext';
 import { AppDataProvider, useAppData } from './src/context/AppDataContext';
+import { ApprovalsProvider } from './src/context/ApprovalsContext';
 import { SetupNavigator } from './src/navigation/SetupNavigator';
 import { RootStackNavigator } from './src/navigation/RootStackNavigator';
 import { useDailyReminderSync } from './src/hooks/useDailyReminderSync';
@@ -26,11 +27,13 @@ export default function App() {
     <SafeAreaProvider>
       <AuthProvider>
         <AppDataProvider>
-          <SetupProvider>
-            <NavigationContainer>
-              <RootNavigator />
-            </NavigationContainer>
-          </SetupProvider>
+          <ApprovalsProvider>
+            <SetupProvider>
+              <NavigationContainer>
+                <RootNavigator />
+              </NavigationContainer>
+            </SetupProvider>
+          </ApprovalsProvider>
         </AppDataProvider>
       </AuthProvider>
       <StatusBar style="auto" />

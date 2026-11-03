@@ -25,6 +25,7 @@ import {
   DailyExcuse,
   DailyExcuseReason,
   DailyExcuseTrigger,
+  Submission,
 } from '../types/models';
 import { DraftChildProfile, DraftScheduleEvent, DraftExpectedItem, DraftGig } from './SetupContext';
 import { makeId } from '../utils/id';
@@ -118,6 +119,9 @@ interface PersistedAppData {
   /** Defaults to true (missing on any data saved before this field existed,
    * so `?? true` at every read site treats that the same as "on"). */
   soundEnabled: boolean;
+  /** Ids of approved child submissions already turned into completions or goals
+   * here, so an approval is applied exactly once. Newest last; capped. */
+  appliedSubmissions?: string[];
 }
 
 export interface MarkGigDoneResult {
@@ -198,6 +202,16 @@ interface AppDataContextValue {
   /** Permanently removes a child and everything recorded for them. The last
    * remaining child can't be removed (use Delete account for that). */
   removeChild: (childId: string) => boolean;
+  /** Every child's lists, for screens that show items from all children (the approvals review). */
+  householdExpectedItems: ExpectedItem[];
+  householdGigs: Gig[];
+  householdGoals: Goal[];
+  /** What a gig would add toward this child's active goal, in percent (null without a goal). */
+  gigPercentFor: (childId: string, gigId: string) => number | null;
+  /** Turns approved child submissions into completions, goals or goal changes (each only once). */
+  applySubmissions: (subs: Submission[]) => void;
+  /** Renames a goal, even an active one with progress. The price only changes while the goal has no progress. */
+  renameGoal: (goalId: string, name: string, price?: number) => void;
   /** One card per child for the family overview. */
   childSummaries: () => ChildSummary[];
   /** Every child's check-offs, for the household-wide daily reminder. */
@@ -385,6 +399,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [allBadges, setBadges] = useState<Badge[]>([]);
   const [allDailyExcuses, setDailyExcuses] = useState<DailyExcuse[]>([]);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
+  const [appliedSubmissions, setAppliedSubmissions] = useState<string[]>([]);
 
   const childProfile = childProfiles.find((c) => c.id === selectedChildId) ?? childProfiles[0] ?? null;
   const childId = childProfile?.id ?? '';
@@ -420,6 +435,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     badges: allBadges,
     dailyExcuses: allDailyExcuses,
     soundEnabled,
+    appliedSubmissions,
   });
 
   const applyPersisted = (data: PersistedAppData) => {
@@ -438,6 +454,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setBadges(data.badges);
     setDailyExcuses(data.dailyExcuses ?? []);
     setSoundEnabled(data.soundEnabled ?? true);
+    setAppliedSubmissions(data.appliedSubmissions ?? []);
   };
 
   // Load once on mount. Until this resolves, isHydrated stays false so
@@ -515,6 +532,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     allBadges,
     allDailyExcuses,
     soundEnabled,
+    appliedSubmissions,
   ]);
 
   const updateChildProfile: AppDataContextValue['updateChildProfile'] = (fields) => {
@@ -1200,6 +1218,108 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
+  const gigPercentFor = (forChildId: string, gigId: string): number | null => {
+    const gig = allGigs.find((g) => g.id === gigId);
+    const goal = allGoals.find((g) => g.childProfileId === forChildId && g.status === 'active');
+    const fund = futureFunds.find((f) => f.childProfileId === forChildId);
+    if (!gig || !goal || !fund) return null;
+    return computeGigPercentage(gig.effortTier, goal, fund.percentage, gigEffortValues);
+  };
+
+  const renameGoal = (goalId: string, name: string, price?: number) => {
+    const hasProgress = allGigCompletions.some((c) => c.goalId === goalId && c.status === 'approved');
+    setGoals((prev) =>
+      prev.map((g) =>
+        g.id === goalId
+          ? {
+              ...g,
+              name: name.trim() || g.name,
+              // A price change would make earlier progress mean something different.
+              ...(price !== undefined && !hasProgress ? { realWorldCost: price } : {}),
+            }
+          : g
+      )
+    );
+  };
+
+  // ---- Approvals: a child's tap, approved by a parent, becomes a real change here ----
+  //
+  // The app's data functions work on the selected child, so each approval is
+  // applied by switching to that child for a moment (the review screen is on top,
+  // so nothing visible changes), then restoring whoever was selected. An approval
+  // that can't be applied yet (a gig for a child with no goal) is left for the
+  // next try instead of being marked as applied.
+  const [applyQueue, setApplyQueue] = useState<Submission[]>([]);
+  const restoreChildRef = useRef<string | null>(null);
+
+  const applySubmissions: AppDataContextValue['applySubmissions'] = (subs) => {
+    const fresh = subs.filter(
+      (s) => s.status === 'approved' && !appliedSubmissions.includes(s.id) && !applyQueue.some((q) => q.id === s.id)
+    );
+    if (fresh.length > 0) setApplyQueue((q) => [...q, ...fresh]);
+  };
+
+  /** Applies one approved submission for the selected child. False if it can't be done yet. */
+  const applyOne = (sub: Submission): boolean => {
+    switch (sub.kind) {
+      case 'expected': {
+        if (!expectedItems.some((i) => i.id === sub.itemId)) return true; // the activity was removed since
+        markExpectedDone(sub.itemId, sub.day);
+        return true;
+      }
+      case 'gig': {
+        if (!gigs.some((g) => g.id === sub.itemId)) return true;
+        if (!activeGoal() || !futureFund) return false; // needs a goal first
+        markGigDone(sub.itemId, sub.day);
+        return true;
+      }
+      case 'goal_add': {
+        if (sub.payload.name) addGoal(sub.payload.name, sub.payload.price ?? 0);
+        return true;
+      }
+      case 'goal_rename': {
+        if (sub.payload.name && goals.some((g) => g.id === sub.itemId)) {
+          renameGoal(sub.itemId, sub.payload.name, sub.payload.price);
+        }
+        return true;
+      }
+      case 'goal_switch': {
+        if (goals.some((g) => g.id === sub.itemId && g.status !== 'achieved' && g.status !== 'fulfilled')) {
+          setActiveGoal(sub.itemId);
+        }
+        return true;
+      }
+      default:
+        return true;
+    }
+  };
+
+  useEffect(() => {
+    if (applyQueue.length === 0) {
+      const back = restoreChildRef.current;
+      if (back) {
+        restoreChildRef.current = null;
+        if (back !== selectedChildId) setSelectedChildId(back);
+      }
+      return;
+    }
+    const head = applyQueue[0];
+    if (!childProfiles.some((c) => c.id === head.childId)) {
+      // That child was removed: nothing to apply.
+      setApplyQueue((q) => q.slice(1));
+      setAppliedSubmissions((prev) => [...prev, head.id].slice(-300));
+      return;
+    }
+    if (head.childId !== childId) {
+      if (!restoreChildRef.current) restoreChildRef.current = childId;
+      setSelectedChildId(head.childId);
+      return;
+    }
+    const done = applyOne(head);
+    setApplyQueue((q) => q.slice(1));
+    if (done) setAppliedSubmissions((prev) => (prev.includes(head.id) ? prev : [...prev, head.id].slice(-300)));
+  }, [applyQueue, childId]);
+
   const childSummaries = (): ChildSummary[] => {
     const today = todayString();
     return childProfiles.map((child) => {
@@ -1348,6 +1468,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setGigEffortValues(DEFAULT_GIG_EFFORT_VALUES);
     setBadges([]);
     setDailyExcuses([]);
+    setAppliedSubmissions([]);
     await disconnectAndStartFresh();
   };
 
@@ -1363,6 +1484,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         setViewingEveryone,
         addChild,
         removeChild,
+        householdExpectedItems: allExpectedItems,
+        householdGigs: allGigs,
+        householdGoals: allGoals,
+        gigPercentFor,
+        applySubmissions,
+        renameGoal,
         childSummaries,
         householdExpectedCompletions: allExpectedCompletions,
         householdGigCompletions: allGigCompletions,

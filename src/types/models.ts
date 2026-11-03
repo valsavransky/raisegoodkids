@@ -259,3 +259,33 @@ export interface Badge {
   /** Set only for type === 'streak'. */
   streakCount?: number;
 }
+
+/** Something a child sent in from a family device, waiting for a parent (see
+ * server/src/family.ts). Approving it on a parent's phone turns it into a normal
+ * completion, goal or goal change; the child's device never edits the family's data. */
+export type SubmissionKind = 'expected' | 'gig' | 'goal_add' | 'goal_rename' | 'goal_switch';
+export type SubmissionStatus = 'pending' | 'approved' | 'declined';
+
+export interface Submission {
+  id: string;
+  childId: string;
+  kind: SubmissionKind;
+  /** The activity, gig or goal this is about (a made-up id for a new goal). */
+  itemId: string;
+  /** YYYY-MM-DD the child tapped it. */
+  day: string;
+  status: SubmissionStatus;
+  /** { name } for a new or renamed goal; { name, price } once a parent approved it. */
+  payload: { name?: string; price?: number };
+  /** The parent's note when sending something back. */
+  note?: string;
+  submittedAt: string;
+  decidedAt?: string;
+}
+
+export interface FamilyDevice {
+  id: number;
+  name: string;
+  createdAt: string;
+  lastSeenAt?: string | null;
+}
