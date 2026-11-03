@@ -204,16 +204,20 @@ familyRouter.get('/family/submissions', requireAuth, async (req: AuthedRequest, 
 
 familyRouter.post('/family/submissions/:id/decide', requireAuth, async (req: AuthedRequest, res: Response) => {
   try {
-    const { decision, note } = req.body ?? {};
+    const { decision, note, price } = req.body ?? {};
     if (decision !== 'approved' && decision !== 'declined') {
       res.status(400).json({ error: 'decision must be approved or declined' });
       return;
     }
     const cleanNote = typeof note === 'string' && note.trim() ? note.trim().slice(0, 300) : null;
+    // Approving a new goal (or a renamed one) carries the price the parent chose.
+    const cleanPrice = typeof price === 'number' && Number.isFinite(price) && price >= 0 ? price : null;
     const result = await pool.query(
-      `UPDATE submissions SET status = $1, decided_at = now(), note = $2
+      `UPDATE submissions
+         SET status = $1, decided_at = now(), note = $2,
+             payload = CASE WHEN $5::numeric IS NULL THEN payload ELSE payload || jsonb_build_object('price', $5::numeric) END
        WHERE id = $3 AND user_id = $4 AND status = 'pending' RETURNING *`,
-      [decision, cleanNote, req.params.id, req.userId]
+      [decision, cleanNote, req.params.id, req.userId, cleanPrice]
     );
     if (!result.rowCount) {
       // Already decided (say, from another parent phone) or taken back by the child: report what's there now.
