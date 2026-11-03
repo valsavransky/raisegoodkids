@@ -58,7 +58,7 @@ export function GoogleCalendarPickerScreen({ navigation }: Props) {
       <ScreenHeader
         title="Choose a calendar"
         step={2}
-        totalSteps={5}
+        totalSteps={6}
         onBack={() => navigation.goBack()}
         childName={childProfile.name}
         childAvatarId={childProfile.avatarId}

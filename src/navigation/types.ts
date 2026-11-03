@@ -11,6 +11,7 @@ export type SetupStackParamList = {
   ExpectedSetup: undefined;
   GigsSetup: undefined;
   FutureFundSetup: undefined;
+  FamilyDeviceIntro: undefined;
 };
 
 export type MainTabParamList = {
@@ -43,4 +44,7 @@ export type RootStackParamList = {
   AddChild: undefined;
   History: undefined;
   HistoryWeek: { weekStart: string };
+  Approvals: undefined;
+  ApproveGoal: { submissionId: string };
+  FamilyDevices: undefined;
 };

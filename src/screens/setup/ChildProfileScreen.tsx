@@ -97,7 +97,7 @@ export function ChildProfileScreen({ navigation }: Props) {
         contentContainerStyle={[styles.content, { paddingBottom: 40 + insets.bottom }]}
         keyboardShouldPersistTaps="handled"
       >
-      <ScreenHeader title="Add a child" step={1} totalSteps={5} titleMarginTop={28} />
+      <ScreenHeader title="Add a child" step={1} totalSteps={6} titleMarginTop={28} />
 
       <Text style={styles.label}>Avatar</Text>
       <View style={styles.avatarRow}>

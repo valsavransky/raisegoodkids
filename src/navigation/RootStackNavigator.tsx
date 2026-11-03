@@ -27,6 +27,9 @@ import { EditProfileScreen } from '../screens/parent/EditProfileScreen';
 import { AddChildScreen } from '../screens/parent/AddChildScreen';
 import { HistoryScreen } from '../screens/child/HistoryScreen';
 import { HistoryWeekScreen } from '../screens/child/HistoryWeekScreen';
+import { ApprovalsScreen } from '../screens/parent/ApprovalsScreen';
+import { ApproveGoalScreen } from '../screens/parent/ApproveGoalScreen';
+import { FamilyDevicesScreen } from '../screens/parent/FamilyDevicesScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -36,6 +39,9 @@ export function RootStackNavigator() {
       <Stack.Screen name="MainTabs" component={MainNavigator} />
       <Stack.Screen name="History" component={HistoryScreen} />
       <Stack.Screen name="HistoryWeek" component={HistoryWeekScreen} />
+      <Stack.Screen name="Approvals" component={ApprovalsScreen} />
+      <Stack.Screen name="ApproveGoal" component={ApproveGoalScreen} />
+      <Stack.Screen name="FamilyDevices" component={FamilyDevicesScreen} />
       <Stack.Group screenOptions={{ presentation: 'fullScreenModal' }}>
         <Stack.Screen name="GoalAchieved" component={GoalAchievedScreen} />
         <Stack.Screen name="FulfillGoal" component={FulfillGoalScreen} />

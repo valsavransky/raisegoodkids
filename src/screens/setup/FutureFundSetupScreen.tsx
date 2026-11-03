@@ -1,8 +1,8 @@
 // Setup's last step, and an optional one: pick a percentage of every gig to
 // set aside automatically as a Future Fund, or leave it Off and turn it on
 // later from Settings → Future Fund. Same picker as that Settings screen.
-// This is where setup actually completes (completeSetup) — Gigs used to be
-// the last screen.
+// The next (and last) step is the optional family-device step, which is where
+// setup actually completes (completeSetup).
 import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,7 +11,6 @@ import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { FuturePercentagePicker } from '../../components/FuturePercentagePicker';
 import { useSetup } from '../../context/SetupContext';
-import { useAppData } from '../../context/AppDataContext';
 import { useTrackSetupStep } from '../../hooks/useTrackScreen';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { colors } from '../../theme/colors';
@@ -22,7 +21,6 @@ export function FutureFundSetupScreen({ navigation }: Props) {
   useTrackSetupStep('future_fund');
   const insets = useSafeAreaInsets();
   const setup = useSetup();
-  const { completeSetup } = useAppData();
   const [draft, setDraft] = useState(String(setup.futureFundPercentage));
   const [invalid, setInvalid] = useState(false);
 
@@ -33,13 +31,7 @@ export function FutureFundSetupScreen({ navigation }: Props) {
       return;
     }
     setup.setFutureFundPercentage(parsed);
-    completeSetup({
-      childProfile: setup.childProfile,
-      scheduleEvents: setup.scheduleEvents,
-      expectedItems: setup.expectedItems,
-      gigs: setup.gigs,
-      futureFundPercentage: parsed,
-    });
+    navigation.navigate('FamilyDeviceIntro');
   };
 
   return (
@@ -47,7 +39,7 @@ export function FutureFundSetupScreen({ navigation }: Props) {
       <ScreenHeader
         title="Future Fund (Optional)"
         step={5}
-        totalSteps={5}
+        totalSteps={6}
         onBack={() => navigation.goBack()}
         childName={setup.childProfile.name}
         childAvatarId={setup.childProfile.avatarId}
@@ -74,7 +66,7 @@ export function FutureFundSetupScreen({ navigation }: Props) {
       </KeyboardAwareScrollView>
 
       <Pressable style={[styles.finishButton, { marginBottom: 20 + insets.bottom }]} onPress={finish}>
-        <Text style={styles.finishButtonText}>Finish setup</Text>
+        <Text style={styles.finishButtonText}>Continue</Text>
       </Pressable>
     </View>
   );

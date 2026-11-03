@@ -95,7 +95,7 @@ export function ExpectedSetupScreen({ navigation }: Props) {
       <ScreenHeader
         title="Expected"
         step={3}
-        totalSteps={5}
+        totalSteps={6}
         onBack={() => navigation.goBack()}
         childName={childProfile.name}
         childAvatarId={childProfile.avatarId}

@@ -21,6 +21,7 @@ import { AvatarGlyph } from './AvatarGlyph';
 import { Logo } from './Logo';
 import { ChildSwitcherSheet } from './ChildSwitcherSheet';
 import { EveryoneIcon } from './EveryoneIcon';
+import { useApprovals } from '../context/ApprovalsContext';
 import { colors } from '../theme/colors';
 
 export function AppHeader() {
@@ -29,6 +30,7 @@ export function AppHeader() {
   const { childProfile, childProfiles, viewingEveryone, setViewingEveryone } = useAppData();
   const [switcherVisible, setSwitcherVisible] = useState(false);
   const { isAutoAccount } = useAuth();
+  const { pending } = useApprovals();
 
   const hasSeveralChildren = childProfiles.length > 1;
   const firstName = hasSeveralChildren && viewingEveryone ? 'Everyone' : childProfile?.name?.trim().split(' ')[0];
@@ -57,7 +59,13 @@ export function AppHeader() {
           {/* Nudges the parent toward the Account tab's "Secure your
            * account" flow — the account exists and is already backing up
            * data invisibly, so nothing else surfaces this on its own. */}
-          {isAutoAccount && <View style={styles.chipDot} />}
+          {isAutoAccount && pending.length === 0 && <View style={styles.chipDot} />}
+          {/* How many things children have sent in, waiting for a parent. */}
+          {pending.length > 0 && (
+            <View style={styles.countBadge}>
+              <Text style={styles.countBadgeText}>{pending.length > 9 ? '9+' : pending.length}</Text>
+            </View>
+          )}
         </Pressable>
       </View>
       <ChildSwitcherSheet
@@ -104,6 +112,21 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   name: { fontSize: 13, fontWeight: '700', color: colors.text },
+  countBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    backgroundColor: colors.gigs,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.background,
+  },
+  countBadgeText: { color: '#fff', fontSize: 10, fontWeight: '800' },
   chipDot: {
     position: 'absolute',
     top: -2,

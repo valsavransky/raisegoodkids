@@ -13,6 +13,7 @@ import { ExpectedSetupScreen } from '../screens/setup/ExpectedSetupScreen';
 import { GigsSetupScreen } from '../screens/setup/GigsSetupScreen';
 import { SignUpEmailScreen } from '../screens/setup/SignUpEmailScreen';
 import { FutureFundSetupScreen } from '../screens/setup/FutureFundSetupScreen';
+import { FamilyDeviceIntroScreen } from '../screens/setup/FamilyDeviceIntroScreen';
 
 const Stack = createNativeStackNavigator<SetupStackParamList>();
 
@@ -31,6 +32,7 @@ export function SetupNavigator() {
       <Stack.Screen name="ExpectedSetup" component={ExpectedSetupScreen} />
       <Stack.Screen name="GigsSetup" component={GigsSetupScreen} />
       <Stack.Screen name="FutureFundSetup" component={FutureFundSetupScreen} />
+      <Stack.Screen name="FamilyDeviceIntro" component={FamilyDeviceIntroScreen} />
     </Stack.Navigator>
   );
 }

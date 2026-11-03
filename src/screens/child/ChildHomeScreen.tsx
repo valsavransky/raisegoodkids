@@ -55,6 +55,11 @@ import { AppHeader } from '../../components/AppHeader';
 import { FamilyOverview } from '../../components/FamilyOverview';
 import { HistoryIcon } from '../../components/HistoryIcon';
 import { TodayTipsSheet, TAP_HINT } from '../../components/TodayTipsSheet';
+import { WaitingBanner } from '../../components/WaitingBanner';
+import { FamilyDeviceCard } from '../../components/FamilyDeviceCard';
+import { useApprovals } from '../../context/ApprovalsContext';
+import { useNewTag } from '../../hooks/useNewTag';
+import { consumeOpenFamilyDevicesAfterSetup } from '../../utils/familyIntro';
 import { ExcuseTodaySheet } from '../../components/ExcuseTodaySheet';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { TaskIcon } from '../../components/icons/TaskIcons';
@@ -407,6 +412,15 @@ export function ChildHomeScreen() {
 
   const [excuseSheetVisible, setExcuseSheetVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
+  const { pending } = useApprovals();
+  const familyIsNew = useNewTag('family-devices');
+  // Setup's family-device step asks for Family devices to open once the app is ready.
+  useEffect(() => {
+    consumeOpenFamilyDevicesAfterSetup().then((wanted) => {
+      if (wanted) navigation.navigate('FamilyDevices');
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [tipsVisible, setTipsVisible] = useState(false);
   const [menuTop, setMenuTop] = useState(160);
   const moreRef = useRef<View>(null);
@@ -775,6 +789,12 @@ export function ChildHomeScreen() {
 
         <SettingsHintBadge onNavigateToSettings={() => navigation.navigate('Settings')} />
 
+        {pending.length > 0 ? (
+          <WaitingBanner count={pending.length} onReview={() => navigation.navigate('Approvals')} />
+        ) : (
+          <FamilyDeviceCard onSetUp={() => navigation.navigate('FamilyDevices')} />
+        )}
+
         <View style={styles.goalCardWrapper}>
           {!goal ? (
             <Pressable style={styles.emptyGoalCard} onPress={() => navigation.navigate('Goal')}>
@@ -1112,6 +1132,21 @@ export function ChildHomeScreen() {
               style={[styles.menuItem, styles.menuItemDivider]}
               onPress={() => {
                 setMenuVisible(false);
+                navigation.navigate('FamilyDevices');
+              }}
+            >
+              <Text style={[styles.menuIcon, styles.menuEmoji]}>📱</Text>
+              <Text style={styles.menuItemText}>Family devices</Text>
+              {familyIsNew && (
+                <View style={styles.newTag}>
+                  <Text style={styles.newTagText}>NEW</Text>
+                </View>
+              )}
+            </Pressable>
+            <Pressable
+              style={[styles.menuItem, styles.menuItemDivider]}
+              onPress={() => {
+                setMenuVisible(false);
                 setTipsVisible(true);
               }}
             >
@@ -1256,6 +1291,8 @@ const styles = StyleSheet.create({
   menuIcon: { width: 22, alignItems: 'center', justifyContent: 'center' },
   menuEmoji: { fontSize: 17, textAlign: 'center' },
   menuItemText: { fontSize: 15, fontWeight: '600', color: colors.text },
+  newTag: { marginLeft: 'auto', backgroundColor: colors.gigs, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 2 },
+  newTagText: { color: '#fff', fontSize: 10, fontWeight: '800' },
   moreButtonText: { fontSize: 22, fontWeight: '800', color: colors.textMuted, lineHeight: 22 },
   excusedNote: {
     marginHorizontal: 20,

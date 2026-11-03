@@ -23,6 +23,7 @@ import { isAnalyticsEnabled, setAnalyticsEnabled } from '../../services/analytic
 import { colors } from '../../theme/colors';
 import { PRIVACY_URL, TERMS_URL } from '../../config';
 import { appVersionDisplay } from '../../utils/appVersion';
+import { useNewTag } from '../../hooks/useNewTag';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
@@ -66,6 +67,7 @@ export function SettingsScreen({ navigation }: Props) {
   const { childProfile, parentName, resetAllData, soundEnabled, setSoundEnabled, futureFund } = useAppData();
   const { isAutoAccount, accountEmail } = useAuth();
   const childFirstName = childProfile?.name?.trim().split(' ')[0];
+  const familyIsNew = useNewTag('family-devices');
   const [reminderSubtitle, setReminderSubtitle] = useState('Off');
   const [shareUsage, setShareUsage] = useState(true);
   React.useEffect(() => {
@@ -155,6 +157,12 @@ export function SettingsScreen({ navigation }: Props) {
             label="Daily reminder"
             value={reminderSubtitle}
             onPress={() => navigation.navigate('NotificationSettings')}
+          />
+          <SettingsRow
+            icon="📱"
+            label="Family devices"
+            attention={familyIsNew}
+            onPress={() => navigation.navigate('FamilyDevices')}
           />
           <SettingsRow
             icon="🔊"

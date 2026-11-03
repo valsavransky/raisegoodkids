@@ -102,7 +102,7 @@ export function GigsSetupScreen({ navigation }: Props) {
       <ScreenHeader
         title="Gigs"
         step={4}
-        totalSteps={5}
+        totalSteps={6}
         onBack={() => navigation.goBack()}
         childName={childProfile.name}
         childAvatarId={childProfile.avatarId}
