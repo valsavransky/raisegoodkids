@@ -72,13 +72,15 @@ export async function runMigrations(): Promise<void> {
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       device_id INTEGER REFERENCES family_devices(id) ON DELETE SET NULL,
       child_id TEXT NOT NULL,
-      kind TEXT NOT NULL CHECK (kind IN ('expected', 'gig')),
+      kind TEXT NOT NULL CHECK (kind IN ('expected', 'gig', 'goal_add', 'goal_rename', 'goal_switch')),
       item_id TEXT NOT NULL,
       day TEXT NOT NULL,
       submitted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'declined')),
       decided_at TIMESTAMPTZ,
-      note TEXT
+      note TEXT,
+      -- goal_add / goal_rename: { name }. Empty for the other kinds.
+      payload JSONB NOT NULL DEFAULT '{}'
     );
     CREATE UNIQUE INDEX IF NOT EXISTS submissions_one_pending_idx
       ON submissions (user_id, kind, item_id, day) WHERE status = 'pending';

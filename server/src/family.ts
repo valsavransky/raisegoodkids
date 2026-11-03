@@ -110,9 +110,16 @@ function isDay(value: unknown): value is string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
-/** True when the family's data has this item for this child. */
-function hasItem(data: any, kind: 'expected' | 'gig', childId: string, itemId: string): boolean {
-  const list = kind === 'expected' ? data?.expectedItems : data?.gigs;
+type SubmissionKind = 'expected' | 'gig' | 'goal_add' | 'goal_rename' | 'goal_switch';
+const KINDS: SubmissionKind[] = ['expected', 'gig', 'goal_add', 'goal_rename', 'goal_switch'];
+
+/** True when the family's data has this activity, gig or goal for this child.
+ * A new goal has nothing to find yet, so it only needs a child. */
+function hasItem(data: any, kind: SubmissionKind, childId: string, itemId: string): boolean {
+  if (kind === 'goal_add') {
+    return Array.isArray(data?.childProfiles) && data.childProfiles.some((c: any) => c?.id === childId);
+  }
+  const list = kind === 'expected' ? data?.expectedItems : kind === 'gig' ? data?.gigs : data?.goals;
   return Array.isArray(list) && list.some((i: any) => i?.id === itemId && i?.childProfileId === childId);
 }
 
@@ -123,6 +130,7 @@ const submissionRow = (r: any) => ({
   itemId: r.item_id,
   day: r.day,
   status: r.status,
+  payload: r.payload ?? {},
   note: r.note ?? undefined,
   submittedAt: r.submitted_at,
   decidedAt: r.decided_at ?? undefined,
@@ -282,14 +290,24 @@ familyRouter.get('/child/data', requireDevice, async (req: DeviceRequest, res: R
 
 familyRouter.post('/child/submissions', requireDevice, async (req: DeviceRequest, res: Response) => {
   try {
-    const { id, childId, kind, itemId, day } = req.body ?? {};
+    const { id, childId, kind, itemId, day, payload } = req.body ?? {};
     if (
       typeof id !== 'string' || !id || id.length > 80 ||
       typeof childId !== 'string' || typeof itemId !== 'string' ||
-      (kind !== 'expected' && kind !== 'gig') || !isDay(day)
+      !KINDS.includes(kind) || !isDay(day)
     ) {
       res.status(400).json({ error: 'Bad submission' });
       return;
+    }
+    // A goal request carries the name the child typed.
+    let cleanPayload: Record<string, unknown> = {};
+    if (kind === 'goal_add' || kind === 'goal_rename') {
+      const name = typeof payload?.name === 'string' ? payload.name.trim().slice(0, 80) : '';
+      if (!name) {
+        res.status(400).json({ error: 'A goal needs a name' });
+        return;
+      }
+      cleanPayload = { name };
     }
     const data = await pool.query('SELECT data FROM app_data WHERE user_id = $1', [req.userId]);
     if (!hasItem(data.rows[0]?.data, kind, childId, itemId)) {
@@ -298,10 +316,10 @@ familyRouter.post('/child/submissions', requireDevice, async (req: DeviceRequest
     }
     // Sending the same tap twice (a retry) is fine: the id is the child's own, and an existing waiting one is kept.
     const inserted = await pool.query(
-      `INSERT INTO submissions (id, user_id, device_id, child_id, kind, item_id, day)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO submissions (id, user_id, device_id, child_id, kind, item_id, day, payload)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        ON CONFLICT DO NOTHING RETURNING *`,
-      [id, req.userId, req.deviceId, childId, kind, itemId, day]
+      [id, req.userId, req.deviceId, childId, kind, itemId, day, cleanPayload]
     );
     if (inserted.rowCount) {
       res.json({ submission: submissionRow(inserted.rows[0]) });
