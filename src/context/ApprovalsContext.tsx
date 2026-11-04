@@ -10,7 +10,7 @@ import { listSubmissions, decideSubmission, ApiError } from '../services/api';
 import { Goal, Submission } from '../types/models';
 import { track } from '../services/analytics';
 
-const POLL_MS = 60 * 1000;
+const POLL_MS = 15 * 1000;
 
 interface ApprovalsValue {
   /** Everything the server returned: waiting, and recently decided. */
