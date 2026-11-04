@@ -170,7 +170,7 @@ export function ApprovalsScreen({ navigation }: Props) {
                         <View style={styles.rowText}>
                           <Text style={styles.rowTitle}>{g.name}</Text>
                           <Text style={styles.rowDetail}>
-                            Reached{g.achievedAt ? ` ${formatShortDate(g.achievedAt.slice(0, 10))}` : ''}. Mark it fulfilled once you’ve handled it.
+                            {child.name.trim().split(/\s+/)[0]} reached this goal{g.achievedAt ? ` on ${formatShortDate(g.achievedAt.slice(0, 10))}` : ''}! Tap when you’ve fulfilled it in real life.
                           </Text>
                         </View>
                         <Text style={styles.chevron}>{'›'}</Text>
@@ -191,7 +191,7 @@ export function ApprovalsScreen({ navigation }: Props) {
             );
           })
         )}
-        {groups.length > 0 && <Text style={styles.hint}>Ticked items will be approved. Untick one to send it back.</Text>}
+        {pending.length > 0 && <Text style={styles.hint}>Ticked items will be approved. Untick one to send it back.</Text>}
       </ScrollView>
 
       <NoteSheet
