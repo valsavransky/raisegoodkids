@@ -40,3 +40,7 @@ server/.env
 # generated native folders
 /ios
 /android
+
+# Firebase service account keys are secrets: never commit them
+*-firebase-adminsdk-*.json
+*service-account*.json
