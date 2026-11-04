@@ -8,7 +8,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { SettingsSubHeader } from '../../components/SettingsSubHeader';
-import { AddPill } from '../../components/AddPill';
 import { useAuth } from '../../context/AuthContext';
 import { useSheet, offlineSheet } from '../../components/SheetProvider';
 import { createFamilyCode, listFamilyDevices, removeFamilyDevice } from '../../services/api';
@@ -136,7 +135,7 @@ export function FamilyDevicesScreen({ navigation }: Props) {
 
   return (
     <View style={styles.screen}>
-      <SettingsSubHeader title="Family devices" onBack={() => navigation.goBack()} action={<AddPill onPress={makeCode} />} />
+      <SettingsSubHeader title="Family devices" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={[styles.content, { flexGrow: 1 }]}>
         {devices === null && !loadError && <ActivityIndicator style={{ marginTop: 30 }} />}
         {loadError && devices === null && (
