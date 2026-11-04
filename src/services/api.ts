@@ -147,10 +147,20 @@ export function goalPhotoUrl(goalId: string, version: number): string {
 export async function uploadGoalPhoto(token: string, goalId: string, fileUri: string): Promise<void> {
   if (!API_BASE_URL) throw new Error('API base URL not configured');
   const blob = await (await fetch(fileUri)).blob();
+  // Sent as base64 text: a file blob as the request body arrives empty.
+  const dataUrl: string = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(String(reader.result ?? ''));
+    reader.onerror = () => reject(new Error('Could not read the photo'));
+    reader.readAsDataURL(blob);
+  });
+  const comma = dataUrl.indexOf(',');
+  const mime = /^data:(image\/[\w.+-]+)/.exec(dataUrl)?.[1] ?? 'image/jpeg';
+  if (comma < 0) throw new Error('Could not read the photo');
   const res = await fetch(`${API_BASE_URL}/goal-photos/${encodeURIComponent(goalId)}`, {
     method: 'PUT',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': blob.type || 'image/jpeg' },
-    body: blob,
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'text/plain', 'X-Photo-Type': mime },
+    body: dataUrl.slice(comma + 1),
   });
   if (!res.ok) throw new ApiError(res.status, `Photo upload failed (${res.status})`);
 }

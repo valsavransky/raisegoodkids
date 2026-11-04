@@ -371,19 +371,32 @@ familyRouter.delete('/child/submissions/:id', requireDevice, async (req: DeviceR
 familyRouter.put(
   '/goal-photos/:goalId',
   requireAuth,
-  express.raw({ type: 'image/*', limit: '8mb' }),
+  // The app sends the photo as base64 text (its network layer can't send a file blob as a body);
+  // a plain image upload works too.
+  express.raw({ type: 'image/*', limit: '12mb' }),
+  express.text({ type: 'text/plain', limit: '12mb' }),
   async (req: AuthedRequest, res: Response) => {
     try {
       const goalId = String(req.params.goalId);
-      if (!Buffer.isBuffer(req.body) || req.body.length === 0 || goalId.length > 80) {
+      const bytes: Buffer | null = Buffer.isBuffer(req.body)
+        ? req.body
+        : typeof req.body === 'string' && req.body.length > 0
+          ? Buffer.from(req.body, 'base64')
+          : null;
+      if (!bytes || bytes.length === 0 || goalId.length > 80) {
         res.status(400).json({ error: 'Send the photo as an image' });
         return;
       }
+      const contentType = Buffer.isBuffer(req.body)
+        ? req.header('content-type') ?? 'image/jpeg'
+        : /^image\/[\w.+-]+$/.test(req.header('x-photo-type') ?? '')
+          ? (req.header('x-photo-type') as string)
+          : 'image/jpeg';
       await pool.query(
         `INSERT INTO goal_photos (user_id, goal_id, content_type, data, updated_at)
          VALUES ($1, $2, $3, $4, now())
          ON CONFLICT (user_id, goal_id) DO UPDATE SET content_type = $3, data = $4, updated_at = now()`,
-        [req.userId, goalId, req.header('content-type') ?? 'image/jpeg', req.body]
+        [req.userId, goalId, contentType, bytes]
       );
       res.json({ ok: true });
     } catch (err) {
