@@ -41,7 +41,7 @@
 // live-ticking clock — precise enough for a glance-at-it-during-check-in
 // use case, without the battery/complexity cost of a real-time timer.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, Pressable, ScrollView, Alert, Modal, StyleSheet, Image, Animated, LayoutAnimation } from 'react-native';
+import { View, Text, Pressable, ScrollView, useWindowDimensions, Modal, StyleSheet, Image, Animated, LayoutAnimation } from 'react-native';
 import Svg, { Path, Defs, Pattern, Rect, Circle } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -58,6 +58,7 @@ import { TodayTipsSheet, TAP_HINT } from '../../components/TodayTipsSheet';
 import { WaitingBanner } from '../../components/WaitingBanner';
 import { FamilyDeviceCard } from '../../components/FamilyDeviceCard';
 import { useApprovals } from '../../context/ApprovalsContext';
+import { dayStatus } from '../../utils/streak';
 import { loadCelebrated, isCelebrated, markCelebrated, onCelebrationsChanged } from '../../utils/childCelebrations';
 import { GoalPhoto } from '../../components/GoalPhoto';
 import { useSheet, confirmSheet, noticeSheet } from '../../components/SheetProvider';
@@ -419,6 +420,7 @@ export function ChildHomeScreen() {
     expectedStreak,
     scheduleEvents,
     deviceMode,
+    waitingRequests,
     badges,
     goals,
     isWaiting,
@@ -949,32 +951,13 @@ export function ChildHomeScreen() {
     if (gig) handleGigPress(gig, date);
   };
 
-  if (viewingEveryone && childProfiles.length > 1) {
-    return (
-      <View style={styles.screen}>
-        <AppHeader />
-        <FamilyOverview />
-      </View>
-    );
-  }
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  // A tablet held sideways gets two panes; held upright (or a phone) it keeps the single column.
+  const wide = windowWidth >= 900 && windowWidth > windowHeight;
 
-  return (
-    <View style={styles.screen}>
-      <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
-        <Defs>
-          <Pattern id="dotTexture" width={18} height={18} patternUnits="userSpaceOnUse">
-            <Circle cx={9} cy={9} r={1.5} fill="rgba(20,20,19,0.055)" />
-          </Pattern>
-        </Defs>
-        <Rect width="100%" height="100%" fill="url(#dotTexture)" />
-      </Svg>
-
-      <View style={styles.fixedHeader}>
-        <AppHeader />
-
-        {!deviceMode && <SettingsHintBadge onNavigateToSettings={() => navigation.navigate('Settings')} />}
-
-        {deviceMode ? (
+  const bannerEl = (
+    <>
+      {deviceMode ? (
           (() => {
             // Sent-back items each get their own card (they have a note to read); approved ones
             // share a single card so a busy morning doesn't push the trail off the screen.
@@ -1011,10 +994,10 @@ export function ChildHomeScreen() {
         ) : (
           <FamilyDeviceCard onSetUp={() => navigation.navigate('FamilyDevices')} />
         )}
+    </>
+  );
 
-        {/* A parent's Today stays uncluttered: the goal lives on the Goal tab. A child still sees it here,
-         * and a parent with no goal yet still gets the nudge. */}
-        {(deviceMode || !goal) && (
+  const goalCardEl = (
         <View style={styles.goalCardWrapper}>
           {!goal ? (
             <Pressable style={styles.emptyGoalCard} onPress={() => navigation.navigate('Goal')}>
@@ -1047,9 +1030,42 @@ export function ChildHomeScreen() {
             </View>
           )}
         </View>
-        )}
+  );
+
+  if (viewingEveryone && childProfiles.length > 1) {
+    return (
+      <View style={styles.screen}>
+        <AppHeader />
+        <FamilyOverview />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.screen}>
+      <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Defs>
+          <Pattern id="dotTexture" width={18} height={18} patternUnits="userSpaceOnUse">
+            <Circle cx={9} cy={9} r={1.5} fill="rgba(20,20,19,0.055)" />
+          </Pattern>
+        </Defs>
+        <Rect width="100%" height="100%" fill="url(#dotTexture)" />
+      </Svg>
+
+      <View style={styles.fixedHeader}>
+        <AppHeader />
+
+        {!deviceMode && <SettingsHintBadge onNavigateToSettings={() => navigation.navigate('Settings')} />}
+
+        {!wide && bannerEl}
+
+        {/* A parent's Today stays uncluttered on a phone: the goal lives on the Goal tab. A child still sees
+         * it here, and a parent with no goal yet still gets the nudge. */}
+        {!wide && (deviceMode || !goal) && goalCardEl}
       </View>
 
+      <View style={wide ? styles.wideRow : styles.fill}>
+        <View style={wide ? styles.wideMain : styles.fill}>
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
@@ -1334,6 +1350,60 @@ export function ChildHomeScreen() {
           </View>
         )}
       </ScrollView>
+        </View>
+        {wide && (
+          <ScrollView style={styles.sidePanel} contentContainerStyle={styles.sidePanelContent}>
+            {bannerEl}
+            {goalCardEl}
+
+            <View style={styles.sideCard}>
+              <Text style={styles.sideLabel}>THIS WEEK</Text>
+              <View style={styles.weekStrip}>
+                {weekDates.map((d) => {
+                  const isToday = d === todayStr;
+                  const future = d > todayStr;
+                  const status = future ? 'future' : dayStatus(d, dailyItems, expectedCompletions, (x: string) => isDayExcused(x));
+                  return (
+                    <View
+                      key={d}
+                      style={[
+                        styles.weekCell,
+                        status === 'complete' && styles.weekCellDone,
+                        status === 'paused' && styles.weekCellPaused,
+                        isToday && status !== 'complete' && styles.weekCellToday,
+                      ]}
+                    >
+                      <Text style={[styles.weekCellText, status === 'complete' && { color: '#fff' }, isToday && status !== 'complete' && { color: colors.expected }]}>
+                        {status === 'complete' ? '✓' : WEEKDAY_ABBR[new Date(`${d}T00:00:00`).getDay()]}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+              {streak > 0 && <Text style={styles.sideStreak}>🔥 {streak}-day streak</Text>}
+            </View>
+
+            {deviceMode && (
+              <View style={styles.sideCard}>
+                <Text style={styles.sideLabel}>SENT TO A PARENT</Text>
+                {waitingRequests.length === 0 ? (
+                  <Text style={styles.sideEmpty}>Nothing waiting. Tap something on your trail when it’s done.</Text>
+                ) : (
+                  waitingRequests.map((r) => {
+                    const label = labelFor(r);
+                    return (
+                      <View key={r.id} style={styles.sideRow}>
+                        <View style={[styles.sideRing, { borderColor: label.color === 'amber' ? colors.gigs : colors.expected }]} />
+                        <Text style={styles.sideRowText} numberOfLines={2}>{label.title}</Text>
+                      </View>
+                    );
+                  })
+                )}
+              </View>
+            )}
+          </ScrollView>
+        )}
+      </View>
 
       <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
         <Pressable style={styles.menuBackdrop} onPress={() => setMenuVisible(false)}>
@@ -1400,6 +1470,24 @@ export function ChildHomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  wideRow: { flex: 1, flexDirection: 'row' },
+  wideMain: { flex: 1.15 },
+  sidePanel: { flex: 0.85, borderLeftWidth: 1, borderLeftColor: '#EEE6D8', backgroundColor: '#FFFBF5' },
+  sidePanelContent: { paddingTop: 16, paddingBottom: 32, gap: 4 },
+  sideCard: { marginHorizontal: 20, marginTop: 10, backgroundColor: '#fff', borderRadius: 18, borderWidth: 1, borderColor: '#EEE6D8', padding: 16 },
+  sideLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.7, color: colors.textMuted, marginBottom: 12 },
+  weekStrip: { flexDirection: 'row', gap: 6 },
+  weekCell: { flex: 1, height: 38, borderRadius: 10, backgroundColor: '#EEE9DD', alignItems: 'center', justifyContent: 'center' },
+  weekCellDone: { backgroundColor: colors.expected },
+  weekCellPaused: { backgroundColor: '#FCEBD2' },
+  weekCellToday: { backgroundColor: '#fff', borderWidth: 2, borderColor: colors.expected },
+  weekCellText: { fontSize: 12, fontWeight: '800', color: '#8A8578' },
+  sideStreak: { fontSize: 14, fontWeight: '800', color: colors.expected, marginTop: 12 },
+  sideEmpty: { fontSize: 14, color: colors.textMuted, lineHeight: 20 },
+  sideRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
+  sideRing: { width: 24, height: 24, borderRadius: 12, borderWidth: 3, borderStyle: 'dashed' },
+  sideRowText: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.text },
   noticeCard: {
     marginHorizontal: 20,
     marginBottom: 8,

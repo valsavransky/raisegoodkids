@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Text, useWindowDimensions } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MainTabParamList } from './types';
 import { ChildHomeScreen } from '../screens/child/ChildHomeScreen';
@@ -16,10 +16,15 @@ const TAB_ICONS: Record<keyof MainTabParamList, string> = {
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export function MainNavigator() {
+  const { width, height } = useWindowDimensions();
+  // A tablet held sideways gets a side rail instead of a bottom bar.
+  const wide = width >= 900 && width > height;
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
+        tabBarPosition: wide ? 'left' : 'bottom',
+        tabBarVariant: wide ? 'material' : 'uikit',
         tabBarActiveTintColor: colors.expected,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarIcon: () => <Text style={{ fontSize: 20 }}>{TAB_ICONS[route.name as keyof MainTabParamList]}</Text>,

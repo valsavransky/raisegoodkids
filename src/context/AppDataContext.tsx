@@ -395,6 +395,8 @@ interface AppDataContextValue {
   isWaiting: (kind: 'expected' | 'gig', itemId: string, day?: string) => boolean;
   /** Family device only: this child's goal requests that are still with a parent. */
   waitingGoalRequests: Submission[];
+  /** Family device only: everything this child has sent that is still with a parent. */
+  waitingRequests: Submission[];
   /** Family device only: answers from a parent this child hasn't seen yet. */
   childNotices: Submission[];
   dismissNotice: (id: string) => void;
@@ -1403,6 +1405,7 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
       refreshChildDataRef.current();
     }
   };
+  const waitingRequests = deviceSubs.filter((s) => s.status === 'pending' && s.childId === childId);
   const waitingGoalRequests = deviceSubs.filter(
     (s) => s.status === 'pending' && s.childId === childId && s.kind.startsWith('goal_')
   );
@@ -1905,6 +1908,7 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
         deviceChildChosen: !!chosenChildId && childProfiles.some((c) => c.id === chosenChildId),
         isWaiting,
         waitingGoalRequests,
+        waitingRequests,
         childNotices,
         dismissNotice,
         refreshChildData,

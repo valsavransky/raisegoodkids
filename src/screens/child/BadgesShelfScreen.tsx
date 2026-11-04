@@ -198,7 +198,7 @@ export function BadgesShelfScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { padding: 20 },
+  content: { padding: 20, maxWidth: 760, width: '100%', alignSelf: 'center' },
   title: { fontSize: 22, fontWeight: '700', color: colors.text },
   subtitle: { fontSize: 14, color: colors.textMuted, marginTop: 4, marginBottom: 20 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },

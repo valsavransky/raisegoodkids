@@ -714,7 +714,8 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   title: { flex: 1, fontSize: 22, fontWeight: '700', color: colors.text },
   list: { flex: 1 },
-  listContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20 },
+  // On a wide tablet the list stays a readable width instead of stretching edge to edge.
+  listContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20, maxWidth: 760, width: '100%', alignSelf: 'center' },
   emptyText: { fontSize: 14, color: colors.textMuted, textAlign: 'center', marginTop: 24 },
   emptyCard: { alignItems: 'center', paddingHorizontal: 12 },
   nextGoalCard: { backgroundColor: '#FFF3E0', borderRadius: 22, padding: 20, alignItems: 'center', gap: 10, marginTop: 6, marginBottom: 6 },
