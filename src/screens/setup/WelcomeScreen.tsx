@@ -171,6 +171,13 @@ const styles = StyleSheet.create({
   dotActive: { backgroundColor: colors.expected, width: 22 },
   button: { backgroundColor: colors.expected, borderRadius: 12, paddingVertical: 16, alignItems: 'center' },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  deviceLink: { alignItems: 'center', paddingTop: 18 },
-  deviceLinkText: { color: colors.textMuted, fontSize: 14, textDecorationLine: 'underline' },
+  deviceLink: {
+    marginTop: 12,
+    borderWidth: 1.5,
+    borderColor: colors.expected,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  deviceLinkText: { color: colors.expected, fontSize: 16, fontWeight: '700' },
 });
