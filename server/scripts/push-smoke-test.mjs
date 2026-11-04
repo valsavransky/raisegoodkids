@@ -1,6 +1,6 @@
 // Starts a fake Expo push endpoint, then checks batching, answers, quiet hours and daily reminders against a
 // locally running server started with:
-//   EXPO_PUSH_URL=http://localhost:4555 PUSH_BATCH_SECONDS=2 PUSH_WORKER_MS=1000 ... npx tsx src/index.ts
+//   EXPO_PUSH_URL=http://localhost:4555 PUSH_BATCH_SECONDS=2 PUSH_ANSWER_BATCH_SECONDS=2 PUSH_WORKER_MS=1000 ... npx tsx src/index.ts
 import http from 'node:http';
 const B = process.env.BASE ?? 'http://localhost:3999';
 const sent = [];

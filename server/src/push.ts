@@ -12,6 +12,8 @@ import { requireAuth, AuthedRequest } from './auth';
 
 const EXPO_PUSH_URL = process.env.EXPO_PUSH_URL || 'https://exp.host/--/api/v2/push/send';
 const BATCH_SECONDS = Number(process.env.PUSH_BATCH_SECONDS ?? 60);
+// A child usually has their phone in hand right after a parent approves, so answers go out sooner.
+const ANSWER_BATCH_SECONDS = Number(process.env.PUSH_ANSWER_BATCH_SECONDS ?? 15);
 const WORKER_MS = Number(process.env.PUSH_WORKER_MS ?? 15000);
 const WAITING_HOURS = 2;
 
@@ -207,7 +209,7 @@ export async function queueRequest(userId: number, childId: string, kind: string
 export async function queueAnswer(userId: number, sub: { childId: string; kind: string; itemId: string; payload?: any }, decision: 'approved' | 'declined', note?: string | null) {
   try {
     if (decision === 'approved') {
-      await enqueue(userId, 'child', sub.childId, 'approved', {}, BATCH_SECONDS);
+      await enqueue(userId, 'child', sub.childId, 'approved', {}, ANSWER_BATCH_SECONDS);
       return;
     }
     const title =
