@@ -44,7 +44,7 @@ export function GoalAchievedScreen({ route, navigation }: Props) {
   const playFanfare = () => {
     // The child tapped "Play the fanfare", so it plays even if the family's sound setting is off.
     setSoundDebug('starting…');
-    playSound('fanfare', true, (t) => setSoundDebug((prev) => `${prev}\n${t}`.split('\n').slice(-5).join('\n')));
+    playSound('fanfare', true, (t) => setSoundDebug((prev) => `${prev}\n${t}`.split('\n').slice(-8).join('\n')));
     setConfettiTrigger((n) => n + 1);
   };
 

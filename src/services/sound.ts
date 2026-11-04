@@ -4,6 +4,7 @@
 // clips (a chore checkoff) rather than anything needing gapless replay —
 // simplicity here matters more than the small overhead of a new player.
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
+import { Asset } from 'expo-asset';
 
 // Let these sounds play even when an iPhone or iPad's silent switch is on (a kid's tablet often is).
 let audioModeSet = false;
@@ -36,54 +37,70 @@ export function playSound(name: SoundName, enabled: boolean, debug?: (text: stri
     return;
   }
   ensureAudioMode();
-  try {
-    const player = createAudioPlayer(SOUNDS[name]);
-    player.volume = 1;
-    let started = false;
-    const start = (why: string) => {
-      if (started) return;
-      started = true;
-      try {
-        player.play();
-        say(`play() called (${why})`);
-      } catch (e) {
-        say(`play failed: ${String(e)}`);
-      }
-    };
-    // Start as soon as the clip has loaded (starting before that can silently do nothing on Android),
-    // and fall back to starting anyway shortly after.
-    let sub: { remove: () => void } | null = null;
+  // Make sure the sound file is on this device first, then play it from that local copy. (Handing the
+  // player the bundled asset directly can silently never load, which is what a silent fanfare looked like.)
+  (async () => {
+    let source: string | number = SOUNDS[name];
     try {
-      sub = player.addListener('playbackStatusUpdate', (status: { isLoaded?: boolean; didJustFinish?: boolean }) => {
-        if (status.isLoaded) start('loaded');
-        if ((status as { playing?: boolean }).playing) say('playing');
-        if (status.didJustFinish) {
-          say('finished');
-          sub?.remove();
-          try {
-            player.remove();
-          } catch {
-            // Already released.
-          }
-        }
-      });
+      const asset = Asset.fromModule(SOUNDS[name]);
+      if (!asset.localUri) await asset.downloadAsync();
+      const uri = asset.localUri ?? asset.uri;
+      say(`file ready: ${uri.slice(-40)}`);
+      source = uri;
     } catch (e) {
-      say(`could not listen for load: ${String(e)}`);
+      say(`couldn't fetch the sound file: ${String(e)}`);
     }
-    if (player.isLoaded) start('already loaded');
-    setTimeout(() => start('fallback'), 250);
-    // Release the player if the finish event never came.
-    setTimeout(() => {
+    try {
+      const player = createAudioPlayer(source);
+      player.volume = 1;
+      let started = false;
+      const start = (why: string) => {
+        if (started) return;
+        started = true;
+        try {
+          player.play();
+          say(`play() called (${why})`);
+        } catch (e) {
+          say(`play failed: ${String(e)}`);
+        }
+      };
+      let sub: { remove: () => void } | null = null;
       try {
-        sub?.remove();
-        player.remove();
-      } catch {
-        // Already released.
+        sub = player.addListener('playbackStatusUpdate', (status: { isLoaded?: boolean; didJustFinish?: boolean; playing?: boolean }) => {
+          if (status.isLoaded) start('loaded');
+          if (status.playing) say('playing');
+          if (status.didJustFinish) {
+            say('finished');
+            sub?.remove();
+            try {
+              player.remove();
+            } catch {
+              // Already released.
+            }
+          }
+        });
+      } catch (e) {
+        say(`could not listen: ${String(e)}`);
       }
-    }, 5000);
-  } catch (e) {
-    // A missing/broken sound file should never block the real action
-    // (marking an item done) that triggered it.
-    say(`could not play: ${String(e)}`);
-  }
+      if (player.isLoaded) start('already loaded');
+      setTimeout(() => start('fallback'), 250);
+      setTimeout(() => {
+        try {
+          say(`after 1s: loaded=${player.isLoaded} playing=${player.playing} length=${player.duration?.toFixed?.(2)}s muted=${player.muted}`);
+        } catch {
+          // Already released.
+        }
+      }, 1000);
+      setTimeout(() => {
+        try {
+          sub?.remove();
+          player.remove();
+        } catch {
+          // Already released.
+        }
+      }, 6000);
+    } catch (e) {
+      say(`could not play: ${String(e)}`);
+    }
+  })();
 }
