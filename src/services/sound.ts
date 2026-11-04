@@ -26,8 +26,15 @@ type SoundName = keyof typeof SOUNDS;
  * callers pass the household's sound preference (see
  * AppDataContext.soundEnabled) rather than this module tracking its own
  * mutable state, so there's no risk of a stale toggle value. */
-export function playSound(name: SoundName, enabled: boolean) {
-  if (!enabled) return;
+export function playSound(name: SoundName, enabled: boolean, debug?: (text: string) => void) {
+  const say = (text: string) => {
+    console.warn(`[sound] ${name}: ${text}`);
+    debug?.(text);
+  };
+  if (!enabled) {
+    say('sound is turned off in Settings');
+    return;
+  }
   ensureAudioMode();
   try {
     const player = createAudioPlayer(SOUNDS[name]);
@@ -38,9 +45,9 @@ export function playSound(name: SoundName, enabled: boolean) {
       started = true;
       try {
         player.play();
-        console.warn(`[sound] ${name}: play() called (${why})`);
+        say(`play() called (${why})`);
       } catch (e) {
-        console.warn('[sound] play failed', name, String(e));
+        say(`play failed: ${String(e)}`);
       }
     };
     // Start as soon as the clip has loaded (starting before that can silently do nothing on Android),
@@ -49,7 +56,9 @@ export function playSound(name: SoundName, enabled: boolean) {
     try {
       sub = player.addListener('playbackStatusUpdate', (status: { isLoaded?: boolean; didJustFinish?: boolean }) => {
         if (status.isLoaded) start('loaded');
+        if ((status as { playing?: boolean }).playing) say('playing');
         if (status.didJustFinish) {
+          say('finished');
           sub?.remove();
           try {
             player.remove();
@@ -59,7 +68,7 @@ export function playSound(name: SoundName, enabled: boolean) {
         }
       });
     } catch (e) {
-      console.warn('[sound] could not listen for load', String(e));
+      say(`could not listen for load: ${String(e)}`);
     }
     if (player.isLoaded) start('already loaded');
     setTimeout(() => start('fallback'), 250);
@@ -75,6 +84,6 @@ export function playSound(name: SoundName, enabled: boolean) {
   } catch (e) {
     // A missing/broken sound file should never block the real action
     // (marking an item done) that triggered it.
-    console.warn('[sound] could not play', name, String(e));
+    say(`could not play: ${String(e)}`);
   }
 }
