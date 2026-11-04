@@ -143,6 +143,8 @@ interface PersistedAppData {
   /** Ids of approved child submissions already turned into completions or goals
    * here, so an approval is applied exactly once. Newest last; capped. */
   appliedSubmissions?: string[];
+  /** Family device only: what each gig adds toward its child's goal, worked out by the server. */
+  gigPercents?: Record<string, number>;
 }
 
 export interface MarkGigDoneResult {
@@ -451,6 +453,7 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
   const [allDailyExcuses, setDailyExcuses] = useState<DailyExcuse[]>([]);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [appliedSubmissions, setAppliedSubmissions] = useState<string[]>([]);
+  const [deviceGigPercents, setDeviceGigPercents] = useState<Record<string, number>>({});
   // ---- Family device (child) state ----
   const deviceMode = !!childDevice;
   const dataKey = deviceMode ? CHILD_STORAGE_KEY : STORAGE_KEY;
@@ -496,6 +499,7 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
     dailyExcuses: allDailyExcuses,
     soundEnabled,
     appliedSubmissions,
+    ...(deviceMode ? { gigPercents: deviceGigPercents } : {}),
   });
 
   const applyPersisted = (data: PersistedAppData) => {
@@ -519,6 +523,7 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
     setDailyExcuses(data.dailyExcuses ?? []);
     setSoundEnabled(data.soundEnabled ?? true);
     setAppliedSubmissions(data.appliedSubmissions ?? []);
+    setDeviceGigPercents(data.gigPercents ?? {});
   };
 
   // Load once on mount. Until this resolves, isHydrated stays false so
@@ -983,6 +988,7 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
   };
 
   const gigPreviewPercentage = (gig: Gig): number | null => {
+    if (deviceMode) return deviceGigPercents[gig.id] ?? null;
     const goal = activeGoal();
     if (!goal || !futureFund) return null;
     return computeGigPercentage(gig.effortTier, goal, futureFund.percentage, gigEffortValues);
@@ -1494,6 +1500,7 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
   };
 
   const gigPercentFor = (forChildId: string, gigId: string): number | null => {
+    if (deviceMode) return deviceGigPercents[gigId] ?? null;
     const gig = allGigs.find((g) => g.id === gigId);
     const goal = allGoals.find((g) => g.childProfileId === forChildId && g.status === 'active');
     const fund = futureFunds.find((f) => f.childProfileId === forChildId);

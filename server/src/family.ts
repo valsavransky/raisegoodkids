@@ -99,6 +99,9 @@ async function requireDevice(req: DeviceRequest, res: Response, next: NextFuncti
 export function dataForChild(data: Record<string, unknown> | null): Record<string, unknown> | null {
   if (!data) return null;
   const copy: Record<string, unknown> = { ...data };
+  // What each gig is worth toward its child's active goal, in percent. Worked out here so the device
+  // never sees prices, gig values or the Future Fund setting.
+  copy.gigPercents = gigPercents(data);
   delete copy.futureFund;
   delete copy.futureFunds;
   delete copy.gigEffortValues;
@@ -112,6 +115,30 @@ export function dataForChild(data: Record<string, unknown> | null): Record<strin
     });
   }
   return copy;
+}
+
+const DEFAULT_EFFORT_VALUES: Record<string, number> = { quick: 2, medium: 5, big_job: 10 };
+
+function gigPercents(data: Record<string, unknown>): Record<string, number> {
+  const out: Record<string, number> = {};
+  const gigs = Array.isArray(data.gigs) ? (data.gigs as any[]) : [];
+  const goals = Array.isArray(data.goals) ? (data.goals as any[]) : [];
+  const funds: any[] = Array.isArray(data.futureFunds)
+    ? (data.futureFunds as any[])
+    : data.futureFund
+      ? [data.futureFund]
+      : [];
+  const values = { ...DEFAULT_EFFORT_VALUES, ...((data.gigEffortValues as Record<string, number>) ?? {}) };
+  for (const gig of gigs) {
+    const goal = goals.find((g) => g?.childProfileId === gig?.childProfileId && g?.status === 'active');
+    const fund = funds.find((f) => f?.childProfileId === gig?.childProfileId);
+    if (!goal || !fund || !(goal.realWorldCost > 0)) continue;
+    const gross = values[gig.effortTier];
+    if (typeof gross !== 'number') continue;
+    const net = gross * (1 - (Number(fund.percentage) || 0) / 100);
+    out[gig.id] = Math.round((net / goal.realWorldCost) * 100);
+  }
+  return out;
 }
 
 function isDay(value: unknown): value is string {
