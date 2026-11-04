@@ -6,7 +6,7 @@
 // picker/import flow (mock calendars from src/data/mockGoogleCalendar.ts),
 // so this screen still works on Expo Go / unconfigured platforms.
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, ActivityIndicator, Alert, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -17,10 +17,12 @@ import { useSetup } from '../../context/SetupContext';
 import { useTrackSetupStep } from '../../hooks/useTrackScreen';
 import { colors } from '../../theme/colors';
 import { isGoogleCalendarConfigured, useGoogleAuthRequest, storeTokensFromAuthResult } from '../../services/googleAuth';
+import { useSheet, confirmSheet, noticeSheet } from '../../components/SheetProvider';
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'ScheduleImport'>;
 
 export function ScheduleImportScreen({ navigation }: Props) {
+  const sheet = useSheet();
   useTrackSetupStep('schedule');
   const { childProfile } = useSetup();
   const [connecting, setConnecting] = useState(false);
@@ -36,17 +38,25 @@ export function ScheduleImportScreen({ navigation }: Props) {
           if (stored) {
             navigation.navigate('GoogleCalendarPicker');
           } else {
-            Alert.alert(
-              'Connection failed',
-              'Google signed you in but did not return an access token. You can try again, or skip and add your schedule manually.'
+            sheet.show(
+              noticeSheet({
+                emoji: '📅',
+                emojiBg: '#E6ECF8',
+                title: 'Couldn’t connect',
+                body: 'Google signed you in but didn’t hand over what we need. You can try again, or skip and add your schedule by hand.',
+              })
             );
           }
         })
         .catch(() => {
           setConnecting(false);
-          Alert.alert(
-            'Connection failed',
-            'Could not finish connecting to Google Calendar. You can try again, or skip and add your schedule manually.'
+          sheet.show(
+            noticeSheet({
+              emoji: '📅',
+              emojiBg: '#E6ECF8',
+              title: 'Couldn’t connect',
+              body: 'We couldn’t finish connecting to Google Calendar. You can try again, or skip and add your schedule by hand.',
+            })
           );
         });
     } else {

@@ -3,7 +3,7 @@
 // kept. The child's birthday is excused automatically and listed here for
 // reference. Today's one-tap version lives on the Today screen.
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, ScrollView, Modal, Alert, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, Modal, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -16,6 +16,7 @@ import { addDays, formatShortDate, todayString } from '../../utils/date';
 import { groupExcuseRanges, nextBirthdayOnOrAfter } from '../../utils/excuse';
 import { colors } from '../../theme/colors';
 import { LINK_HIT_SLOP } from '../../theme/hitSlop';
+import { useSheet, confirmSheet, noticeSheet } from '../../components/SheetProvider';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExcusedDaysSettings'>;
 
@@ -26,11 +27,13 @@ function daysBetween(a: string, b: string): number {
 }
 
 export function ExcusedDaysScreen({ navigation, route }: Props) {
+  const sheet = useSheet();
   const insets = useSafeAreaInsets();
   const { childProfile, dailyExcuses, excuseDays, removeExcuseDays } = useAppData();
   const today = todayString();
 
   const [adding, setAdding] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [start, setStart] = useState(today);
   const [end, setEnd] = useState(today);
   const [reason, setReason] = useState<DailyExcuseReason | undefined>(undefined);
@@ -58,7 +61,7 @@ export function ExcusedDaysScreen({ navigation, route }: Props) {
     const dates: string[] = [];
     for (let d = start; d <= end && dates.length <= MAX_RANGE_DAYS; d = addDays(d, 1)) dates.push(d);
     if (dates.length > MAX_RANGE_DAYS) {
-      Alert.alert('That is a long stretch', `Pick up to ${MAX_RANGE_DAYS} days at a time.`);
+      setSaveError(`That’s a long stretch. Pick up to ${MAX_RANGE_DAYS} days at a time.`);
       return;
     }
     excuseDays(dates, reason);
@@ -66,10 +69,18 @@ export function ExcusedDaysScreen({ navigation, route }: Props) {
   };
 
   const confirmRemove = (range: { start: string; end: string; dates: string[] }) => {
-    Alert.alert('Remove excused days?', 'Those days go back to normal.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => removeExcuseDays(range.dates) },
-    ]);
+    sheet.show(
+      confirmSheet({
+        emoji: '🌴',
+        emojiBg: '#E4F4F1',
+        title: 'Remove these excused days?',
+        body: 'Those days go back to normal, and Expected activities count again.',
+        confirmLabel: 'Remove them',
+        cancelLabel: 'Keep them',
+        danger: true,
+        onConfirm: () => removeExcuseDays(range.dates),
+      })
+    );
   };
 
   const rangeLabel = (a: string, b: string) => (a === b ? formatShortDate(a) : `${formatShortDate(a)} – ${formatShortDate(b)}`);
@@ -130,6 +141,7 @@ export function ExcusedDaysScreen({ navigation, route }: Props) {
               onChange={(a, b) => {
                 setStart(a);
                 setEnd(b);
+                setSaveError('');
               }}
             />
             <Text style={styles.dateLabel}>Reason (just for you)</Text>
@@ -144,6 +156,7 @@ export function ExcusedDaysScreen({ navigation, route }: Props) {
                 </Pressable>
               ))}
             </View>
+            {saveError ? <Text style={{ color: colors.danger, fontSize: 13, marginTop: 8 }}>{saveError}</Text> : null}
             <View style={styles.actions}>
               <Pressable style={styles.cancel} onPress={() => setAdding(false)}>
                 <Text style={styles.cancelText}>Cancel</Text>

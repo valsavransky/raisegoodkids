@@ -3,7 +3,7 @@
 // on the Settings list (which also shows a small amber dot there while
 // still unsecured, mirroring the same nudge on the gear icon).
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, Alert, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -13,6 +13,7 @@ import { useAppData } from '../../context/AppDataContext';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { signOut as signOutOfGoogle } from '../../services/googleAuth';
 import { colors } from '../../theme/colors';
+import { useSheet, confirmSheet, noticeSheet } from '../../components/SheetProvider';
 
 const EMAIL_PATTERN = /^\S+@\S+\.\S+$/;
 const EMAIL_DOMAINS = ['gmail.com', 'yahoo.com', 'outlook.com', 'icloud.com', 'hotmail.com'];
@@ -32,46 +33,47 @@ type Props = NativeStackScreenProps<RootStackParamList, 'AccountSettings'>;
 type Status = 'idle' | 'saving' | 'saved' | 'error';
 
 export function AccountScreen({ navigation }: Props) {
+  const sheet = useSheet();
   const insets = useSafeAreaInsets();
   const { isAutoAccount, accountEmail, claimAccount } = useAuth();
   const { deleteAccountAndData, signOutOfAccount } = useAppData();
   const [deleting, setDeleting] = useState(false);
 
   const confirmSignOut = () => {
-    Alert.alert(
-      'Sign out?',
-      `This phone will go back to the sign-in screen. Your data stays safe in your account${
-        accountEmail ? ` (${accountEmail})` : ''
-      }, and you can get it all back by logging in again.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign out',
-          onPress: async () => {
-            await signOutOfGoogle();
-            await signOutOfAccount();
-          },
+    sheet.show(
+      confirmSheet({
+        emoji: '👋',
+        emojiBg: '#E4F4F1',
+        title: 'Sign out?',
+        body: `This phone goes back to the first screen. Your data stays safe in your account${
+          accountEmail ? ` (${accountEmail})` : ''
+        }, and you can get it all back by logging in again.`,
+        confirmLabel: 'Sign out',
+        cancelLabel: 'Stay signed in',
+        onConfirm: async () => {
+          await signOutOfGoogle();
+          await signOutOfAccount();
         },
-      ]
+      })
     );
   };
 
   const confirmDeleteAccount = () => {
-    Alert.alert(
-      'Delete your account?',
-      "This permanently deletes your account and everything in it, including your child's profile, activities, goals and badges, from our server and from this phone. It can't be undone.",
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete everything',
-          style: 'destructive',
-          onPress: async () => {
-            setDeleting(true);
-            await deleteAccountAndData();
-            setDeleting(false);
-          },
+    sheet.show(
+      confirmSheet({
+        emoji: '⚠️',
+        emojiBg: '#FCE3E1',
+        title: 'Delete your account?',
+        body: 'This permanently deletes your account and everything in it, including your children’s profiles, activities, goals and badges, from our server and from this phone. It can’t be undone.',
+        confirmLabel: 'Delete everything',
+        cancelLabel: 'Keep my account',
+        danger: true,
+        onConfirm: async () => {
+          setDeleting(true);
+          await deleteAccountAndData();
+          setDeleting(false);
         },
-      ]
+      })
     );
   };
 

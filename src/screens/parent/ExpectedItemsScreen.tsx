@@ -2,7 +2,7 @@
 // (which crammed Expected/Gigs/Account into tabs) as part of the Settings
 // redesign — now its own screen, reached from a row on the Settings list.
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, ScrollView, Modal, Alert, KeyboardAvoidingView, Platform, Switch, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, ScrollView, Modal, KeyboardAvoidingView, Platform, Switch, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -14,12 +14,14 @@ import { ExpectedItem } from '../../types/models';
 import { isItemExcusable } from '../../utils/excuse';
 import { colors } from '../../theme/colors';
 import { LINK_HIT_SLOP } from '../../theme/hitSlop';
+import { useSheet, confirmSheet, noticeSheet } from '../../components/SheetProvider';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExpectedItemsSettings'>;
 
 type ModalMode = { editingId: string | null } | null;
 
 export function ExpectedItemsScreen({ navigation }: Props) {
+  const sheet = useSheet();
   const insets = useSafeAreaInsets();
   const { expectedItems, addExpectedItem, updateExpectedItem, deleteExpectedItem, setExpectedOrder, setItemExcusable } = useAppData();
 
@@ -57,10 +59,17 @@ export function ExpectedItemsScreen({ navigation }: Props) {
   };
 
   const confirmDelete = (item: ExpectedItem) => {
-    Alert.alert('Remove Expected activity', `Remove "${item.name}"? It comes off every day going forward.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => deleteExpectedItem(item.id) },
-    ]);
+    sheet.show(
+      confirmSheet({
+        subject: { icon: '✅', title: item.name },
+        title: 'Remove this activity?',
+        body: 'It comes off the list every day going forward. Past days keep their history.',
+        confirmLabel: 'Remove activity',
+        cancelLabel: 'Keep it',
+        danger: true,
+        onConfirm: () => deleteExpectedItem(item.id),
+      })
+    );
   };
 
   return (

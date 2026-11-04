@@ -60,6 +60,7 @@ interface Props {
 }
 
 export function ScheduleEventModal({ visible, draft, onChangeDraft, editing, onSave, onCancel, onDelete }: Props) {
+  const [formError, setFormError] = useState('');
   const insets = useSafeAreaInsets();
   const [timePickerTarget, setTimePickerTarget] = useState<'startTime' | 'endTime' | null>(null);
   const [tempTime, setTempTime] = useState<Date>(new Date());
@@ -104,17 +105,18 @@ export function ScheduleEventModal({ visible, draft, onChangeDraft, editing, onS
 
   const handleSave = () => {
     if (!draft.title.trim()) {
-      Alert.alert('Event name needed', 'Give this event a name before saving.');
+      setFormError('Give this event a name before saving.');
       return;
     }
     if (draft.recurring && draft.daysOfWeek.length === 0) {
-      Alert.alert('Pick a day', 'Choose at least one day this event repeats on.');
+      setFormError('Choose at least one day this event repeats on.');
       return;
     }
     if (!draft.recurring && !draft.date.trim()) {
-      Alert.alert('Pick a date', 'Enter a date for this one-time event.');
+      setFormError('Enter a date for this one-time event.');
       return;
     }
+    setFormError('');
     onSave();
   };
 
@@ -243,6 +245,7 @@ export function ScheduleEventModal({ visible, draft, onChangeDraft, editing, onS
             </Modal>
           )}
 
+          {formError ? <Text style={{ color: '#B3261E', fontSize: 13, marginTop: 6 }}>{formError}</Text> : null}
           <View style={styles.modalActions}>
             <View>
               {editing && onDelete && (

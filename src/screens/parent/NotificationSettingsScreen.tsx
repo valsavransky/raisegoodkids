@@ -5,7 +5,7 @@
 // off with a pointer to the phone's own settings. See
 // src/services/dailyReminder.ts for how the reminder is scheduled.
 import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable, ScrollView, Switch, Alert, Modal, Linking, Platform, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, Switch, Modal, Linking, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -29,10 +29,12 @@ import {
 import { timeStringToDate, dateToTimeString, formatTime12h } from '../../utils/time';
 import { track } from '../../services/analytics';
 import { colors } from '../../theme/colors';
+import { useSheet, confirmSheet, noticeSheet } from '../../components/SheetProvider';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'NotificationSettings'>;
 
 export function NotificationSettingsScreen({ navigation }: Props) {
+  const sheet = useSheet();
   const insets = useSafeAreaInsets();
   const { childProfile, expectedCompletions, gigCompletions, isDayExcused } = useAppData();
   const [settings, setSettings] = useState<ReminderSettings>({ enabled: false, time: DEFAULT_REMINDER_TIME });
@@ -68,30 +70,33 @@ export function NotificationSettingsScreen({ navigation }: Props) {
   };
 
   const turnOn = () => {
-    Alert.alert(
-      'Want a gentle nudge?',
-      "We'll send one reminder on days nothing has been checked off yet. Nothing else, ever.",
-      [
-        { text: 'Not now', style: 'cancel' },
-        {
-          text: 'Turn on reminders',
-          onPress: async () => {
-            const result = await requestNotificationPermission();
-            if (result === 'granted') {
-              await apply({ ...settings, enabled: true });
-            } else {
-              Alert.alert(
-                'Notifications are off',
-                "Trekker can't send reminders until notifications are allowed in your phone's settings.",
-                [
-                  { text: 'Not now', style: 'cancel' },
-                  { text: 'Open settings', onPress: () => Linking.openSettings() },
-                ]
-              );
-            }
-          },
+    sheet.show(
+      confirmSheet({
+        emoji: '🔔',
+        emojiBg: '#E4F4F1',
+        title: 'Want a gentle nudge?',
+        body: 'We’ll send one reminder on days nothing has been checked off yet. Nothing else, ever.',
+        confirmLabel: 'Turn on reminders',
+        cancelLabel: 'Not now',
+        onConfirm: async () => {
+          const result = await requestNotificationPermission();
+          if (result === 'granted') {
+            await apply({ ...settings, enabled: true });
+          } else {
+            sheet.show(
+              confirmSheet({
+                emoji: '🔕',
+                emojiBg: '#F1F2F5',
+                title: 'Notifications are off',
+                body: 'Trekker can’t send reminders until notifications are allowed in your phone’s settings.',
+                confirmLabel: 'Open settings',
+                cancelLabel: 'Not now',
+                onConfirm: () => Linking.openSettings(),
+              })
+            );
+          }
         },
-      ]
+      })
     );
   };
 

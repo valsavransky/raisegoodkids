@@ -60,7 +60,7 @@ import { FamilyDeviceCard } from '../../components/FamilyDeviceCard';
 import { useApprovals } from '../../context/ApprovalsContext';
 import { loadCelebrated, isCelebrated, markCelebrated, onCelebrationsChanged } from '../../utils/childCelebrations';
 import { GoalPhoto } from '../../components/GoalPhoto';
-import { useSheet } from '../../components/SheetProvider';
+import { useSheet, confirmSheet, noticeSheet } from '../../components/SheetProvider';
 import { useNewTag } from '../../hooks/useNewTag';
 import { useSubmissionLabels } from '../../hooks/useSubmissionLabels';
 import { consumeOpenFamilyDevicesAfterSetup } from '../../utils/familyIntro';
@@ -691,10 +691,18 @@ export function ChildHomeScreen() {
   );
 
   const confirmUnselect = (itemName: string, onConfirm: () => void) => {
-    Alert.alert(`Unselect "${itemName}"?`, 'Are you sure? It will go back to not done.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Unselect', style: 'destructive', onPress: onConfirm },
-    ]);
+    sheet.show(
+      confirmSheet({
+        emoji: '↩️',
+        emojiBg: '#F1F2F5',
+        title: `Undo “${itemName}”?`,
+        body: 'It goes back to not done.',
+        confirmLabel: 'Undo it',
+        cancelLabel: 'Keep it done',
+        danger: true,
+        onConfirm,
+      })
+    );
   };
 
   // Forgotten earlier days (up to the last week) can be filled in or undone
@@ -702,15 +710,19 @@ export function ChildHomeScreen() {
   const dayLabel = (date: string) =>
     `${STOP_WEEKDAY_NAMES[new Date(`${date}T00:00:00`).getDay()]}, ${formatShortDate(date)}`;
   const confirmPastChange = (itemName: string, date: string, isDone: boolean, onConfirm: () => void) => {
-    Alert.alert(
-      isDone ? `Unselect "${itemName}"?` : `Mark "${itemName}" done?`,
-      isDone
-        ? `Are you sure? It will go back to not done for ${dayLabel(date)}.`
-        : `Are you sure? This marks it done for ${dayLabel(date)}, not today.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: isDone ? 'Unselect' : 'Yes, mark done', style: isDone ? 'destructive' : 'default', onPress: onConfirm },
-      ]
+    sheet.show(
+      confirmSheet({
+        emoji: '🗓️',
+        emojiBg: '#E4F4F1',
+        title: isDone ? `Undo “${itemName}”?` : `Mark “${itemName}” done?`,
+        body: isDone
+          ? `It goes back to not done for ${dayLabel(date)}.`
+          : `This marks it done for ${dayLabel(date)}, not today.`,
+        confirmLabel: isDone ? 'Undo it' : 'Yes, mark it done',
+        cancelLabel: 'Not now',
+        danger: isDone,
+        onConfirm,
+      })
     );
   };
 
@@ -799,6 +811,15 @@ export function ChildHomeScreen() {
     }
   };
 
+  const cantUndoSheet = () =>
+    noticeSheet({
+      emoji: '🏆',
+      emojiBg: '#FBEBD6',
+      title: 'That one is locked in',
+      body: 'This gig finished the goal, so it can’t be undone.',
+      buttonLabel: 'Got it',
+    });
+
   const askForGoal = (gigName: string) =>
     sheet.show({
       emoji: '🎯',
@@ -829,7 +850,7 @@ export function ChildHomeScreen() {
       confirmPastChange(gig.name, date, isDone, () => {
         if (isDone) {
           if (unmarkGigDone(gig.id, date) === 'goal_reached') {
-            Alert.alert("Can't unselect this one", 'This gig finished the goal, so it can no longer be undone.');
+            sheet.show(cantUndoSheet());
           }
           return;
         }
@@ -846,7 +867,7 @@ export function ChildHomeScreen() {
     if (gigCompletionStatusToday(gig.id) !== null) {
       confirmUnselect(gig.name, () => {
         if (unmarkGigDone(gig.id) === 'goal_reached') {
-          Alert.alert("Can't unselect this one", 'This gig finished the goal, so it can no longer be undone.');
+          sheet.show(cantUndoSheet());
         }
       });
       return;
@@ -872,15 +893,18 @@ export function ChildHomeScreen() {
       startGig();
       return;
     }
-    Alert.alert(
-      'Still some Expected left today',
-      `${childProfile?.name ?? 'Your child'} still has ${required.total - required.done} Expected activit${
-        required.total - required.done === 1 ? 'y' : 'ies'
-      } left today. Let them start a gig anyway?`,
-      [
-        { text: 'Not yet', style: 'cancel' },
-        { text: 'Yes, let them', onPress: startGig },
-      ]
+    const left = required.total - required.done;
+    sheet.show(
+      confirmSheet({
+        emoji: '⏳',
+        emojiBg: '#FBEBD6',
+        title: 'Expected first?',
+        body: `${childProfile?.name ?? 'Your child'} still has ${left} Expected activit${left === 1 ? 'y' : 'ies'} left today. Start a gig anyway?`,
+        confirmLabel: 'Yes, start the gig',
+        cancelLabel: 'Not yet',
+        amber: true,
+        onConfirm: startGig,
+      })
     );
   };
 

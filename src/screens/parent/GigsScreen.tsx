@@ -3,7 +3,7 @@
 // Settings list. Keeps its internal list/values sub-tabs, since that
 // smaller pattern wasn't part of what the user flagged as not working.
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, Modal, Alert, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, Modal, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -18,6 +18,7 @@ import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollVie
 import { colors } from '../../theme/colors';
 import { LINK_HIT_SLOP } from '../../theme/hitSlop';
 import { DEFAULT_GIG_EFFORT_VALUES } from '../../utils/gigValue';
+import { useSheet, confirmSheet, noticeSheet } from '../../components/SheetProvider';
 
 const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
   { value: 'quick', label: 'Quick' },
@@ -31,6 +32,7 @@ type SubTab = 'list' | 'values';
 type GigValuesStatus = 'idle' | 'invalid';
 
 export function GigsScreen({ navigation }: Props) {
+  const sheet = useSheet();
   const insets = useSafeAreaInsets();
   const { gigs, addGig, updateGig, deleteGig, setGigOrder, gigEffortValues, updateGigEffortValues, childProfiles, childProfile } =
     useAppData();
@@ -93,10 +95,17 @@ export function GigsScreen({ navigation }: Props) {
   };
 
   const confirmDelete = (gig: Gig) => {
-    Alert.alert('Remove gig', `Remove "${gig.name}"? Progress it already earned toward a goal stays.`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => deleteGig(gig.id) },
-    ]);
+    sheet.show(
+      confirmSheet({
+        subject: { icon: '💼', title: gig.name },
+        title: 'Remove this gig?',
+        body: 'Progress it already earned toward a goal stays.',
+        confirmLabel: 'Remove gig',
+        cancelLabel: 'Keep it',
+        danger: true,
+        onConfirm: () => deleteGig(gig.id),
+      })
+    );
   };
 
   return (

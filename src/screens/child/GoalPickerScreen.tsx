@@ -145,20 +145,28 @@ export function GoalPickerScreen() {
       return;
     }
     const plural = todaysCount === 1 ? 'gig' : 'gigs';
-    Alert.alert(
-      "Move today's progress too?",
-      `${current.name} has ${todaysCount} ${plural} completed today. Move ${todaysCount === 1 ? 'it' : 'them'} to ${goal.name}, or leave ${todaysCount === 1 ? 'it' : 'them'} on ${current.name}?`,
-      [
-        { text: `Keep on ${current.name}`, style: 'cancel', onPress: () => setActiveGoal(goal.id) },
+    const them = todaysCount === 1 ? 'it' : 'them';
+    sheet.show({
+      emoji: '🔁',
+      emojiBg: '#FBEBD6',
+      title: "Move today's progress too?",
+      body: `${current.name} has ${todaysCount} ${plural} done today. Move ${them} to ${goal.name}, or leave ${them} where ${todaysCount === 1 ? 'it is' : 'they are'}?`,
+      rows: [
+        { icon: '🎯', title: current.name, small: `${todaysCount} ${plural} done today` },
+        { icon: '➡️', title: goal.name, small: 'The new active goal' },
+      ],
+      actions: [
         {
-          text: `Move to ${goal.name}`,
+          label: `Move to ${goal.name}`,
+          kind: 'amber',
           onPress: () => {
             moveTodaysGigProgressToGoal(current.id, goal.id);
             setActiveGoal(goal.id);
           },
         },
-      ]
-    );
+        { label: `Keep on ${current.name}`, kind: 'ghost', onPress: () => setActiveGoal(goal.id) },
+      ],
+    });
   };
 
   const openAddModal = () => {

@@ -6,7 +6,7 @@
 // wizard on restart is a minor inconvenience, unlike losing days of
 // accumulated progress.
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
-import { Alert, AppState } from 'react-native';
+import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
 import {
@@ -20,7 +20,7 @@ import {
   goalPhotoUrl,
   ApiError,
 } from '../services/api';
-import { useSheet } from '../components/SheetProvider';
+import { useSheet, noticeSheet } from '../components/SheetProvider';
 import { randomToken } from '../utils/randomToken';
 import {
   ChildProfile,
@@ -1661,9 +1661,13 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
       if (failure) {
         // Signing back in would restore whatever is still on the server, so
         // don't pretend the reset worked — stop and say so.
-        Alert.alert(
-          'Reset stopped',
-          `Couldn't clear your cloud backup, so signing back in would bring this data back.\n\n${failure}`
+        sheet.show(
+          noticeSheet({
+            emoji: '⚠️',
+            emojiBg: '#FCEBD2',
+            title: 'Reset stopped',
+            body: `We couldn’t clear your cloud backup, so signing back in would bring this data back. ${failure}`,
+          })
         );
         return;
       }
@@ -1683,9 +1687,13 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
         await deleteAccountOnServer(token);
       } catch (e) {
         resettingRef.current = false;
-        Alert.alert(
-          'Could not delete your account',
-          `Your data is still on the server. Check your connection and try again.\n\n${e instanceof Error ? e.message : ''}`
+        sheet.show(
+          noticeSheet({
+            emoji: '📶',
+            emojiBg: '#F1F2F5',
+            title: 'Couldn’t delete your account',
+            body: `Your data is still on the server. The internet seems to be napping. Try again in a sec. ${e instanceof Error ? e.message : ''}`.trim(),
+          })
         );
         return false;
       }

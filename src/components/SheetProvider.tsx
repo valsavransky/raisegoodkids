@@ -182,3 +182,45 @@ const styles = StyleSheet.create({
   buttonLink: { backgroundColor: 'transparent', paddingVertical: 8 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });
+
+/** A yes/no question: a clear main button and a quiet way out. */
+export function confirmSheet(opts: {
+  emoji?: string;
+  emojiBg?: string;
+  title: string;
+  body?: string;
+  subject?: SheetRow;
+  rows?: SheetRow[];
+  confirmLabel: string;
+  cancelLabel?: string;
+  /** Red for things that can't be undone. */
+  danger?: boolean;
+  /** Amber for money or goal things. */
+  amber?: boolean;
+  onConfirm: () => void;
+  onCancel?: () => void;
+}): SheetConfig {
+  return {
+    emoji: opts.emoji,
+    emojiBg: opts.emojiBg,
+    title: opts.title,
+    body: opts.body,
+    subject: opts.subject,
+    rows: opts.rows,
+    actions: [
+      { label: opts.confirmLabel, kind: opts.danger ? 'danger' : opts.amber ? 'amber' : 'primary', onPress: opts.onConfirm },
+      { label: opts.cancelLabel ?? 'Cancel', kind: 'ghost', onPress: opts.onCancel },
+    ],
+  };
+}
+
+/** A short message with one button. */
+export function noticeSheet(opts: { emoji?: string; emojiBg?: string; title: string; body?: string; buttonLabel?: string }): SheetConfig {
+  return {
+    emoji: opts.emoji,
+    emojiBg: opts.emojiBg,
+    title: opts.title,
+    body: opts.body,
+    actions: [{ label: opts.buttonLabel ?? 'OK' }],
+  };
+}

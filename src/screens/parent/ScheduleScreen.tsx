@@ -25,6 +25,7 @@ import { ScheduleEventModal, ScheduleEventDraft, BLANK_SCHEDULE_EVENT_DRAFT } fr
 import { formatTimeRange12h } from '../../utils/time';
 import { colors } from '../../theme/colors';
 import { formatShortDate } from '../../utils/date';
+import { useSheet, confirmSheet } from '../../components/SheetProvider';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ScheduleSettings'>;
 
@@ -39,6 +40,7 @@ const CATEGORY_LABELS: Record<ScheduleEventCategory, string> = {
 };
 
 export function ScheduleScreen({ navigation }: Props) {
+  const sheet = useSheet();
   const insets = useSafeAreaInsets();
   const { scheduleEvents, addScheduleEvent, updateScheduleEvent, deleteScheduleEvent } = useAppData();
   const [menuVisible, setMenuVisible] = useState(false);
@@ -106,17 +108,25 @@ export function ScheduleScreen({ navigation }: Props) {
 
   const confirmDelete = () => {
     if (!editingId) return;
-    Alert.alert('Delete event', 'Remove this from the schedule?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          deleteScheduleEvent(editingId);
-          setModalVisible(false);
-        },
-      },
-    ]);
+    // Close the edit sheet first (one pop-up at a time), and bring it back if they change their mind.
+    setModalVisible(false);
+    setTimeout(
+      () =>
+        sheet.show(
+          confirmSheet({
+            emoji: '🗑️',
+            emojiBg: '#FCE3E1',
+            title: 'Delete this event?',
+            body: 'It comes off the schedule.',
+            confirmLabel: 'Delete event',
+            cancelLabel: 'Keep it',
+            danger: true,
+            onConfirm: () => deleteScheduleEvent(editingId),
+            onCancel: () => setModalVisible(true),
+          })
+        ),
+      350
+    );
   };
 
   const openImport = () => {

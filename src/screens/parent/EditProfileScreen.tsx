@@ -5,7 +5,7 @@
 // Save (like the rest of Settings) rather than writing straight through on
 // every keystroke.
 import React, { useMemo, useState } from 'react';
-import { View, Text, TextInput, Pressable, Modal, Alert, Platform, KeyboardAvoidingView, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Pressable, Modal, Platform, KeyboardAvoidingView, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -18,6 +18,7 @@ import { AVATAR_OPTIONS } from '../../data/avatars';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { colors } from '../../theme/colors';
 import { toLocalDateString } from '../../utils/date';
+import { useSheet, confirmSheet, noticeSheet } from '../../components/SheetProvider';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EditProfile'>;
 
@@ -34,6 +35,7 @@ function eighteenYearsAgo(): Date {
 }
 
 export function EditProfileScreen({ navigation }: Props) {
+  const sheet = useSheet();
   const insets = useSafeAreaInsets();
   const { parentName, updateParentName, childProfile, childProfiles, updateChildProfile, removeChild } = useAppData();
 
@@ -94,19 +96,19 @@ export function EditProfileScreen({ navigation }: Props) {
   const confirmRemove = () => {
     if (!childProfile) return;
     const first = childProfile.name.trim().split(' ')[0] || 'this child';
-    Alert.alert(
-      `Remove ${first}?`,
-      `This permanently deletes ${first}'s Expected activities, gigs, goals, badges, streak, schedule and Future Fund balance. It can't be undone. The other children aren't affected.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: `Remove ${first}`,
-          style: 'destructive',
-          onPress: () => {
-            if (removeChild(childProfile.id)) navigation.navigate('Settings');
-          },
+    sheet.show(
+      confirmSheet({
+        emoji: '👋',
+        emojiBg: '#FCE3E1',
+        title: `Remove ${first}?`,
+        body: `This permanently deletes ${first}’s Expected activities, gigs, goals, badges, streak, schedule and Future Fund balance. It can’t be undone. Your other children aren’t affected.`,
+        confirmLabel: `Remove ${first}`,
+        cancelLabel: 'Keep them',
+        danger: true,
+        onConfirm: () => {
+          if (removeChild(childProfile.id)) navigation.navigate('Settings');
         },
-      ]
+      })
     );
   };
 

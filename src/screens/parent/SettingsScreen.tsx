@@ -7,7 +7,7 @@
 // the top — the standard placement, which is also just where a parent
 // looks first.
 import React, { useState, useCallback } from 'react';
-import { View, Text, Pressable, ScrollView, Switch, Alert, Linking, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, Switch, Linking, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -24,6 +24,7 @@ import { colors } from '../../theme/colors';
 import { PRIVACY_URL, TERMS_URL } from '../../config';
 import { appVersionDisplay } from '../../utils/appVersion';
 import { useNewTag } from '../../hooks/useNewTag';
+import { useSheet, confirmSheet, noticeSheet } from '../../components/SheetProvider';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
@@ -63,6 +64,7 @@ function SettingsRow({
 }
 
 export function SettingsScreen({ navigation }: Props) {
+  const sheet = useSheet();
   const insets = useSafeAreaInsets();
   const { childProfile, parentName, resetAllData, soundEnabled, setSoundEnabled, futureFund } = useAppData();
   const { isAutoAccount, accountEmail } = useAuth();
@@ -86,24 +88,31 @@ export function SettingsScreen({ navigation }: Props) {
   );
 
   const confirmResetAllData = () => {
-    Alert.alert(
-      'Reset all data',
-      'This deletes everything — the child profile, schedule, Expected activities, gigs, goals, badges, and Future Fund balance — including your cloud backup, if this account is synced. It also fully disconnects this account, so signing back in with Google starts a brand new one instead of recovering this data. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Reset', style: 'destructive', onPress: () => resetAllData() },
-      ]
+    sheet.show(
+      confirmSheet({
+        emoji: '🧹',
+        emojiBg: '#FCE3E1',
+        title: 'Reset all data?',
+        body: 'This deletes everything: the child profile, schedule, Expected activities, gigs, goals, badges and Future Fund balance, including your cloud backup. It also disconnects this account, so signing back in starts a brand new one. This can’t be undone.',
+        confirmLabel: 'Reset everything',
+        cancelLabel: 'Keep my data',
+        danger: true,
+        onConfirm: () => resetAllData(),
+      })
     );
   };
 
   const confirmDisconnectGoogle = () => {
-    Alert.alert(
-      'Disconnect Google Calendar',
-      'Clears the stored Google sign-in so the next calendar import prompts you to connect again. Does not touch schedule events already imported.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Disconnect', style: 'destructive', onPress: () => signOutOfGoogle() },
-      ]
+    sheet.show(
+      confirmSheet({
+        emoji: '📅',
+        emojiBg: '#E6ECF8',
+        title: 'Disconnect Google Calendar?',
+        body: 'The next calendar import will ask you to connect again. Events you already imported stay put.',
+        confirmLabel: 'Disconnect',
+        danger: true,
+        onConfirm: () => signOutOfGoogle(),
+      })
     );
   };
 
@@ -175,9 +184,14 @@ export function SettingsScreen({ navigation }: Props) {
             icon="📊"
             label="Share anonymous usage ⓘ"
             onPress={() =>
-              Alert.alert(
-                'Share anonymous usage',
-                'Helps improve the app. Never includes names or personal details.'
+              sheet.show(
+                noticeSheet({
+                  emoji: '📊',
+                  emojiBg: '#E4F4F1',
+                  title: 'Share anonymous usage',
+                  body: 'Helps us improve the app. It never includes names or personal details.',
+                  buttonLabel: 'Got it',
+                })
               )
             }
             control={
