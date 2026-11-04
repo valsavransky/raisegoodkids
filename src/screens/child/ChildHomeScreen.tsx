@@ -449,7 +449,6 @@ export function ChildHomeScreen() {
   const [menuTop, setMenuTop] = useState(160);
   const moreRef = useRef<View>(null);
   const openMenu = () => {
-    console.warn('[menu-debug] ⋯ pressed, opening menu');
     // Place the menu just under the ⋯ button.
     // Open right away (with a sensible spot), then nudge the menu under the button once measured, so a
     // failed measurement can never leave the button doing nothing.
@@ -951,7 +950,6 @@ export function ChildHomeScreen() {
 
       <ScrollView
         ref={scrollRef}
-        onTouchStart={(e) => console.warn(`[menu-debug] touch in scroll at x=${Math.round(e.nativeEvent.pageX)} y=${Math.round(e.nativeEvent.pageY)}`)}
         style={styles.scroll}
         contentContainerStyle={styles.content}
         onLayout={(e) => setViewportHeight(e.nativeEvent.layout.height)}
@@ -990,7 +988,6 @@ export function ChildHomeScreen() {
               <Pressable
                 ref={moreRef}
                 onPress={openMenu}
-                onTouchStart={() => console.warn('[menu-debug] touch started on ⋯')}
                 accessibilityRole="button"
                 accessibilityLabel="More options"
                 style={styles.moreButton}
@@ -1236,7 +1233,7 @@ export function ChildHomeScreen() {
         )}
       </ScrollView>
 
-      <Modal visible={menuVisible} transparent animationType="fade" onShow={() => console.warn('[menu-debug] menu shown')} onRequestClose={() => setMenuVisible(false)}>
+      <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
         <Pressable style={styles.menuBackdrop} onPress={() => setMenuVisible(false)}>
           <View style={[styles.menu, { top: menuTop }]}>
             <Pressable
@@ -1404,7 +1401,9 @@ const styles = StyleSheet.create({
   progressBarFill: { height: 8, borderRadius: 999, backgroundColor: colors.gigs },
   goalProgressText: { fontSize: 22, color: '#B96A08', fontWeight: '800' },
   goalToGo: { fontSize: 12, fontWeight: '700', color: '#8a8578', marginTop: 6 },
+  // Above the trail, which is pulled up over this row to trim empty space and would otherwise take its taps.
   viewToggleRow: {
+    zIndex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
