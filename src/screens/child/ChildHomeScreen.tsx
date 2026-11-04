@@ -861,23 +861,37 @@ export function ChildHomeScreen() {
         {!deviceMode && <SettingsHintBadge onNavigateToSettings={() => navigation.navigate('Settings')} />}
 
         {deviceMode ? (
-          childNotices.slice(0, 2).map((n) => {
-            const label = labelFor(n);
-            const approved = n.status === 'approved';
+          (() => {
+            // Sent-back items each get their own card (they have a note to read); approved ones
+            // share a single card so a busy morning doesn't push the trail off the screen.
+            const sentBack = childNotices.filter((n) => n.status === 'declined');
+            const approvedNotices = childNotices.filter((n) => n.status === 'approved');
             return (
-              <View key={n.id} style={[styles.noticeCard, approved ? styles.noticeGood : styles.noticeBack]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.noticeTitle}>
-                    {approved ? `🎉 Approved: ${label.title}` : `Back on your list: ${label.title}`}
-                  </Text>
-                  {!approved && n.note ? <Text style={styles.noticeNote}>“{n.note}”</Text> : null}
-                </View>
-                <Pressable onPress={() => dismissNotice(n.id)} hitSlop={10}>
-                  <Text style={styles.noticeClose}>×</Text>
-                </Pressable>
-              </View>
+              <>
+                {sentBack.map((n) => (
+                  <View key={n.id} style={[styles.noticeCard, styles.noticeBack]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.noticeTitle}>Back on your list: {labelFor(n).title}</Text>
+                      {n.note ? <Text style={styles.noticeNote}>“{n.note}”</Text> : null}
+                    </View>
+                    <Pressable onPress={() => dismissNotice(n.id)} hitSlop={10}>
+                      <Text style={styles.noticeClose}>×</Text>
+                    </Pressable>
+                  </View>
+                ))}
+                {approvedNotices.length > 0 && (
+                  <View style={[styles.noticeCard, styles.noticeGood]}>
+                    <Text style={[styles.noticeTitle, { flex: 1 }]} numberOfLines={3}>
+                      🎉 Approved: {approvedNotices.map((n) => labelFor(n).title).join(', ')}
+                    </Text>
+                    <Pressable onPress={() => approvedNotices.forEach((n) => dismissNotice(n.id))} hitSlop={10}>
+                      <Text style={styles.noticeClose}>×</Text>
+                    </Pressable>
+                  </View>
+                )}
+              </>
             );
-          })
+          })()
         ) : pending.length > 0 ? (
           <WaitingBanner count={pending.length} onReview={() => navigation.navigate('Approvals')} />
         ) : (
