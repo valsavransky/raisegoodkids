@@ -58,6 +58,7 @@ import { TodayTipsSheet, TAP_HINT } from '../../components/TodayTipsSheet';
 import { WaitingBanner } from '../../components/WaitingBanner';
 import { FamilyDeviceCard } from '../../components/FamilyDeviceCard';
 import { useApprovals } from '../../context/ApprovalsContext';
+import { loadCelebrated, isCelebrated, markCelebrated, onCelebrationsChanged } from '../../utils/childCelebrations';
 import { GoalPhoto } from '../../components/GoalPhoto';
 import { useSheet } from '../../components/SheetProvider';
 import { useNewTag } from '../../hooks/useNewTag';
@@ -73,8 +74,6 @@ import { track } from '../../services/analytics';
 import { colors } from '../../theme/colors';
 import { todayString, startOfWeek, addDays, localDateOf, formatShortDate } from '../../utils/date';
 import { SETTINGS_HINT_SEEN_KEY, MONEY_HINT_SEEN_KEY } from '../../utils/settingsHints';
-
-const CELEBRATED_KEY = '@trekker/childDevice/celebrated';
 
 const CATEGORY_ICONS: Record<ScheduleEventCategory, string> = {
   school: '🏫',
@@ -430,48 +429,50 @@ export function ChildHomeScreen() {
   const sheet = useSheet();
 
   // Family device: a parent's approval is what earns a badge or finishes a goal, so the celebration
-  // happens here when the new result shows up. Remembered per child so nothing replays.
+  // happens here when the result shows up. It counts as seen only once its screen is closed, so an
+  // interrupted one shows again on the next open.
   const [celebLoaded, setCelebLoaded] = useState(false);
-  const celebrated = useRef<Set<string>>(new Set());
+  const [celebTick, setCelebTick] = useState(0);
   useEffect(() => {
     if (!deviceMode) return;
-    AsyncStorage.getItem(CELEBRATED_KEY)
-      .then((raw) => {
-        celebrated.current = new Set(raw ? (JSON.parse(raw) as string[]) : []);
-      })
-      .catch(() => {})
-      .finally(() => setCelebLoaded(true));
+    loadCelebrated().then(() => setCelebLoaded(true));
+    return onCelebrationsChanged(() => setCelebTick((n) => n + 1));
   }, [deviceMode]);
   useEffect(() => {
     if (!deviceMode || !celebLoaded || !childProfile) return;
     const reached = goals.filter((g) => g.status === 'achieved' || g.status === 'fulfilled');
-    const ids = [...reached.map((g) => `goal:${g.id}`), ...badges.map((b) => `badge:${b.id}`)];
     const seededKey = `seeded:${childProfile.id}`;
-    const save = () =>
-      AsyncStorage.setItem(CELEBRATED_KEY, JSON.stringify([...celebrated.current].slice(-400))).catch(() => {});
-    if (!celebrated.current.has(seededKey)) {
+    if (!isCelebrated(seededKey)) {
       // First time on this device for this child: older results aren't news, but anything from the
       // last day still gets its moment.
       const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
       const recent = (iso?: string) => !!iso && new Date(iso).getTime() > dayAgo;
-      reached.filter((g) => !recent(g.achievedAt)).forEach((g) => celebrated.current.add(`goal:${g.id}`));
-      badges.filter((b) => !recent(b.earnedAt)).forEach((b) => celebrated.current.add(`badge:${b.id}`));
-      celebrated.current.add(seededKey);
-      save();
-    }
-    const fresh = ids.filter((id) => !celebrated.current.has(id));
-    if (fresh.length === 0) return;
-    fresh.forEach((id) => celebrated.current.add(id));
-    save();
-    const goalId = fresh.find((id) => id.startsWith('goal:'))?.slice(5);
-    if (goalId) {
-      navigation.navigate('GoalAchieved', { goalId });
+      markCelebrated(
+        seededKey,
+        ...reached.filter((g) => !recent(g.achievedAt)).map((g) => `goal:${g.id}`),
+        ...badges.filter((b) => !recent(b.earnedAt)).map((b) => `badge:${b.id}`)
+      );
       return;
     }
-    const badge = badges.find((b) => fresh.includes(`badge:${b.id}`));
-    if (badge) navigation.navigate('BadgeUnlock', { catalogId: badge.catalogId });
+    // One celebration at a time: wait while one is already on screen.
+    const open = navigation
+      .getParent()
+      ?.getState()
+      ?.routes?.some((r) => r.name === 'GoalAchieved' || r.name === 'BadgeUnlock');
+    if (open) return;
+    const freshGoal = reached.find((g) => !isCelebrated(`goal:${g.id}`));
+    if (freshGoal) {
+      // A badge that arrives with a goal goes to the shelf, as on a parent's phone.
+      markCelebrated(...badges.filter((b) => !isCelebrated(`badge:${b.id}`)).map((b) => `badge:${b.id}`));
+      navigation.navigate('GoalAchieved', { goalId: freshGoal.id, celebrationId: `goal:${freshGoal.id}` });
+      return;
+    }
+    const freshBadge = badges.find((b) => !isCelebrated(`badge:${b.id}`));
+    if (freshBadge) {
+      navigation.navigate('BadgeUnlock', { catalogId: freshBadge.catalogId, celebrationId: `badge:${freshBadge.id}` });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deviceMode, celebLoaded, badges, goals, childProfile?.id]);
+  }, [deviceMode, celebLoaded, celebTick, badges, goals, childProfile?.id]);
 
   const [view, setView] = useState<'today' | 'week'>('today');
   // "This Week" sub-tabs — Daily/Gigs/Weekly used to stack as three

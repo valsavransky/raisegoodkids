@@ -108,6 +108,7 @@ const CHILD_STORAGE_KEY = '@trekker/childDevice/data/v1';
 const CHILD_CHOSEN_KEY = '@trekker/childDevice/child';
 const CHILD_SEEN_KEY = '@trekker/childDevice/seen';
 const CHILD_REFRESH_MS = 40_000;
+const CHILD_FAST_REFRESH_MS = 10_000;
 const PHOTOS_UPLOADED_KEY = '@trekker/goalPhotosUploaded';
 const ANSWER_VISIBLE_MS = 24 * 60 * 60 * 1000;
 
@@ -1209,8 +1210,10 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
   };
 
   // ---- Family device: read the family's data, send requests ----
+  const lastChildRefresh = useRef(0);
   const refreshChildData = async () => {
     if (!childDevice) return;
+    lastChildRefresh.current = Date.now();
     try {
       const { data, submissions } = await fetchChildData(childDevice.token);
       const fresh = data as PersistedAppData | null;
@@ -1237,12 +1240,19 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
       // Otherwise offline: keep showing what we have.
     }
   };
+  const hasPendingRef = useRef(false);
+  hasPendingRef.current = deviceSubs.some((s) => s.status === 'pending');
   const refreshChildDataRef = useRef(refreshChildData);
   refreshChildDataRef.current = refreshChildData;
   useEffect(() => {
     if (!childDevice || !isHydrated) return;
     refreshChildDataRef.current();
-    const timer = setInterval(() => refreshChildDataRef.current(), CHILD_REFRESH_MS);
+    // Check every 10 seconds while something is waiting for a parent (so an answer or a celebration
+    // appears quickly while the app is open), and every 40 seconds otherwise.
+    const timer = setInterval(() => {
+      const waiting = hasPendingRef.current;
+      if (waiting || Date.now() - lastChildRefresh.current >= CHILD_REFRESH_MS) refreshChildDataRef.current();
+    }, CHILD_FAST_REFRESH_MS);
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') refreshChildDataRef.current();
     });

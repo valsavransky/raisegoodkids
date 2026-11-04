@@ -6,6 +6,7 @@ import { View, Text, Pressable, Animated, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { useAppData } from '../../context/AppDataContext';
+import { markCelebrated } from '../../utils/childCelebrations';
 import { Confetti } from '../../components/Confetti';
 import { playSound } from '../../services/sound';
 import { colors } from '../../theme/colors';
@@ -13,7 +14,14 @@ import { colors } from '../../theme/colors';
 type Props = NativeStackScreenProps<RootStackParamList, 'GoalAchieved'>;
 
 export function GoalAchievedScreen({ route, navigation }: Props) {
-  const { goalId } = route.params;
+  const { goalId, celebrationId } = route.params;
+  // On a family device it counts as seen once this screen is closed, however it was closed.
+  useEffect(
+    () => () => {
+      if (celebrationId) markCelebrated(celebrationId);
+    },
+    [celebrationId]
+  );
   const { getGoal, activeGoal, soundEnabled, deviceMode } = useAppData();
   const goal = getGoal(goalId);
   // The next queued goal auto-activates the moment this one is achieved

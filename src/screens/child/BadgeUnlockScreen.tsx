@@ -9,6 +9,7 @@ import * as Haptics from 'expo-haptics';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { getBadgeCatalogEntry } from '../../data/badgeCatalog';
+import { markCelebrated } from '../../utils/childCelebrations';
 import { useAppData } from '../../context/AppDataContext';
 import { playSound } from '../../services/sound';
 import { Confetti } from '../../components/Confetti';
@@ -20,6 +21,14 @@ type Props = NativeStackScreenProps<RootStackParamList, 'BadgeUnlock'>;
 export function BadgeUnlockScreen({ route, navigation }: Props) {
   const { soundEnabled } = useAppData();
   const entry = getBadgeCatalogEntry(route.params.catalogId);
+  const celebrationId = route.params.celebrationId;
+  // On a family device it counts as seen once this screen is closed, however it was closed.
+  useEffect(
+    () => () => {
+      if (celebrationId) markCelebrated(celebrationId);
+    },
+    [celebrationId]
+  );
   const [confettiTrigger] = useState(1);
   const badgeScale = useRef(new Animated.Value(0)).current;
 
