@@ -68,6 +68,40 @@ export async function runMigrations(): Promise<void> {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       PRIMARY KEY (user_id, goal_id)
     );
+    -- Push notifications (see push.ts). A token belongs to a parent's phone (device_id null) or to a
+    -- family device, which also says which child is using it.
+    CREATE TABLE IF NOT EXISTS push_tokens (
+      token TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      device_id INTEGER REFERENCES family_devices(id) ON DELETE CASCADE,
+      child_id TEXT,
+      platform TEXT,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    CREATE TABLE IF NOT EXISTS notification_settings (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      settings JSONB NOT NULL DEFAULT '{}',
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    -- Things waiting to be sent. Several that arrive close together are sent as one push.
+    CREATE TABLE IF NOT EXISTS push_queue (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      audience TEXT NOT NULL CHECK (audience IN ('parent', 'child')),
+      child_id TEXT,
+      kind TEXT NOT NULL,
+      payload JSONB NOT NULL DEFAULT '{}',
+      send_after TIMESTAMPTZ NOT NULL DEFAULT now(),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      sent_at TIMESTAMPTZ
+    );
+    CREATE INDEX IF NOT EXISTS push_queue_due_idx ON push_queue (send_after) WHERE sent_at IS NULL;
+    CREATE TABLE IF NOT EXISTS push_state (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      last_waiting_at TIMESTAMPTZ,
+      last_daily_parent TEXT,
+      last_daily_child JSONB NOT NULL DEFAULT '{}'
+    );
     CREATE TABLE IF NOT EXISTS pairing_codes (
       code_hash TEXT PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

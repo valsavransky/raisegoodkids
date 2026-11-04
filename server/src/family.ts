@@ -11,6 +11,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { pool } from './db';
 import { requireAuth, AuthedRequest } from './auth';
+import { queueRequest, queueAnswer, upsertToken } from './push';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -267,6 +268,7 @@ familyRouter.post('/family/submissions/:id/decide', requireAuth, async (req: Aut
       });
       return;
     }
+    queueAnswer(req.userId!, { childId: result.rows[0].child_id, kind: result.rows[0].kind, itemId: result.rows[0].item_id, payload: result.rows[0].payload }, decision, cleanNote);
     res.json({ submission: submissionRow(result.rows[0]) });
   } catch (err) {
     console.error('POST /family/submissions/:id/decide failed', err);
@@ -364,6 +366,7 @@ familyRouter.post('/child/submissions', requireDevice, async (req: DeviceRequest
       [id, req.userId, req.deviceId, childId, kind, itemId, day, cleanPayload]
     );
     if (inserted.rowCount) {
+      queueRequest(req.userId!, childId, kind, itemId, cleanPayload.name as string | undefined);
       res.json({ submission: submissionRow(inserted.rows[0]) });
       return;
     }
@@ -524,3 +527,19 @@ familyRouter.put(
     }
   }
 );
+
+/** A family device registers its push token, and says which child is using it. */
+familyRouter.put('/child/push-token', requireDevice, async (req: DeviceRequest, res: Response) => {
+  try {
+    const { token, platform, childId } = req.body ?? {};
+    if (typeof token !== 'string' || !/^(Expo|Exponent)PushToken\[.+\]$/.test(token)) {
+      res.status(400).json({ error: 'That is not a push token' });
+      return;
+    }
+    await upsertToken(req.userId!, token, req.deviceId!, typeof childId === 'string' ? childId : null, typeof platform === 'string' ? platform : null);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('PUT /child/push-token failed', err);
+    res.status(500).json({ error: 'Could not save the token' });
+  }
+});

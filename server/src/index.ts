@@ -7,6 +7,7 @@ import { eventsRouter, feedbackRouter } from './events';
 import { adminRouter } from './admin';
 import { legalRouter } from './legal';
 import { familyRouter } from './family';
+import { pushRouter, startPushWorker } from './push';
 
 const app = express();
 app.use(cors());
@@ -23,6 +24,7 @@ app.use('/feedback', feedbackRouter);
 app.use('/admin', adminRouter);
 app.use('/', legalRouter);
 app.use('/', familyRouter);
+app.use('/', pushRouter);
 
 // Deletes the signed-in account and everything stored for it (the data blob
 // goes with it via ON DELETE CASCADE). Anonymous usage counts and feedback are
@@ -91,6 +93,7 @@ const port = Number(process.env.PORT) || 3000;
 runMigrations()
   .then(() => {
     app.listen(port, () => console.log(`merit-server listening on ${port}`));
+    startPushWorker();
   })
   .catch((err) => {
     console.error('Failed to run migrations', err);
