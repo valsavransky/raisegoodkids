@@ -17,6 +17,7 @@ import {
   sendChildSubmission,
   takeBackChildSubmission,
   uploadGoalPhoto,
+  uploadChildGoalPhoto,
   goalPhotoUrl,
   ApiError,
 } from '../services/api';
@@ -302,7 +303,13 @@ interface AppDataContextValue {
   queuedGoals: () => Goal[];
   completedGoals: () => Goal[];
   getGoal: (goalId: string) => Goal | undefined;
-  addGoal: (name: string, realWorldCost: number, category?: GoalCategory, photoUri?: string) => void;
+  addGoal: (
+    name: string,
+    realWorldCost: number,
+    category?: GoalCategory,
+    photoUri?: string,
+    opts?: { id?: string; photoRemote?: number }
+  ) => void;
   setActiveGoal: (goalId: string) => void;
   /** Only allowed for a non-active goal with zero progress recorded against
    * it — a goal that was ever active could carry real earned progress. */
@@ -873,10 +880,16 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
       .sort((a, b) => (b.achievedAt ?? '').localeCompare(a.achievedAt ?? ''));
   const getGoal = (goalId: string): Goal | undefined => allGoals.find((g) => g.id === goalId);
 
-  const addGoal = (name: string, realWorldCost: number, category?: GoalCategory, photoUri?: string) => {
+  const addGoal = (
+    name: string,
+    realWorldCost: number,
+    category?: GoalCategory,
+    photoUri?: string,
+    opts?: { id?: string; photoRemote?: number }
+  ) => {
     const hasActive = goals.some((g) => g.status === 'active');
     const goal: Goal = {
-      id: makeId('goal'),
+      id: opts?.id ?? makeId('goal'),
       childProfileId: childProfile?.id ?? '',
       name,
       realWorldCost,
@@ -885,6 +898,7 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
       createdAt: new Date().toISOString(),
       category,
       photoUri,
+      photoRemote: opts?.photoRemote,
     };
     setGoals((prev) => [...prev, goal]);
   };
@@ -1271,7 +1285,7 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
     kind: Submission['kind'],
     itemId: string,
     day: string,
-    payload: { name?: string } = {}
+    payload: { name?: string; hasPhoto?: boolean } = {}
   ): Promise<boolean> => {
     if (!childDevice || !childId) return false;
     const sub: Submission = {
@@ -1535,7 +1549,14 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
         return true;
       }
       case 'goal_add': {
-        if (sub.payload.name) addGoal(sub.payload.name, sub.payload.price ?? 0);
+        if (sub.payload.name) {
+          // The goal keeps the id the child made up, so the photo the child uploaded already belongs to it.
+          // A photo the parent picked while approving replaces it (and uploads from the parent's phone).
+          addGoal(sub.payload.name, sub.payload.price ?? 0, undefined, sub.payload.photoUri, {
+            id: sub.itemId,
+            photoRemote: !sub.payload.photoUri && sub.payload.hasPhoto ? Date.now() : undefined,
+          });
+        }
         return true;
       }
       case 'goal_rename': {
@@ -1765,8 +1786,13 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
           takeBack('gig', gigId, date ?? todayString());
           return 'ok';
         },
-        addGoal: (name: string) => {
-          sendRequest('goal_add', makeId('goal'), todayString(), { name });
+        addGoal: (name: string, _cost?: number, _category?: GoalCategory, photoUri?: string) => {
+          const id = `${makeId('goal')}-${randomToken(4)}`;
+          sendRequest('goal_add', id, todayString(), { name, hasPhoto: !!photoUri }).then((ok) => {
+            if (ok && photoUri && childDevice) {
+              uploadChildGoalPhoto(childDevice.token, id, photoUri).catch((e) => console.warn('Goal photo upload failed', e));
+            }
+          });
         },
         updateGoal: (goalId: string, fields: { name: string }) => {
           sendRequest('goal_rename', goalId, todayString(), { name: fields.name });

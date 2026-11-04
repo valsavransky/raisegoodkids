@@ -217,7 +217,7 @@ export function GoalPickerScreen() {
       const name = draftName.trim();
       if (!name) return;
       if (editingGoalId) updateGoal(editingGoalId, { name, realWorldCost: 0 });
-      else addGoal(name, 0);
+      else addGoal(name, 0, undefined, draftPhotoUri);
       setModalVisible(false);
       sheet.show({
         emoji: '🎯',
@@ -503,6 +503,22 @@ export function GoalPickerScreen() {
           <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
             <Text style={styles.modalTitle}>{editingGoalId ? 'Edit goal' : deviceMode ? 'Ask for a goal' : 'Add a goal'}</Text>
             <TextInput style={styles.input} placeholder="What are you saving for?" value={draftName} onChangeText={setDraftName} />
+            {deviceMode && !editingGoalId && (
+              <View style={styles.photoHelperStep}>
+                {draftPhotoUri ? (
+                  <View style={styles.photoPreviewRow}>
+                    <Image source={{ uri: draftPhotoUri }} style={styles.photoPreviewThumb} />
+                    <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => setDraftPhotoUri(undefined)}>
+                      <Text style={styles.linkActionDanger}>Remove</Text>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <Pressable style={styles.photoHelperButton} onPress={pickPhoto}>
+                    <Text style={styles.photoHelperButtonText}>📷 Add a photo (optional)</Text>
+                  </Pressable>
+                )}
+              </View>
+            )}
             {!deviceMode && draftName.trim().length > 0 && (
               <View style={styles.photoHelperSection}>
                 <View style={styles.photoHelperStep}>
@@ -537,7 +553,7 @@ export function GoalPickerScreen() {
               </View>
             )}
             {deviceMode ? (
-              <Text style={styles.photoHelperCaption}>A parent will look at it and set it up with you.</Text>
+              <Text style={styles.photoHelperCaption}>A parent will look at it, set a price, and can change the photo.</Text>
             ) : (
               <CurrencyInput placeholder="How much does it cost?" value={draftCost} onChangeText={setDraftCost} />
             )}

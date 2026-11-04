@@ -25,7 +25,7 @@ interface ApprovalsValue {
   decide: (
     id: string,
     decision: 'approved' | 'declined',
-    extra?: { note?: string; price?: number }
+    extra?: { note?: string; price?: number; hasPhoto?: boolean; photoUri?: string }
   ) => Promise<'ok' | 'already' | 'error'>;
 }
 
@@ -75,10 +75,13 @@ export function ApprovalsProvider({ children }: { children: ReactNode }) {
     const t = tokenRef.current;
     if (!t) return 'error';
     try {
-      const { submission } = await decideSubmission(t, id, { decision, ...extra });
+      const { photoUri, ...serverExtra } = extra ?? {};
+      const { submission } = await decideSubmission(t, id, { decision, ...serverExtra });
       setSubmissions((prev) => prev.map((s) => (s.id === id ? submission : s)));
       track(decision === 'approved' ? 'submission_approved' : 'submission_declined', { kind: submission.kind });
-      if (decision === 'approved') applyRef.current([submission]);
+      if (decision === 'approved') {
+        applyRef.current([photoUri ? { ...submission, payload: { ...submission.payload, photoUri } } : submission]);
+      }
       return 'ok';
     } catch (e) {
       if (e instanceof ApiError && (e.status === 409 || e.status === 404)) {

@@ -110,7 +110,7 @@ export function listSubmissions(token: string): Promise<{ submissions: Submissio
 export function decideSubmission(
   token: string,
   id: string,
-  body: { decision: 'approved' | 'declined'; note?: string; price?: number }
+  body: { decision: 'approved' | 'declined'; note?: string; price?: number; hasPhoto?: boolean }
 ): Promise<{ submission: Submission }> {
   return request(`/family/submissions/${encodeURIComponent(id)}/decide`, { method: 'POST', token, body });
 }
@@ -128,7 +128,7 @@ export function fetchChildData(token: string): Promise<{ data: unknown | null; s
 
 export function sendChildSubmission(
   token: string,
-  sub: { id: string; childId: string; kind: Submission['kind']; itemId: string; day: string; payload?: { name?: string } }
+  sub: { id: string; childId: string; kind: Submission['kind']; itemId: string; day: string; payload?: { name?: string; hasPhoto?: boolean } }
 ): Promise<{ ok: true }> {
   return request('/child/submissions', { method: 'POST', token, body: sub });
 }
@@ -143,8 +143,7 @@ export function goalPhotoUrl(goalId: string, version: number): string {
   return `${API_BASE_URL}/goal-photos/${encodeURIComponent(goalId)}?v=${version}`;
 }
 
-/** Sends a goal's photo (a file on this phone) to the server so a family device can show it. */
-export async function uploadGoalPhoto(token: string, goalId: string, fileUri: string): Promise<void> {
+async function putPhoto(path: string, token: string, fileUri: string): Promise<void> {
   if (!API_BASE_URL) throw new Error('API base URL not configured');
   const blob = await (await fetch(fileUri)).blob();
   // Sent as base64 text: a file blob as the request body arrives empty.
@@ -157,10 +156,20 @@ export async function uploadGoalPhoto(token: string, goalId: string, fileUri: st
   const comma = dataUrl.indexOf(',');
   const mime = /^data:(image\/[\w.+-]+)/.exec(dataUrl)?.[1] ?? 'image/jpeg';
   if (comma < 0) throw new Error('Could not read the photo');
-  const res = await fetch(`${API_BASE_URL}/goal-photos/${encodeURIComponent(goalId)}`, {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'PUT',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'text/plain', 'X-Photo-Type': mime },
     body: dataUrl.slice(comma + 1),
   });
   if (!res.ok) throw new ApiError(res.status, `Photo upload failed (${res.status})`);
+}
+
+/** Sends a goal's photo (a file on this phone) to the server so a family device can show it. */
+export function uploadGoalPhoto(token: string, goalId: string, fileUri: string): Promise<void> {
+  return putPhoto(`/goal-photos/${encodeURIComponent(goalId)}`, token, fileUri);
+}
+
+/** A child's device sends the photo for a goal it has just asked for. */
+export function uploadChildGoalPhoto(token: string, goalId: string, fileUri: string): Promise<void> {
+  return putPhoto(`/child/goal-photos/${encodeURIComponent(goalId)}`, token, fileUri);
 }

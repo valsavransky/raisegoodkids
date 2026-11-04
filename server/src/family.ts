@@ -212,7 +212,7 @@ familyRouter.get('/family/submissions', requireAuth, async (req: AuthedRequest, 
 
 familyRouter.post('/family/submissions/:id/decide', requireAuth, async (req: AuthedRequest, res: Response) => {
   try {
-    const { decision, note, price } = req.body ?? {};
+    const { decision, note, price, hasPhoto } = req.body ?? {};
     if (decision !== 'approved' && decision !== 'declined') {
       res.status(400).json({ error: 'decision must be approved or declined' });
       return;
@@ -223,9 +223,10 @@ familyRouter.post('/family/submissions/:id/decide', requireAuth, async (req: Aut
     const result = await pool.query(
       `UPDATE submissions
          SET status = $1, decided_at = now(), note = $2,
-             payload = CASE WHEN $5::numeric IS NULL THEN payload ELSE payload || jsonb_build_object('price', $5::numeric) END
+             payload = (CASE WHEN $5::numeric IS NULL THEN payload ELSE payload || jsonb_build_object('price', $5::numeric) END)
+               || (CASE WHEN $6::boolean IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('hasPhoto', $6::boolean) END)
        WHERE id = $3 AND user_id = $4 AND status = 'pending' RETURNING *`,
-      [decision, cleanNote, req.params.id, req.userId, cleanPrice]
+      [decision, cleanNote, req.params.id, req.userId, cleanPrice, typeof hasPhoto === 'boolean' ? hasPhoto : null]
     );
     if (!result.rowCount) {
       // Already decided (say, from another parent phone) or taken back by the child: report what's there now.
@@ -320,6 +321,8 @@ familyRouter.post('/child/submissions', requireDevice, async (req: DeviceRequest
         return;
       }
       cleanPayload = { name };
+      // A child can attach a photo to a new goal; it is uploaded separately (see /child/goal-photos).
+      if (kind === 'goal_add' && payload?.hasPhoto === true) cleanPayload.hasPhoto = true;
     }
     const data = await pool.query('SELECT data FROM app_data WHERE user_id = $1', [req.userId]);
     if (!hasItem(data.rows[0]?.data, kind, childId, itemId)) {
@@ -449,3 +452,48 @@ familyRouter.get('/goal-photos/:goalId', async (req: Request, res: Response) => 
     res.status(500).json({ error: 'Could not load the photo' });
   }
 });
+
+/** A child's device uploads the photo for a goal it has asked for. Only while that request is waiting. */
+familyRouter.put(
+  '/child/goal-photos/:goalId',
+  requireDevice,
+  express.raw({ type: 'image/*', limit: '12mb' }),
+  express.text({ type: 'text/plain', limit: '12mb' }),
+  async (req: DeviceRequest, res: Response) => {
+    try {
+      const goalId = String(req.params.goalId);
+      const waiting = await pool.query(
+        `SELECT 1 FROM submissions WHERE user_id = $1 AND kind = 'goal_add' AND item_id = $2 AND status = 'pending'`,
+        [req.userId, goalId]
+      );
+      if (!waiting.rowCount) {
+        res.status(404).json({ error: 'That goal request is no longer waiting' });
+        return;
+      }
+      const bytes: Buffer | null = Buffer.isBuffer(req.body)
+        ? req.body
+        : typeof req.body === 'string' && req.body.length > 0
+          ? Buffer.from(req.body, 'base64')
+          : null;
+      if (!bytes || bytes.length === 0) {
+        res.status(400).json({ error: 'Send the photo as an image' });
+        return;
+      }
+      const contentType = Buffer.isBuffer(req.body)
+        ? req.header('content-type') ?? 'image/jpeg'
+        : /^image\/[\w.+-]+$/.test(req.header('x-photo-type') ?? '')
+          ? (req.header('x-photo-type') as string)
+          : 'image/jpeg';
+      await pool.query(
+        `INSERT INTO goal_photos (user_id, goal_id, content_type, data, updated_at)
+         VALUES ($1, $2, $3, $4, now())
+         ON CONFLICT (user_id, goal_id) DO UPDATE SET content_type = $3, data = $4, updated_at = now()`,
+        [req.userId, goalId, contentType, bytes]
+      );
+      res.json({ ok: true });
+    } catch (err) {
+      console.error('PUT /child/goal-photos failed', err);
+      res.status(500).json({ error: 'Could not save the photo' });
+    }
+  }
+);

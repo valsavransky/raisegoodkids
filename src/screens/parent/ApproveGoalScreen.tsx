@@ -2,8 +2,9 @@
 // the child never sees), a new name for a goal, or switching which goal they
 // work on. Nothing changes until a parent approves.
 import React, { useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
 import { useSheet, offlineSheet } from '../../components/SheetProvider';
-import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ActivityIndicator, Image, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -13,6 +14,8 @@ import { NoteSheet } from '../../components/NoteSheet';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { useApprovals } from '../../context/ApprovalsContext';
 import { useAppData } from '../../context/AppDataContext';
+import { GoalPhoto } from '../../components/GoalPhoto';
+import { Goal } from '../../types/models';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ApproveGoal'>;
@@ -29,6 +32,18 @@ export function ApproveGoalScreen({ navigation, route }: Props) {
   const [price, setPrice] = useState(goal ? String(goal.realWorldCost) : '');
   const [noteOpen, setNoteOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  // The child's photo (if they added one) can be swapped for the parent's own, or removed.
+  const [parentPhotoUri, setParentPhotoUri] = useState<string | undefined>(undefined);
+  const [photoRemoved, setPhotoRemoved] = useState(false);
+  const pickPhoto = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) return;
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7 });
+    if (!result.canceled && result.assets[0]) {
+      setParentPhotoUri(result.assets[0].uri);
+      setPhotoRemoved(false);
+    }
+  };
 
   if (!sub || sub.status !== 'pending') {
     return (
@@ -44,7 +59,10 @@ export function ApproveGoalScreen({ navigation, route }: Props) {
   const needsPrice = sub.kind === 'goal_add' || (sub.kind === 'goal_rename' && !hasProgress);
   const priceOk = !needsPrice || (Number.isFinite(priceNumber) && priceNumber > 0);
 
-  const finish = async (decision: 'approved' | 'declined', extra?: { note?: string; price?: number }) => {
+  const finish = async (
+    decision: 'approved' | 'declined',
+    extra?: { note?: string; price?: number; hasPhoto?: boolean; photoUri?: string }
+  ) => {
     setBusy(true);
     const result = await decide(sub.id, decision, extra);
     setBusy(false);
@@ -74,6 +92,54 @@ export function ApproveGoalScreen({ navigation, route }: Props) {
           <>
             <Text style={styles.goalName}>{sub.payload.name}</Text>
             <Text style={styles.sub}>{childName} asked for this goal.</Text>
+            <View style={styles.photoBlock}>
+              {(() => {
+                const childHasPhoto = !!sub.payload.hasPhoto && !photoRemoved && !parentPhotoUri;
+                const shown = !!parentPhotoUri || childHasPhoto;
+                return (
+                  <>
+                    {parentPhotoUri ? (
+                      <Image source={{ uri: parentPhotoUri }} style={styles.photo} />
+                    ) : childHasPhoto ? (
+                      <GoalPhoto
+                        goal={{ id: sub.itemId, photoRemote: 1 } as Goal}
+                        style={styles.photo}
+                        placeholder={<View style={[styles.photo, styles.photoEmpty]}><Text style={{ fontSize: 28 }}>🖼️</Text></View>}
+                      />
+                    ) : (
+                      <View style={[styles.photo, styles.photoEmpty]}>
+                        <Text style={{ fontSize: 28 }}>🖼️</Text>
+                      </View>
+                    )}
+                    <View style={{ flex: 1, gap: 6 }}>
+                      <Text style={styles.photoNote}>
+                        {parentPhotoUri
+                          ? 'Your photo will be used.'
+                          : childHasPhoto
+                            ? `${childName} added this photo. You can change it.`
+                            : 'No photo yet. You can add one.'}
+                      </Text>
+                      <View style={styles.photoActions}>
+                        <Pressable onPress={pickPhoto} hitSlop={8}>
+                          <Text style={styles.photoLink}>{shown ? 'Change photo' : 'Add a photo'}</Text>
+                        </Pressable>
+                        {shown && (
+                          <Pressable
+                            onPress={() => {
+                              setParentPhotoUri(undefined);
+                              setPhotoRemoved(true);
+                            }}
+                            hitSlop={8}
+                          >
+                            <Text style={styles.photoLinkMuted}>Remove</Text>
+                          </Pressable>
+                        )}
+                      </View>
+                    </View>
+                  </>
+                );
+              })()}
+            </View>
           </>
         )}
         {sub.kind === 'goal_rename' && (
@@ -111,7 +177,18 @@ export function ApproveGoalScreen({ navigation, route }: Props) {
           style={[styles.approve, (!priceOk || busy) && { opacity: 0.45 }]}
           disabled={!priceOk || busy}
           onPress={() =>
-            finish('approved', sub.kind === 'goal_add' || (sub.kind === 'goal_rename' && !hasProgress) ? { price: priceNumber } : undefined)
+            finish(
+              'approved',
+              sub.kind === 'goal_add'
+                ? {
+                    price: priceNumber,
+                    hasPhoto: photoRemoved ? false : !!(parentPhotoUri || sub.payload.hasPhoto),
+                    photoUri: parentPhotoUri,
+                  }
+                : sub.kind === 'goal_rename' && !hasProgress
+                  ? { price: priceNumber }
+                  : undefined
+            )
           }
         >
           {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.approveText}>Approve</Text>}
@@ -137,6 +214,13 @@ export function ApproveGoalScreen({ navigation, route }: Props) {
 }
 
 const styles = StyleSheet.create({
+  photoBlock: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#fff', borderWidth: 1, borderColor: '#EEE6D8', borderRadius: 18, padding: 14, marginTop: 14 },
+  photo: { width: 76, height: 76, borderRadius: 16 },
+  photoEmpty: { backgroundColor: '#F6EFE2', alignItems: 'center', justifyContent: 'center' },
+  photoNote: { fontSize: 13.5, color: colors.textMuted, lineHeight: 19 },
+  photoActions: { flexDirection: 'row', gap: 18 },
+  photoLink: { fontSize: 14, fontWeight: '800', color: colors.expected },
+  photoLinkMuted: { fontSize: 14, fontWeight: '800', color: colors.textMuted },
   screen: { flex: 1, backgroundColor: colors.background },
   content: { paddingHorizontal: 20, paddingTop: 8 },
   missing: { textAlign: 'center', color: colors.textMuted, marginTop: 60, paddingHorizontal: 20 },

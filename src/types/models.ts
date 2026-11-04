@@ -279,7 +279,14 @@ export interface Submission {
   day: string;
   status: SubmissionStatus;
   /** { name } for a new or renamed goal; { name, price } once a parent approved it. */
-  payload: { name?: string; price?: number };
+  payload: {
+    name?: string;
+    price?: number;
+    /** A new goal the child attached a photo to (the photo itself is stored on the server). */
+    hasPhoto?: boolean;
+    /** The parent's own photo for it, picked while approving. Only ever lives on the parent's phone. */
+    photoUri?: string;
+  };
   /** The parent's note when sending something back. */
   note?: string;
   submittedAt: string;
