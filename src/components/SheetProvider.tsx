@@ -92,35 +92,41 @@ export function SheetProvider({ children }: { children: ReactNode }) {
                 <Text style={styles.iconEmoji}>{config.emoji}</Text>
               </View>
             ) : null}
-            <Text style={styles.title}>{config?.title}</Text>
+            <View style={styles.textGroup}>
+              <Text style={styles.title}>{config?.title}</Text>
+              {config?.body ? <Text style={styles.body}>{config.body}</Text> : null}
+            </View>
             {config?.subject && config.emoji ? renderRow(config.subject, 'subject2') : null}
-            {config?.body ? <Text style={styles.body}>{config.body}</Text> : null}
-            {config?.rows?.map((r, i) => renderRow(r, i))}
-            {config?.actions.map((a, i) => (
-              <Pressable
-                key={i}
-                style={[
-                  styles.button,
-                  a.kind === 'amber' && { backgroundColor: colors.gigs },
-                  a.kind === 'danger' && { backgroundColor: colors.danger },
-                  a.kind === 'ghost' && styles.buttonGhost,
-                  a.kind === 'link' && styles.buttonLink,
-                ]}
-                onPress={() => {
-                  hide();
-                  a.onPress?.();
-                }}
-              >
-                <Text
+            {config?.rows && config.rows.length > 0 ? (
+              <View style={styles.rowsGroup}>{config.rows.map((r, i) => renderRow(r, i))}</View>
+            ) : null}
+            <View style={styles.actionsGroup}>
+              {config?.actions.map((a, i) => (
+                <Pressable
+                  key={i}
                   style={[
-                    styles.buttonText,
-                    (a.kind === 'ghost' || a.kind === 'link') && { color: a.kind === 'link' ? colors.textMuted : '#4B4F58' },
+                    styles.button,
+                    a.kind === 'amber' && { backgroundColor: colors.gigs },
+                    a.kind === 'danger' && { backgroundColor: colors.danger },
+                    a.kind === 'ghost' && styles.buttonGhost,
+                    a.kind === 'link' && styles.buttonLink,
                   ]}
+                  onPress={() => {
+                    hide();
+                    a.onPress?.();
+                  }}
                 >
-                  {a.label}
-                </Text>
-              </Pressable>
-            ))}
+                  <Text
+                    style={[
+                      styles.buttonText,
+                      (a.kind === 'ghost' || a.kind === 'link') && { color: a.kind === 'link' ? colors.textMuted : '#4B4F58' },
+                    ]}
+                  >
+                    {a.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
           </Pressable>
         </Pressable>
       </Modal>
@@ -141,11 +147,15 @@ export function offlineSheet(title: string, body: string): SheetConfig {
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end', paddingHorizontal: 16 },
-  sheet: { backgroundColor: '#fff', borderRadius: 24, padding: 20 },
-  iconCircle: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 10 },
+  // One even gap between every block, so no card ever touches the text next to it.
+  sheet: { backgroundColor: '#fff', borderRadius: 24, padding: 22, gap: 16 },
+  textGroup: { gap: 8 },
+  rowsGroup: { gap: 10 },
+  actionsGroup: { gap: 10, marginTop: 2 },
+  iconCircle: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', alignSelf: 'center' },
   iconEmoji: { fontSize: 24 },
   title: { fontSize: 20, fontWeight: '800', color: colors.text, textAlign: 'center' },
-  body: { fontSize: 15, color: colors.textMuted, textAlign: 'center', lineHeight: 21, marginTop: 6, marginBottom: 6 },
+  body: { fontSize: 15, color: colors.textMuted, textAlign: 'center', lineHeight: 22 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -155,8 +165,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FDF9F1',
     borderRadius: 14,
     paddingVertical: 11,
-    paddingHorizontal: 13,
-    marginTop: 10,
+    paddingHorizontal: 14,
   },
   rowDashed: { borderStyle: 'dashed', borderColor: colors.gigs },
   rowIcon: { fontSize: 22 },
@@ -168,8 +177,8 @@ const styles = StyleSheet.create({
   okMark: { color: '#fff', fontWeight: '800' },
   badDot: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#FCE3E1', alignItems: 'center', justifyContent: 'center' },
   badMark: { color: colors.danger, fontWeight: '800' },
-  button: { backgroundColor: colors.expected, borderRadius: 13, paddingVertical: 14, alignItems: 'center', marginTop: 10 },
+  button: { backgroundColor: colors.expected, borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
   buttonGhost: { backgroundColor: '#F3F1EC' },
-  buttonLink: { backgroundColor: 'transparent', paddingVertical: 10, marginTop: 2 },
+  buttonLink: { backgroundColor: 'transparent', paddingVertical: 8 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
 });

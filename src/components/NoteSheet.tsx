@@ -40,8 +40,10 @@ export function NoteSheet({ visible, title, subtitle, initialNote = '', confirmL
                 </View>
               </View>
             ) : null}
-            <Text style={styles.title}>{title}</Text>
-            {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+            <View style={{ gap: 4 }}>
+              <Text style={styles.title}>{title}</Text>
+              {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+            </View>
             {quickReplies && quickReplies.length > 0 ? (
               <View style={styles.chips}>
                 {quickReplies.map((q) => (
@@ -83,21 +85,22 @@ export function NoteSheet({ visible, title, subtitle, initialNote = '', confirmL
 }
 
 const styles = StyleSheet.create({
-  subject: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: '#EEE6D8', backgroundColor: '#FDF9F1', borderRadius: 14, padding: 12, marginBottom: 14 },
+  subject: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: '#EEE6D8', backgroundColor: '#FDF9F1', borderRadius: 14, padding: 14 },
   subjectRing: { width: 26, height: 26, borderRadius: 13, borderWidth: 3, borderStyle: 'dashed', borderColor: colors.expected },
   subjectTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
   subjectSmall: { fontSize: 12.5, color: colors.textMuted, marginTop: 1 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { borderWidth: 1.5, borderColor: '#DDE3E8', borderRadius: 99, paddingVertical: 6, paddingHorizontal: 12 },
   chipOn: { backgroundColor: '#E4F4F1', borderColor: colors.expected },
   chipText: { fontSize: 13.5, fontWeight: '700', color: '#4B4F58' },
-  preview: { backgroundColor: '#FCEBD2', borderRadius: 12, padding: 12, marginTop: 12 },
+  preview: { backgroundColor: '#FCEBD2', borderRadius: 12, padding: 14 },
   previewLabel: { fontSize: 10.5, fontWeight: '800', letterSpacing: 0.7, color: '#7A4A06' },
   previewText: { fontSize: 13.5, color: '#7A4A06', marginTop: 3, lineHeight: 19 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: colors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
+  // One even gap between blocks, same as the other sheets.
+  sheet: { backgroundColor: colors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 22, gap: 14 },
   title: { fontSize: 17, fontWeight: '800', color: colors.text },
-  subtitle: { fontSize: 13, color: colors.textMuted, marginTop: 4, lineHeight: 18 },
+  subtitle: { fontSize: 13, color: colors.textMuted, lineHeight: 18 },
   input: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -107,12 +110,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
     backgroundColor: colors.surface,
-    marginTop: 14,
     minHeight: 70,
     textAlignVertical: 'top',
   },
-  confirm: { backgroundColor: colors.expected, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 14 },
+  confirm: { backgroundColor: colors.expected, borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
   confirmText: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  cancel: { alignItems: 'center', paddingVertical: 12 },
+  cancel: { alignItems: 'center', paddingVertical: 4 },
   cancelText: { color: colors.textMuted, fontSize: 15, fontWeight: '600' },
 });
