@@ -389,15 +389,47 @@ export function GoalPickerScreen() {
         contentContainerStyle={styles.listContent}
         sections={sections}
         keyExtractor={(goal) => goal.id}
-        ListEmptyComponent={
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyText}>
-              Pick something {childName} actually wants — every gig they do chips away at it. Add a goal now, or skip and add one later.
-            </Text>
-            <Pressable style={styles.emptySkip} onPress={() => navigation.navigate('Home')} hitSlop={LINK_HIT_SLOP}>
-              <Text style={styles.emptySkipText}>Skip for now →</Text>
-            </Pressable>
-          </View>
+        // No active goal (none yet, or the last one is done): a clear, friendly nudge right at the top.
+        ListHeaderComponent={
+          !active ? (
+            <View style={styles.nextGoalCard}>
+              <View style={styles.nextGoalIcon}>
+                <Text style={styles.nextGoalEmoji}>🎯</Text>
+              </View>
+              <Text style={styles.nextGoalTitle}>
+                {goals.length === 0
+                  ? deviceMode
+                    ? 'What do you want to save for?'
+                    : `What's ${childName} working toward?`
+                  : deviceMode
+                    ? 'You did it! What’s next?'
+                    : `Ready for ${childName}’s next goal?`}
+              </Text>
+              <Text style={styles.nextGoalBody}>
+                {deviceMode
+                  ? 'Pick something you’d love. Every gig gets you closer. A parent will set it up with you.'
+                  : 'Pick something they’d love. Every gig they do gets them closer.'}
+              </Text>
+              {suggestedIdeas.length > 0 && (
+                <View style={styles.nextGoalChips}>
+                  {suggestedIdeas.slice(0, 3).map((idea) => (
+                    <Pressable key={idea.name} style={styles.suggestedChip} onPress={() => openAddModalFromIdea(idea)}>
+                      <Text style={styles.suggestedChipEmoji}>{CATEGORY_EMOJI[idea.category]}</Text>
+                      <Text style={styles.suggestedChipText}>{idea.name}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+              <Pressable style={styles.nextGoalButton} onPress={openAddModal}>
+                <Text style={styles.nextGoalButtonText}>{deviceMode ? 'Ask for a goal' : 'Add a goal'}</Text>
+              </Pressable>
+              {goals.length === 0 && (
+                <Pressable style={styles.emptySkip} onPress={() => navigation.navigate('Home')} hitSlop={LINK_HIT_SLOP}>
+                  <Text style={styles.emptySkipText}>Skip for now</Text>
+                </Pressable>
+              )}
+            </View>
+          ) : null
         }
         renderSectionHeader={({ section }) => {
           const tone = SECTION_TONES[section.title] ?? SECTION_TONES['Active goal'];
@@ -685,6 +717,14 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20 },
   emptyText: { fontSize: 14, color: colors.textMuted, textAlign: 'center', marginTop: 24 },
   emptyCard: { alignItems: 'center', paddingHorizontal: 12 },
+  nextGoalCard: { backgroundColor: '#FFF3E0', borderRadius: 22, padding: 20, alignItems: 'center', gap: 10, marginTop: 6, marginBottom: 6 },
+  nextGoalIcon: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  nextGoalEmoji: { fontSize: 26 },
+  nextGoalTitle: { fontSize: 20, fontWeight: '800', color: colors.text, textAlign: 'center' },
+  nextGoalBody: { fontSize: 14.5, color: '#7A5A2A', textAlign: 'center', lineHeight: 21 },
+  nextGoalChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 2 },
+  nextGoalButton: { alignSelf: 'stretch', backgroundColor: colors.gigs, borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
+  nextGoalButtonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
   emptySkip: { marginTop: 12, paddingVertical: 6 },
   emptySkipText: { color: colors.expected, fontSize: 15, fontWeight: '600' },
   promptButtons: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 20 },

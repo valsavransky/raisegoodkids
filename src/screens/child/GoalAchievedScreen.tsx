@@ -32,8 +32,6 @@ export function GoalAchievedScreen({ route, navigation }: Props) {
   const nextUp = activeGoal();
 
   const [confettiTrigger, setConfettiTrigger] = useState(0);
-  // Temporary: shows what the audio player is doing, to track down a silent fanfare.
-  const [soundDebug, setSoundDebug] = useState('');
   const trophyScale = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -43,8 +41,7 @@ export function GoalAchievedScreen({ route, navigation }: Props) {
 
   const playFanfare = () => {
     // The child tapped "Play the fanfare", so it plays even if the family's sound setting is off.
-    setSoundDebug('starting…');
-    playSound('fanfare', true, (t) => setSoundDebug((prev) => `${prev}\n${t}`.split('\n').slice(-8).join('\n')));
+    playSound('fanfare', true);
     setConfettiTrigger((n) => n + 1);
   };
 
@@ -61,7 +58,6 @@ export function GoalAchievedScreen({ route, navigation }: Props) {
       <Pressable style={styles.fanfareButton} onPress={playFanfare}>
         <Text style={styles.fanfareButtonText}>🔊 Play the fanfare</Text>
       </Pressable>
-      {soundDebug ? <Text style={{ fontSize: 11, color: colors.textMuted, textAlign: 'center', marginTop: 8 }}>{soundDebug}</Text> : null}
 
       <Text style={styles.grownUpNote}>
         {deviceMode ? 'Ask a grown-up to make it happen!' : 'Tap below once you’ve fulfilled it in real life.'}
