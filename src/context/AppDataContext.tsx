@@ -105,6 +105,7 @@ const CHILD_STORAGE_KEY = '@trekker/childDevice/data/v1';
 const CHILD_CHOSEN_KEY = '@trekker/childDevice/child';
 const CHILD_SEEN_KEY = '@trekker/childDevice/seen';
 const CHILD_REFRESH_MS = 40_000;
+const ANSWER_VISIBLE_MS = 24 * 60 * 60 * 1000;
 
 interface PersistedAppData {
   parentName: string | null;
@@ -1296,7 +1297,12 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
     (s) => s.status === 'pending' && s.childId === childId && s.kind.startsWith('goal_')
   );
   const childNotices = deviceSubs.filter(
-    (s) => s.status !== 'pending' && s.childId === childId && seenAnswers !== null && !seenAnswers.includes(s.id)
+    (s) => s.status !== 'pending' &&
+      s.childId === childId &&
+      seenAnswers !== null &&
+      !seenAnswers.includes(s.id) &&
+      // Answers fade away after a day.
+      Date.now() - new Date(s.decidedAt ?? s.submittedAt).getTime() < ANSWER_VISIBLE_MS
   );
   const dismissNotice = (id: string) => {
     setSeenAnswers((prev) => {
