@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -22,17 +22,24 @@ configureNotificationHandler();
 const navigationRef = createNavigationContainerRef<Record<string, object | undefined>>();
 
 function RootNavigator() {
-  const { childProfile, isHydrated } = useAppData();
+  const { childProfile, isHydrated, selectChild } = useAppData();
+  // The tap handler is set up once, so it reads the latest state through refs (not the values from the first render).
+  const readyRef = useRef(false);
+  readyRef.current = isHydrated && !!childProfile;
+  const selectChildRef = useRef(selectChild);
+  selectChildRef.current = selectChild;
   useDailyReminderSync();
   useAnalytics();
   usePushRegistration();
   // Tapping a notification opens the screen it is about (once the app is ready).
-  useNotificationTaps((screen) => {
+  useNotificationTaps((screen, data) => {
     const tryOpen = (attempts: number) => {
-      if (navigationRef.isReady() && childProfile) navigationRef.navigate(screen);
-      else if (attempts > 0) setTimeout(() => tryOpen(attempts - 1), 500);
+      if (navigationRef.isReady() && readyRef.current) {
+        if (typeof data.childId === 'string') selectChildRef.current(data.childId);
+        navigationRef.navigate(screen);
+      } else if (attempts > 0) setTimeout(() => tryOpen(attempts - 1), 500);
     };
-    tryOpen(10);
+    tryOpen(30);
   });
   if (!isHydrated) return <LoadingScreen />;
   return childProfile ? <RootStackNavigator /> : <SetupNavigator />;

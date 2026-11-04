@@ -197,7 +197,7 @@ export async function queueRequest(userId: number, childId: string, kind: string
       : kind === 'goal_add' ? payloadName ?? 'a new goal'
       : await nameOf(userId, 'goals', itemId);
     const name = await childName(userId, childId);
-    await enqueue(userId, 'parent', childId, 'request', { child: name, title }, BATCH_SECONDS);
+    await enqueue(userId, 'parent', childId, 'request', { child: name, childId, title }, BATCH_SECONDS);
   } catch (err) {
     console.error('queueRequest failed', err);
   }
@@ -247,8 +247,12 @@ async function processQueue() {
 
     const requests = rows.filter((r) => r.kind === 'request');
     if (requests.length && settings.parent.requests) {
+      // If everything came from one child, tapping the push also switches to that child.
+      const kidIds = [...new Set(requests.map((r) => r.payload.childId as string | undefined).filter(Boolean))];
+      const data: Record<string, unknown> = { screen: 'Approvals' };
+      if (kidIds.length === 1) data.childId = kidIds[0];
       for (const to of await parentTokens(userId)) {
-        messages.push({ to, body: requestBody(requests), data: { screen: 'Approvals' } });
+        messages.push({ to, body: requestBody(requests), data });
       }
     }
     const goalsForParents = rows.filter((r) => r.kind === 'goal_parent');

@@ -22,11 +22,11 @@ export function usePushRegistration() {
 }
 
 /** A tapped notification can name a screen (e.g. Approvals); open it once navigation is ready. */
-export function useNotificationTaps(navigate: (screen: string) => void) {
+export function useNotificationTaps(navigate: (screen: string, data: Record<string, unknown>) => void) {
   useEffect(() => {
     const open = (response: Notifications.NotificationResponse | null) => {
-      const screen = response?.notification.request.content.data?.screen;
-      if (typeof screen === 'string') navigate(screen);
+      const data = (response?.notification.request.content.data ?? {}) as Record<string, unknown>;
+      if (typeof data.screen === 'string') navigate(data.screen, data);
     };
     Notifications.getLastNotificationResponseAsync().then(open).catch(() => {});
     const sub = Notifications.addNotificationResponseReceivedListener(open);
