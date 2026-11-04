@@ -22,8 +22,10 @@ export function GoalAchievedScreen({ route, navigation }: Props) {
     },
     [celebrationId]
   );
-  const { getGoal, activeGoal, deviceMode } = useAppData();
+  const { getGoal, activeGoal, deviceMode, childProfiles, markGoalFulfilled } = useAppData();
   const goal = getGoal(goalId);
+  const childFirstName = childProfiles.find((c) => c.id === goal?.childProfileId)?.name.trim().split(/\s+/)[0] || 'They';
+  const backToToday = () => navigation.reset({ index: 0, routes: [{ name: 'MainTabs' }] });
   // The next queued goal auto-activates the moment this one is achieved
   // (see AppDataContext.markGigDone), so by the time this screen renders
   // it's already the active goal, not still sitting in the queue.
@@ -50,14 +52,16 @@ export function GoalAchievedScreen({ route, navigation }: Props) {
       <Animated.Text style={[styles.trophy, { transform: [{ scale: trophyScale }] }]}>🏆</Animated.Text>
 
       {wasAwayFor(route.params.whenIso) && <Text style={styles.awayKicker}>🌙 While you were away…</Text>}
-      <Text style={styles.title}>You did it!</Text>
+      <Text style={styles.title}>{deviceMode ? 'You did it!' : `${childFirstName} did it!`}</Text>
       <Text style={styles.goalName}>{goal ? `${goal.name} is yours` : 'Goal reached'}</Text>
 
       <Pressable style={styles.fanfareButton} onPress={playFanfare}>
         <Text style={styles.fanfareButtonText}>🔊 Play the fanfare</Text>
       </Pressable>
 
-      <Text style={styles.grownUpNote}>Ask a grown-up to make it happen!</Text>
+      <Text style={styles.grownUpNote}>
+        {deviceMode ? 'Ask a grown-up to make it happen!' : 'Tap below once you’ve fulfilled it in real life.'}
+      </Text>
 
       {nextUp && (
         <View style={styles.nextUpCard}>
@@ -66,9 +70,26 @@ export function GoalAchievedScreen({ route, navigation }: Props) {
         </View>
       )}
 
-      <Pressable style={styles.continueButton} onPress={() => (deviceMode ? navigation.goBack() : navigation.replace('FulfillGoal', { goalId }))}>
-        <Text style={styles.continueButtonText}>Continue</Text>
-      </Pressable>
+      {deviceMode ? (
+        <Pressable style={styles.continueButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.continueButtonText}>Continue</Text>
+        </Pressable>
+      ) : (
+        <View style={styles.actions}>
+          <Pressable
+            style={styles.primaryButton}
+            onPress={() => {
+              markGoalFulfilled(goalId);
+              backToToday();
+            }}
+          >
+            <Text style={styles.primaryButtonText}>Mark as fulfilled</Text>
+          </Pressable>
+          <Pressable style={styles.ghostButton} onPress={backToToday}>
+            <Text style={styles.ghostButtonText}>I’ll do this later</Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }
@@ -98,6 +119,12 @@ const styles = StyleSheet.create({
   },
   nextUpLabel: { fontSize: 12, color: colors.textMuted, fontWeight: '600', textTransform: 'uppercase' },
   nextUpName: { fontSize: 16, fontWeight: '700', color: colors.text, marginTop: 4 },
+  // Same buttons as the pop-up sheets: a clear main action and a quiet way out.
+  actions: { alignSelf: 'stretch', gap: 10, marginTop: 28 },
+  primaryButton: { backgroundColor: colors.expected, borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+  primaryButtonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  ghostButton: { backgroundColor: '#F3F1EC', borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
+  ghostButtonText: { color: '#4B4F58', fontSize: 16, fontWeight: '800' },
   continueButton: {
     marginTop: 32,
     backgroundColor: colors.text,
