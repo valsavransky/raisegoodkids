@@ -100,9 +100,10 @@ check('reminders are sent once a day', sent.slice(before2).filter((m) => m.to ==
 
 // 5. Goal reached goes to the child
 const before3 = sent.length;
+await j('/push/event', 'POST', T, { kind: 'badge', childId: 'c1', exceptToken: PT });
 await j('/push/event', 'POST', T, { kind: 'goal', childId: 'c1', goal: 'Lego', exceptToken: PT });
 await sleep(3000);
-check('goal reached -> push to the child, not back to the sending phone', sent.slice(before3).some((m) => m.to === CT && /reached your goal/.test(m.body)) && !sent.slice(before3).some((m) => m.to === PT), JSON.stringify(sent.slice(before3)));
+check('goal reached -> one push to the child (its badge stays on the shelf), none back to the sending phone', sent.slice(before3).filter((m) => m.to === CT).length === 1 && sent.slice(before3).some((m) => m.to === CT && /reached your goal/.test(m.body)) && !sent.slice(before3).some((m) => m.to === PT), JSON.stringify(sent.slice(before3)));
 
 console.log(failures ? `\n${failures} failed` : '\nAll passed');
 process.exit(failures ? 1 : 0);

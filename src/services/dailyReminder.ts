@@ -13,6 +13,7 @@
 // is a different problem than a habit nudge.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { isPushActive } from './push';
 import * as Notifications from 'expo-notifications';
 
 const SETTINGS_KEY = 'merit.dailyReminder.v1';
@@ -144,6 +145,9 @@ export async function syncDailyReminder(state: {
 }): Promise<void> {
   try {
     await cancelOurNotifications();
+    // Once this phone is registered for push, the server sends the daily reminder instead (it can see what the
+    // kids did on their own devices), so the local one steps aside.
+    if (await isPushActive()) return;
     const settings = await loadReminderSettings();
     if (!settings.enabled || !(await hasNotificationPermission())) return;
     await ensureAndroidChannel();

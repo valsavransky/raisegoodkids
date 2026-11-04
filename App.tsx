@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { SetupProvider } from './src/context/SetupContext';
 import { AuthProvider, NoAccountProvider } from './src/context/AuthContext';
@@ -12,16 +12,28 @@ import { RootStackNavigator } from './src/navigation/RootStackNavigator';
 import { ChildDeviceNavigator } from './src/navigation/ChildDeviceNavigator';
 import { useDailyReminderSync } from './src/hooks/useDailyReminderSync';
 import { useAnalytics } from './src/hooks/useAnalytics';
+import { usePushRegistration, useNotificationTaps } from './src/hooks/usePushRegistration';
 import { configureNotificationHandler } from './src/services/dailyReminder';
 import { SheetProvider, useSheet } from './src/components/SheetProvider';
 import { LoadingScreen } from './src/screens/LoadingScreen';
 
 configureNotificationHandler();
 
+const navigationRef = createNavigationContainerRef<Record<string, object | undefined>>();
+
 function RootNavigator() {
   const { childProfile, isHydrated } = useAppData();
   useDailyReminderSync();
   useAnalytics();
+  usePushRegistration();
+  // Tapping a notification opens the screen it is about (once the app is ready).
+  useNotificationTaps((screen) => {
+    const tryOpen = (attempts: number) => {
+      if (navigationRef.isReady() && childProfile) navigationRef.navigate(screen);
+      else if (attempts > 0) setTimeout(() => tryOpen(attempts - 1), 500);
+    };
+    tryOpen(10);
+  });
   if (!isHydrated) return <LoadingScreen />;
   return childProfile ? <RootStackNavigator /> : <SetupNavigator />;
 }
@@ -33,7 +45,7 @@ function ParentApp() {
       <AppDataProvider>
         <ApprovalsProvider>
           <SetupProvider>
-            <NavigationContainer>
+            <NavigationContainer ref={navigationRef}>
               <RootNavigator />
             </NavigationContainer>
           </SetupProvider>

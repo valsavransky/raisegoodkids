@@ -5,6 +5,7 @@ import { View, Text, Pressable, StyleSheet, AppState } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAppData } from '../context/AppDataContext';
 import { useDevice } from '../context/DeviceContext';
+import { registerChildPush } from '../services/push';
 import { MainNavigator } from './MainNavigator';
 import { RootStackParamList } from './types';
 import { ChildPickerScreen } from '../screens/child/ChildPickerScreen';
@@ -36,6 +37,18 @@ function Connecting() {
 
 export function ChildDeviceNavigator() {
   const { isHydrated, childProfile, childProfiles, deviceChildChosen, selectChild, forgetDeviceChild } = useAppData();
+  const { deviceToken } = useDevice();
+
+  // Tell the server which child is using this device, so their notifications reach it.
+  const activeChildId = deviceChildChosen ? childProfile?.id ?? null : null;
+  useEffect(() => {
+    if (!deviceToken || !activeChildId) return;
+    registerChildPush(deviceToken, activeChildId);
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') registerChildPush(deviceToken, activeChildId);
+    });
+    return () => sub.remove();
+  }, [deviceToken, activeChildId]);
 
   // On a shared device, go back to "Who's using Trekker?" after a few minutes without a tap,
   // or after the screen has been off for that long, so the next child picks their own name.

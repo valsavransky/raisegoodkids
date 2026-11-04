@@ -173,3 +173,52 @@ export function uploadGoalPhoto(token: string, goalId: string, fileUri: string):
 export function uploadChildGoalPhoto(token: string, goalId: string, fileUri: string): Promise<void> {
   return putPhoto(`/child/goal-photos/${encodeURIComponent(goalId)}`, token, fileUri);
 }
+
+// ---- Notifications ----
+
+export interface NotificationSettings {
+  /** What this parent's phone is told about. */
+  parent: { requests: boolean; goals: boolean; daily: boolean; dailyTime: string };
+  /** What the family devices are told about. */
+  family: { answers: boolean; daily: boolean; dailyTime: string };
+  /** No notifications overnight: they wait and arrive together in the morning. */
+  quiet: { on: boolean; from: string; until: string };
+  tz: string;
+}
+
+export type NotificationSettingsUpdate = {
+  parent?: Partial<NotificationSettings['parent']>;
+  family?: Partial<NotificationSettings['family']>;
+  quiet?: Partial<NotificationSettings['quiet']>;
+};
+
+export function getNotificationSettings(token: string): Promise<{ settings: NotificationSettings }> {
+  return request('/notification-settings', { token });
+}
+
+export function saveNotificationSettings(token: string, settings: NotificationSettingsUpdate): Promise<{ settings: NotificationSettings }> {
+  return request('/notification-settings', { method: 'PUT', token, body: { settings } });
+}
+
+export function registerPushToken(token: string, body: { token: string; platform: string; tz: string }): Promise<{ ok: true }> {
+  return request('/push/token', { method: 'PUT', token, body });
+}
+
+export function registerChildPushToken(
+  deviceToken: string,
+  body: { token: string; platform: string; childId: string | null }
+): Promise<{ ok: true }> {
+  return request('/child/push-token', { method: 'PUT', token: deviceToken, body });
+}
+
+export function sendTestPush(token: string): Promise<{ sent: number }> {
+  return request('/push/test', { method: 'POST', token });
+}
+
+/** This parent's phone tells the server a child earned a badge or reached a goal, so the child's device hears about it. */
+export function postPushEvent(
+  token: string,
+  body: { kind: 'badge' | 'goal'; childId: string; goal?: string; exceptToken?: string | null }
+): Promise<{ ok: true }> {
+  return request('/push/event', { method: 'POST', token, body });
+}

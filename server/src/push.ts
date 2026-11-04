@@ -270,7 +270,9 @@ async function processQueue() {
         const body = `Back on your list: ${r.payload.title}.${r.payload.note ? ` “${r.payload.note}”` : ''}`;
         for (const to of await childTokens(userId, r.child_id)) messages.push({ to, body });
       }
-      for (const r of rows.filter((r) => r.kind === 'badge' || r.kind === 'goal_child')) {
+      // A goal reached already says it all; its badge just goes on the shelf.
+      const goalKids = new Set(rows.filter((r) => r.kind === 'goal_child').map((r) => r.child_id));
+      for (const r of rows.filter((r) => r.kind === 'goal_child' || (r.kind === 'badge' && !goalKids.has(r.child_id)))) {
         const body = r.kind === 'badge' ? '🏅 You earned a badge!' : '🏆 You reached your goal!';
         for (const to of await childTokens(userId, r.child_id)) messages.push({ to, body });
       }

@@ -18,9 +18,11 @@ import {
   takeBackChildSubmission,
   uploadGoalPhoto,
   uploadChildGoalPhoto,
+  postPushEvent,
   goalPhotoUrl,
   ApiError,
 } from '../services/api';
+import { ownPushToken } from '../services/push';
 import { useSheet, noticeSheet } from '../components/SheetProvider';
 import { randomToken } from '../utils/randomToken';
 import {
@@ -745,6 +747,13 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
 
   const hasBadge = (catalogId: string): boolean => badges.some((b) => b.catalogId === catalogId);
 
+  // The parent's phone is what works out that a child earned a badge or reached a goal, so it tells the
+  // server, and the child's family device hears about it. Best effort: a failure never blocks anything.
+  const tellServer = (kind: 'badge' | 'goal', goalName?: string) => {
+    if (deviceMode || !token || !childProfile) return;
+    postPushEvent(token, { kind, childId: childProfile.id, goal: goalName, exceptToken: ownPushToken() }).catch(() => {});
+  };
+
   const awardBadge = (
     catalogId: string,
     extra: Partial<Pick<Badge, 'relatedGoalId' | 'relatedGigId' | 'streakCount'>> = {}
@@ -759,6 +768,7 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
       ...extra,
     };
     setBadges((prev) => [...prev, badge]);
+    tellServer('badge');
     track('badge_earned', { badge: catalogId });
   };
 
@@ -1122,7 +1132,10 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
     // Same muting rule as the badge popups above — the goal-achieved
     // celebration takes precedence over "all gigs done" in the same tap.
     if (!isBackfill) track('gig_completed', { effort_tier: gig.effortTier });
-    if (achievedGoal) track('goal_achieved');
+    if (achievedGoal) {
+      tellServer('goal', goal.name);
+      track('goal_achieved');
+    }
     return { achievedGoal, newBadgeCatalogId, allGigsDoneToday: achievedGoal || isBackfill ? false : allGigsDoneToday };
   };
 

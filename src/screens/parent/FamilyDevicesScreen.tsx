@@ -9,7 +9,9 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { SettingsSubHeader } from '../../components/SettingsSubHeader';
 import { useAuth } from '../../context/AuthContext';
-import { useSheet, offlineSheet } from '../../components/SheetProvider';
+import { hasNotificationPermission, requestNotificationPermission } from '../../services/dailyReminder';
+import { registerParentPush } from '../../services/push';
+import { useSheet, offlineSheet, confirmSheet } from '../../components/SheetProvider';
 import { createFamilyCode, listFamilyDevices, removeFamilyDevice } from '../../services/api';
 import { FamilyDevice } from '../../types/models';
 import { track } from '../../services/analytics';
@@ -96,7 +98,7 @@ export function FamilyDevicesScreen({ navigation }: Props) {
             { icon: '👀', title: 'You stay in charge', small: 'Every tap comes to you for a yes.' },
             { icon: '🔒', title: 'No Settings, no money', small: 'Little hands can’t change a thing.' },
           ],
-          actions: [{ label: 'Done' }, { label: 'Add another device', kind: 'link', onPress: makeCode }],
+          actions: [{ label: 'Done', onPress: askAboutNotifications }, { label: 'Add another device', kind: 'link', onPress: makeCode }],
         });
       }
     }, 3000);
@@ -105,6 +107,28 @@ export function FamilyDevicesScreen({ navigation }: Props) {
       clearInterval(watch);
     };
   }, [code, load]);
+
+  // After the first device connects is the natural moment to offer notifications.
+  const askAboutNotifications = async () => {
+    if (!token) return;
+    if (await hasNotificationPermission()) {
+      registerParentPush(token);
+      return;
+    }
+    sheet.show(
+      confirmSheet({
+        emoji: '🔔',
+        emojiBg: '#E4F4F1',
+        title: 'Hear when your kids send something?',
+        body: 'Allow notifications and Trekker will let you know when something is waiting. You can change this any time in Settings.',
+        confirmLabel: 'Allow notifications',
+        cancelLabel: 'Not now',
+        onConfirm: async () => {
+          if ((await requestNotificationPermission()) === 'granted') registerParentPush(token);
+        },
+      })
+    );
+  };
 
   const confirmRemove = (device: FamilyDevice) => {
     sheet.show({
