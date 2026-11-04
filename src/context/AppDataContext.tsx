@@ -18,6 +18,7 @@ import {
   takeBackChildSubmission,
   ApiError,
 } from '../services/api';
+import { useSheet } from '../components/SheetProvider';
 import { randomToken } from '../utils/randomToken';
 import {
   ChildProfile,
@@ -384,6 +385,8 @@ interface AppDataContextValue {
   /** Family device only: answers from a parent this child hasn't seen yet. */
   childNotices: Submission[];
   dismissNotice: (id: string) => void;
+  /** Family device only: forget who was using it, so the next child picks their name. */
+  forgetDeviceChild: () => void;
   /** Family device only: pull the latest from the family's account. */
   refreshChildData: () => Promise<void>;
   /** Permanently deletes the account's server data and this phone's copy. Resolves false if the server couldn't confirm. */
@@ -400,6 +403,7 @@ export interface ChildDeviceLink {
 
 export function AppDataProvider({ children, childDevice }: { children: ReactNode; childDevice?: ChildDeviceLink }) {
   const { token, isReady: authIsReady, disconnectAndStartFresh } = useAuth();
+  const sheet = useSheet();
   const [isHydrated, setIsHydrated] = useState(false);
   // Set once the very first server reconcile (adopt server data on a fresh
   // install, or push local data up otherwise) has run — the ordinary
@@ -1269,13 +1273,23 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
       if (e instanceof ApiError && e.status === 401) {
         childDevice.onRemoved();
       } else {
-        Alert.alert(
-          "Couldn't send that",
-          e instanceof ApiError ? e.message : 'Check the internet connection and try again.'
-        );
+        sheet.show({
+          emoji: '📶',
+          emojiBg: '#F1F2F5',
+          title: 'Oops, that didn’t send',
+          body: 'The internet seems to be napping. Tap it again in a sec. It’s still on your list.',
+          actions: [{ label: 'OK' }],
+        });
       }
       return false;
     }
+  };
+
+  const forgetDeviceChild = () => {
+    if (!deviceMode) return;
+    chosenRef.current = null;
+    setChosenChildId(null);
+    AsyncStorage.removeItem(CHILD_CHOSEN_KEY).catch(() => {});
   };
 
   const waitingFor = (kind: 'expected' | 'gig', itemId: string, day?: string) =>
@@ -1777,6 +1791,7 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
         childNotices,
         dismissNotice,
         refreshChildData,
+        forgetDeviceChild,
         ...deviceOverrides,
       }}
     >

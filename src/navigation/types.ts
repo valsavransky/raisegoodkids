@@ -1,4 +1,5 @@
 export type SetupStackParamList = {
+  WhoFor: undefined;
   Welcome: undefined;
   SignIn: undefined;
   SignUpEmail: undefined;

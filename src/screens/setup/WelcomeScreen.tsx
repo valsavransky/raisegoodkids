@@ -149,9 +149,6 @@ export function WelcomeScreen({ navigation }: Props) {
             <Text style={styles.buttonText}>{isLastSlide ? 'Get started' : 'Next'}</Text>
           </Animated.View>
         </Pressable>
-        <Pressable onPress={() => navigation.navigate('PairDevice')} hitSlop={8} style={styles.deviceLink}>
-          <Text style={styles.deviceLinkText}>Set up a family device</Text>
-        </Pressable>
       </View>
     </View>
   );

@@ -58,6 +58,7 @@ import { TodayTipsSheet, TAP_HINT } from '../../components/TodayTipsSheet';
 import { WaitingBanner } from '../../components/WaitingBanner';
 import { FamilyDeviceCard } from '../../components/FamilyDeviceCard';
 import { useApprovals } from '../../context/ApprovalsContext';
+import { useSheet } from '../../components/SheetProvider';
 import { useNewTag } from '../../hooks/useNewTag';
 import { useSubmissionLabels } from '../../hooks/useSubmissionLabels';
 import { consumeOpenFamilyDevicesAfterSetup } from '../../utils/familyIntro';
@@ -421,6 +422,7 @@ export function ChildHomeScreen() {
     dismissNotice,
   } = useAppData();
   const labelFor = useSubmissionLabels();
+  const sheet = useSheet();
 
   const [view, setView] = useState<'today' | 'week'>('today');
   // "This Week" sub-tabs — Daily/Gigs/Weekly used to stack as three
@@ -664,13 +666,19 @@ export function ChildHomeScreen() {
   const handleDeviceTap = (kind: 'expected' | 'gig', itemId: string, name: string, date?: string) => {
     const day = date ?? todayStr;
     if (isWaiting(kind, itemId, day)) {
-      Alert.alert(`Take back "${name}"?`, "It's waiting for a parent. Taking it back puts it back on your list.", [
-        { text: 'Keep it sent', style: 'cancel' },
-        {
-          text: 'Take it back',
-          onPress: () => (kind === 'expected' ? unmarkExpectedDone(itemId, day) : unmarkGigDone(itemId, day)),
-        },
-      ]);
+      sheet.show({
+        subject: { waiting: kind === 'gig' ? 'amber' : 'teal', title: name, small: 'Sent to a parent', tag: 'Waiting', tagTone: 'amber' },
+        title: 'Change your mind?',
+        body: 'A parent hasn’t looked yet. Take it back and it’s on your list again.',
+        actions: [
+          { label: 'Keep it sent' },
+          {
+            label: 'Take it back',
+            kind: 'ghost',
+            onPress: () => (kind === 'expected' ? unmarkExpectedDone(itemId, day) : unmarkGigDone(itemId, day)),
+          },
+        ],
+      });
       return;
     }
     const alreadyDone =
@@ -739,13 +747,22 @@ export function ChildHomeScreen() {
     }
   };
 
+  const askForGoal = (gigName: string) =>
+    sheet.show({
+      emoji: '🎯',
+      emojiBg: '#FBEBD6',
+      title: 'Gigs need a goal',
+      body: `Pick something to save for, then tap “${gigName}” again.`,
+      actions: [
+        { label: 'Pick a goal', kind: 'amber', onPress: () => navigation.navigate('Goal') },
+        { label: 'Not now', kind: 'link' },
+      ],
+    });
+
   const handleGigPress = (gig: Gig, date?: string) => {
     if (deviceMode) {
       if (!goal && !isWaiting('gig', gig.id, date ?? todayStr)) {
-        Alert.alert('Pick a goal first!', 'Gigs add progress toward a goal. Pick one to get started.', [
-          { text: 'Not now', style: 'cancel' },
-          { text: 'Pick a goal', onPress: () => navigation.navigate('Goal') },
-        ]);
+        askForGoal(gig.name);
         return;
       }
       handleDeviceTap('gig', gig.id, gig.name, date);
@@ -754,10 +771,7 @@ export function ChildHomeScreen() {
     if (date && date !== todayStr) {
       const isDone = gigIsDoneOn(gig.id, date);
       if (!isDone && !goal) {
-        Alert.alert('Pick a goal first!', 'Gigs add progress toward a goal. Pick one to get started.', [
-          { text: 'Not now', style: 'cancel' },
-          { text: 'Pick a goal', onPress: () => navigation.navigate('Goal') },
-        ]);
+        askForGoal(gig.name);
         return;
       }
       confirmPastChange(gig.name, date, isDone, () => {
@@ -786,10 +800,7 @@ export function ChildHomeScreen() {
       return;
     }
     if (!goal) {
-      Alert.alert('Pick a goal first!', 'Gigs add progress toward a goal. Pick one to get started.', [
-        { text: 'Not now', style: 'cancel' },
-        { text: 'Pick a goal', onPress: () => navigation.navigate('Goal') },
-      ]);
+      askForGoal(gig.name);
       return;
     }
     const activeGoalId = goal.id;

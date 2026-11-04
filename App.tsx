@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { Alert } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -14,6 +13,7 @@ import { ChildDeviceNavigator } from './src/navigation/ChildDeviceNavigator';
 import { useDailyReminderSync } from './src/hooks/useDailyReminderSync';
 import { useAnalytics } from './src/hooks/useAnalytics';
 import { configureNotificationHandler } from './src/services/dailyReminder';
+import { SheetProvider, useSheet } from './src/components/SheetProvider';
 import { LoadingScreen } from './src/screens/LoadingScreen';
 
 configureNotificationHandler();
@@ -46,12 +46,19 @@ function ParentApp() {
 /** A family device: a child's view of the parent's account. No account of its own, no settings. */
 function ChildApp({ token }: { token: string }) {
   const { unpair } = useDevice();
+  const sheet = useSheet();
   const link = useMemo(
     () => ({
       token,
       onRemoved: () => {
-        unpair();
-        Alert.alert('This device was removed', 'A parent removed it from Family devices. Set it up again with a new code.');
+        unpair(true);
+        sheet.show({
+          emoji: '🔌',
+          emojiBg: '#F1F2F5',
+          title: 'This device was unplugged',
+          body: 'A parent took it off the family list. Ask them for a new code to hop back in.',
+          actions: [{ label: 'Enter a new code' }],
+        });
       },
     }),
     [token]
@@ -76,9 +83,11 @@ function Shell() {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <DeviceProvider>
-        <Shell />
-      </DeviceProvider>
+      <SheetProvider>
+        <DeviceProvider>
+          <Shell />
+        </DeviceProvider>
+      </SheetProvider>
       <StatusBar style="auto" />
     </SafeAreaProvider>
   );

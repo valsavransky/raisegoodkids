@@ -2,7 +2,8 @@
 // the child never sees), a new name for a goal, or switching which goal they
 // work on. Nothing changes until a parent approves.
 import React, { useState } from 'react';
-import { View, Text, Pressable, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { useSheet, offlineSheet } from '../../components/SheetProvider';
+import { View, Text, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
@@ -17,6 +18,7 @@ import { colors } from '../../theme/colors';
 type Props = NativeStackScreenProps<RootStackParamList, 'ApproveGoal'>;
 
 export function ApproveGoalScreen({ navigation, route }: Props) {
+  const sheet = useSheet();
   const insets = useSafeAreaInsets();
   const { submissions, decide } = useApprovals();
   const { childProfiles, householdGoals, goalProgressPercentage } = useAppData();
@@ -47,7 +49,7 @@ export function ApproveGoalScreen({ navigation, route }: Props) {
     const result = await decide(sub.id, decision, extra);
     setBusy(false);
     if (result === 'error') {
-      Alert.alert('Couldn’t save', 'Check your connection and try again.');
+      sheet.show(offlineSheet('Couldn’t save', 'The internet seems to be napping. Try again in a sec.'));
       return;
     }
     navigation.goBack();

@@ -14,13 +14,17 @@ import { GigsSetupScreen } from '../screens/setup/GigsSetupScreen';
 import { SignUpEmailScreen } from '../screens/setup/SignUpEmailScreen';
 import { FutureFundSetupScreen } from '../screens/setup/FutureFundSetupScreen';
 import { FamilyDeviceIntroScreen } from '../screens/setup/FamilyDeviceIntroScreen';
+import { WhoForScreen } from '../screens/setup/WhoForScreen';
+import { useDevice } from '../context/DeviceContext';
 import { PairDeviceScreen } from '../screens/setup/PairDeviceScreen';
 
 const Stack = createNativeStackNavigator<SetupStackParamList>();
 
 export function SetupNavigator() {
+  const { startAtPair } = useDevice();
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={startAtPair ? 'PairDevice' : 'WhoFor'}>
+      <Stack.Screen name="WhoFor" component={WhoForScreen} />
       <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="SignIn" component={SignInScreen} />
       <Stack.Screen name="SignUpEmail" component={SignUpEmailScreen} />

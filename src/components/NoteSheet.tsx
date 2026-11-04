@@ -10,11 +10,16 @@ interface Props {
   subtitle?: string;
   initialNote?: string;
   confirmLabel?: string;
+  /** The item being sent back, shown at the top. */
+  subject?: { title: string; small?: string };
+  quickReplies?: string[];
+  /** Who sees the note, for the preview line. */
+  childName?: string;
   onConfirm: (note: string) => void;
   onCancel: () => void;
 }
 
-export function NoteSheet({ visible, title, subtitle, initialNote = '', confirmLabel = 'Done', onConfirm, onCancel }: Props) {
+export function NoteSheet({ visible, title, subtitle, initialNote = '', confirmLabel = 'Done', subject, quickReplies, childName, onConfirm, onCancel }: Props) {
   const insets = useSafeAreaInsets();
   const [note, setNote] = useState(initialNote);
   useEffect(() => {
@@ -26,8 +31,26 @@ export function NoteSheet({ visible, title, subtitle, initialNote = '', confirmL
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <Pressable style={styles.backdrop} onPress={onCancel}>
           <Pressable style={[styles.sheet, { paddingBottom: 18 + insets.bottom }]} onPress={() => {}}>
+            {subject ? (
+              <View style={styles.subject}>
+                <View style={styles.subjectRing} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.subjectTitle}>{subject.title}</Text>
+                  {subject.small ? <Text style={styles.subjectSmall}>{subject.small}</Text> : null}
+                </View>
+              </View>
+            ) : null}
             <Text style={styles.title}>{title}</Text>
             {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+            {quickReplies && quickReplies.length > 0 ? (
+              <View style={styles.chips}>
+                {quickReplies.map((q) => (
+                  <Pressable key={q} onPress={() => setNote(q)} style={[styles.chip, note === q && styles.chipOn]}>
+                    <Text style={[styles.chipText, note === q && { color: '#0B6D63' }]}>{q}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
             <TextInput
               style={styles.input}
               placeholder="Add a note (optional)"
@@ -37,6 +60,15 @@ export function NoteSheet({ visible, title, subtitle, initialNote = '', confirmL
               multiline
               maxLength={300}
             />
+            {childName ? (
+              <View style={styles.preview}>
+                <Text style={styles.previewLabel}>{childName.toUpperCase()} WILL SEE</Text>
+                <Text style={styles.previewText}>
+                  Back on your list{subject ? `: ${subject.title}` : ''}
+                  {note.trim() ? ` — “${note.trim()}”` : ''}
+                </Text>
+              </View>
+            ) : null}
             <Pressable style={styles.confirm} onPress={() => onConfirm(note.trim())}>
               <Text style={styles.confirmText}>{confirmLabel}</Text>
             </Pressable>
@@ -51,6 +83,17 @@ export function NoteSheet({ visible, title, subtitle, initialNote = '', confirmL
 }
 
 const styles = StyleSheet.create({
+  subject: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: '#EEE6D8', backgroundColor: '#FDF9F1', borderRadius: 14, padding: 12, marginBottom: 14 },
+  subjectRing: { width: 26, height: 26, borderRadius: 13, borderWidth: 3, borderStyle: 'dashed', borderColor: colors.expected },
+  subjectTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
+  subjectSmall: { fontSize: 12.5, color: colors.textMuted, marginTop: 1 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  chip: { borderWidth: 1.5, borderColor: '#DDE3E8', borderRadius: 99, paddingVertical: 6, paddingHorizontal: 12 },
+  chipOn: { backgroundColor: '#E4F4F1', borderColor: colors.expected },
+  chipText: { fontSize: 13.5, fontWeight: '700', color: '#4B4F58' },
+  preview: { backgroundColor: '#FCEBD2', borderRadius: 12, padding: 12, marginTop: 12 },
+  previewLabel: { fontSize: 10.5, fontWeight: '800', letterSpacing: 0.7, color: '#7A4A06' },
+  previewText: { fontSize: 13.5, color: '#7A4A06', marginTop: 3, lineHeight: 19 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.background, borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
   title: { fontSize: 17, fontWeight: '800', color: colors.text },

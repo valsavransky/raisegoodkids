@@ -3,11 +3,13 @@
 // (meaning "will be approved"); untick one to send it back, with an optional
 // note. Goal requests open their own screen, because a new goal needs a price.
 import React, { useState } from 'react';
-import { View, Text, Pressable, ScrollView, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { SettingsSubHeader } from '../../components/SettingsSubHeader';
+import { useSheet } from '../../components/SheetProvider';
+import { getAvatarColors } from '../../data/avatars';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { NoteSheet } from '../../components/NoteSheet';
 import { useApprovals } from '../../context/ApprovalsContext';
@@ -22,6 +24,7 @@ export function ApprovalsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { pending, decide, refresh } = useApprovals();
   const { childProfiles } = useAppData();
+  const sheet = useSheet();
   const labelOf = useSubmissionLabels();
   // Items the parent unticked (to be sent back), and the notes written for them.
   const [unticked, setUnticked] = useState<Set<string>>(new Set());
@@ -39,16 +42,33 @@ export function ApprovalsScreen({ navigation }: Props) {
 
   const submitChild = async (childId: string, items: Submission[]) => {
     setBusyChild(childId);
-    let failed = 0;
+    const results: { item: Submission; ok: boolean }[] = [];
     for (const item of items) {
       const sendBack = unticked.has(item.id);
       const result = await decide(item.id, sendBack ? 'declined' : 'approved', sendBack ? { note: notes[item.id] } : undefined);
-      if (result === 'error') failed += 1;
+      results.push({ item, ok: result !== 'error' });
     }
     setBusyChild(null);
     await refresh();
-    if (failed > 0) {
-      Alert.alert('Some items didn’t save', 'Check your connection and try again. Anything that saved is already done.');
+    const failed = results.filter((r) => !r.ok);
+    if (failed.length > 0) {
+      const ok = results.length - failed.length;
+      sheet.show({
+        emoji: '⚠️',
+        emojiBg: '#FCEBD2',
+        title: `${ok} went through, ${failed.length} didn’t`,
+        body: 'Blame the wifi. Tap to retry the rest.',
+        rows: results.map((r) => ({
+          status: r.ok ? 'ok' : 'bad',
+          title: labelOf(r.item).title,
+          tag: r.ok ? 'Done' : 'Not saved',
+          tagTone: r.ok ? 'good' : 'bad',
+        })),
+        actions: [
+          { label: 'Retry', onPress: () => submitChild(childId, failed.map((f) => f.item)) },
+          { label: 'Not now', kind: 'link' },
+        ],
+      });
     }
   };
 
@@ -117,28 +137,34 @@ export function ApprovalsScreen({ navigation }: Props) {
             const doable = items.filter((s) => !labelOf(s).isGoal);
             const approveCount = doable.filter((s) => !unticked.has(s.id)).length;
             const backCount = doable.length - approveCount;
+            const firstName = child.name.trim().split(/\s+/)[0] || 'them';
             const buttonLabel =
               backCount === 0
-                ? `Approve ${approveCount}`
+                ? `Approve ${approveCount} for ${firstName}`
                 : approveCount === 0
-                  ? `Send back ${backCount}`
+                  ? `Send back ${backCount} to ${firstName}`
                   : `Approve ${approveCount} · send back ${backCount}`;
+            const tone = getAvatarColors(child.avatarId);
             const busy = busyChild === child.id;
             return (
-              <View key={child.id} style={styles.card}>
-                <View style={styles.cardHeader}>
-                  <AvatarGlyph avatarId={child.avatarId} size={28} />
+              <View key={child.id} style={[styles.card, { borderColor: tone.main, borderWidth: 1.5, overflow: 'hidden', padding: 0 }]}>
+                <View style={[styles.cardHeader, { backgroundColor: tone.tint, paddingHorizontal: 14, paddingVertical: 10 }]}>
+                  <View style={[styles.avatarRing, { borderColor: tone.main }]}>
+                    <AvatarGlyph avatarId={child.avatarId} size={30} />
+                  </View>
                   <Text style={styles.childName}>{child.name}</Text>
                   <Text style={styles.waiting}>{items.length} waiting</Text>
                 </View>
+                <View style={{ paddingHorizontal: 14, paddingBottom: 14 }}>
                 {renderSection('Goals', items.filter((s) => labelOf(s).isGoal), 'goal')}
                 {renderSection('Expected', items.filter((s) => s.kind === 'expected'), 'expected')}
                 {renderSection('Gigs', items.filter((s) => s.kind === 'gig'), 'gig')}
                 {doable.length > 0 && (
-                  <Pressable style={[styles.button, busy && { opacity: 0.6 }]} disabled={busy} onPress={() => submitChild(child.id, doable)}>
+                  <Pressable style={[styles.button, { backgroundColor: tone.main }, busy && { opacity: 0.6 }]} disabled={busy} onPress={() => submitChild(child.id, doable)}>
                     {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{buttonLabel}</Text>}
                   </Pressable>
                 )}
+                </View>
               </View>
             );
           })
@@ -148,8 +174,10 @@ export function ApprovalsScreen({ navigation }: Props) {
 
       <NoteSheet
         visible={noteFor !== null}
-        title={noteFor ? `${labelOf(noteFor).title}: send back` : ''}
-        subtitle="The child will see it back on their trail, with your note."
+        title={noteFor ? `Not quite? Tell ${childProfiles.find((c) => c.id === noteFor.childId)?.name.trim().split(/\s+/)[0] ?? 'them'}` : ''}
+        subject={noteFor ? { title: labelOf(noteFor).title, small: `Tapped ${new Date(noteFor.submittedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` } : undefined}
+        quickReplies={['Not done yet', 'Please show me', 'Try again after school']}
+        childName={noteFor ? childProfiles.find((c) => c.id === noteFor.childId)?.name.trim().split(/\s+/)[0] : undefined}
         initialNote={noteFor ? notes[noteFor.id] ?? '' : ''}
         confirmLabel="Save note"
         onConfirm={(note) => {
@@ -170,6 +198,7 @@ const styles = StyleSheet.create({
   emptyTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
   emptyText: { fontSize: 14, color: colors.textMuted, textAlign: 'center', lineHeight: 20 },
   card: { borderWidth: 1, borderColor: colors.border, borderRadius: 14, padding: 14, marginBottom: 14, backgroundColor: colors.background },
+  avatarRing: { width: 40, height: 40, borderRadius: 20, borderWidth: 2.5, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   childName: { flex: 1, fontSize: 16, fontWeight: '800', color: colors.text },
   waiting: { fontSize: 13, fontWeight: '800', color: '#B96A08' },

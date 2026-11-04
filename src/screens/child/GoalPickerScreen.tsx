@@ -32,6 +32,7 @@ import { useNavigation, CompositeNavigationProp } from '@react-navigation/native
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppData } from '../../context/AppDataContext';
+import { useSheet } from '../../components/SheetProvider';
 import { useAuth } from '../../context/AuthContext';
 import { Goal } from '../../types/models';
 import { MainTabParamList, RootStackParamList } from '../../navigation/types';
@@ -77,6 +78,7 @@ export function GoalPickerScreen() {
     householdGoals,
   } = useAppData();
   const { token } = useAuth();
+  const sheet = useSheet();
   const childName = childProfile?.name.trim() || 'your child';
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -115,15 +117,20 @@ export function GoalPickerScreen() {
   // it was earned.
   const handleMakeActive = (goal: Goal) => {
     if (deviceMode) {
-      Alert.alert(`Switch to "${goal.name}"?`, 'A parent has to say yes before it changes.', [
-        { text: 'Not now', style: 'cancel' },
-        {
-          text: 'Ask a parent',
-          onPress: () => {
-            setActiveGoal(goal.id);
-          },
-        },
-      ]);
+      sheet.show({
+        emoji: '🔁',
+        emojiBg: '#FBEBD6',
+        title: 'Switch goals?',
+        body: `Your progress on ${active?.name ?? 'your goal'} is safe. A parent just has to say yes.`,
+        rows: [
+          { icon: '🎯', title: active?.name ?? 'Current goal', small: `${Math.round(Math.min(goalProgressPercentage(active?.id ?? ''), 100))}% there` },
+          { icon: '➡️', title: goal.name, small: 'The one you want to work on' },
+        ],
+        actions: [
+          { label: 'Ask a parent', kind: 'amber', onPress: () => setActiveGoal(goal.id) },
+          { label: 'Not now', kind: 'ghost' },
+        ],
+      });
       return;
     }
     const current = active;
@@ -198,7 +205,14 @@ export function GoalPickerScreen() {
       if (editingGoalId) updateGoal(editingGoalId, { name, realWorldCost: 0 });
       else addGoal(name, 0);
       setModalVisible(false);
-      Alert.alert('Sent!', 'A parent will take a look.');
+      sheet.show({
+        emoji: '🎯',
+        emojiBg: '#FBEBD6',
+        title: 'Goal idea sent!',
+        subject: { icon: '⭐', title: name, small: 'Waiting for a parent', dashedBorder: true },
+        body: 'A parent will look it over, set a price and let you know. Peek at “Waiting for a parent” on this tab.',
+        actions: [{ label: 'Got it', kind: 'amber' }],
+      });
       return;
     }
     const cost = parseFloat(draftCost);

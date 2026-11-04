@@ -14,7 +14,9 @@ interface DeviceContextValue {
   deviceToken: string | null;
   pairWith: (token: string) => Promise<void>;
   /** Forget the pairing (removed by a parent, or "use this phone as a parent's"). */
-  unpair: () => Promise<void>;
+  unpair: (removedByParent?: boolean) => Promise<void>;
+  /** Set when a parent removed this device: setup then opens straight on the code screen. */
+  startAtPair: boolean;
 }
 
 const DeviceContext = createContext<DeviceContextValue | undefined>(undefined);
@@ -22,6 +24,7 @@ const DeviceContext = createContext<DeviceContextValue | undefined>(undefined);
 export function DeviceProvider({ children }: { children: ReactNode }) {
   const [isReady, setIsReady] = useState(false);
   const [deviceToken, setDeviceToken] = useState<string | null>(null);
+  const [startAtPair, setStartAtPair] = useState(false);
 
   useEffect(() => {
     SecureStore.getItemAsync(DEVICE_TOKEN_KEY)
@@ -34,7 +37,8 @@ export function DeviceProvider({ children }: { children: ReactNode }) {
     await SecureStore.setItemAsync(DEVICE_TOKEN_KEY, token);
     setDeviceToken(token);
   };
-  const unpair = async () => {
+  const unpair = async (removedByParent = false) => {
+    setStartAtPair(removedByParent);
     await SecureStore.deleteItemAsync(DEVICE_TOKEN_KEY).catch(() => {});
     await AsyncStorage.multiRemove([
       '@trekker/childDevice/data/v1',
@@ -45,7 +49,7 @@ export function DeviceProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <DeviceContext.Provider value={{ isReady, deviceToken, pairWith, unpair }}>{children}</DeviceContext.Provider>
+    <DeviceContext.Provider value={{ isReady, deviceToken, pairWith, unpair, startAtPair }}>{children}</DeviceContext.Provider>
   );
 }
 

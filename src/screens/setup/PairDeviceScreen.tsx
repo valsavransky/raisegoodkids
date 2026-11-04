@@ -40,28 +40,36 @@ export function PairDeviceScreen({ navigation }: Props) {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 12 }]}>
-      <Pressable onPress={() => navigation.goBack()} hitSlop={10} style={styles.back}>
+      <Pressable onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('WhoFor'))} hitSlop={10} style={styles.back}>
         <Text style={styles.backText}>‹ Back</Text>
       </Pressable>
       <KeyboardAwareScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Set up a family device</Text>
+        <Text style={styles.title}>Join your family</Text>
         <Text style={styles.body}>
-          On the parent's phone, open Family devices and tap + Add to get a 6-character code. Type it here.
+          Ask a parent to open <Text style={styles.bold}>Settings → Family devices → + Add</Text> on their phone. Then type the code here.
         </Text>
 
-        <Text style={styles.label}>Code</Text>
-        <TextInput
-          value={code}
-          onChangeText={(t) => setCode(t.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
-          autoCapitalize="characters"
-          autoCorrect={false}
-          placeholder="ABC123"
-          placeholderTextColor={colors.border}
-          style={[styles.input, styles.codeInput]}
-          maxLength={6}
-        />
+        <View style={styles.codeWrap}>
+          <View style={styles.codeRow} pointerEvents="none">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <View key={i} style={[styles.codeBox, i === code.length && styles.codeBoxActive]}>
+                <Text style={styles.codeChar}>{code[i] ?? ''}</Text>
+              </View>
+            ))}
+          </View>
+          <TextInput
+            value={code}
+            onChangeText={(t) => setCode(t.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            autoFocus
+            maxLength={6}
+            style={styles.codeHidden}
+            accessibilityLabel="Code from a parent"
+          />
+        </View>
 
-        <Text style={styles.label}>Name this device (optional)</Text>
+        <Text style={styles.label}>NAME THIS DEVICE (OPTIONAL)</Text>
         <TextInput
           value={name}
           onChangeText={setName}
@@ -89,7 +97,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 24, paddingTop: 12 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text, marginBottom: 10 },
   body: { fontSize: 16, color: colors.textMuted, lineHeight: 23, marginBottom: 24 },
-  label: { fontSize: 13, fontWeight: '700', color: colors.textMuted, marginBottom: 6, marginTop: 8 },
+  label: { fontSize: 11, fontWeight: '800', letterSpacing: 0.7, color: colors.textMuted, marginBottom: 6, marginTop: 14 },
   input: {
     borderWidth: 1.5,
     borderColor: colors.border,
@@ -100,7 +108,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     backgroundColor: '#fff',
   },
-  codeInput: { fontSize: 28, letterSpacing: 6, textAlign: 'center', fontWeight: '700' },
+  bold: { fontWeight: '800', color: colors.text },
+  codeWrap: { marginBottom: 12, height: 62 },
+  codeRow: { flexDirection: 'row', gap: 8, justifyContent: 'space-between' },
+  codeBox: { flex: 1, height: 62, borderRadius: 12, borderWidth: 2, borderColor: '#BFE3DD', backgroundColor: '#EAF6F4', alignItems: 'center', justifyContent: 'center' },
+  codeBoxActive: { borderColor: colors.expected, backgroundColor: '#fff' },
+  codeChar: { fontSize: 28, fontWeight: '800', color: '#0B6D63' },
+  codeHidden: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, opacity: 0.02, fontSize: 28 },
   error: { color: '#B91C1C', marginTop: 14, fontSize: 15 },
   footer: { paddingHorizontal: 24, paddingTop: 12 },
   button: { backgroundColor: colors.expected, borderRadius: 12, paddingVertical: 16, alignItems: 'center' },

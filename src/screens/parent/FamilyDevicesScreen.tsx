@@ -2,7 +2,7 @@
 // trail and tap things done. A parent makes a short code here and types it once
 // on the other device. Removing a device signs it out at once.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, Pressable, Modal, ScrollView, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { View, Text, Pressable, Modal, ScrollView, ActivityIndicator, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -10,6 +10,7 @@ import { RootStackParamList } from '../../navigation/types';
 import { SettingsSubHeader } from '../../components/SettingsSubHeader';
 import { AddPill } from '../../components/AddPill';
 import { useAuth } from '../../context/AuthContext';
+import { useSheet, offlineSheet } from '../../components/SheetProvider';
 import { createFamilyCode, listFamilyDevices, removeFamilyDevice } from '../../services/api';
 import { FamilyDevice } from '../../types/models';
 import { track } from '../../services/analytics';
@@ -26,6 +27,7 @@ function formatCountdown(ms: number): string {
 export function FamilyDevicesScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
+  const sheet = useSheet();
   const [devices, setDevices] = useState<FamilyDevice[] | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [code, setCode] = useState<{ value: string; expiresAt: number } | null>(null);
@@ -60,7 +62,7 @@ export function FamilyDevicesScreen({ navigation }: Props) {
       setCode({ value: result.code, expiresAt: new Date(result.expiresAt).getTime() });
       track('family_code_made');
     } catch {
-      Alert.alert('Couldn’t make a code', 'Check your connection and try again.');
+      sheet.show(offlineSheet('Couldn’t make a code', 'The internet seems to be napping. Try again in a sec.'));
     } finally {
       setMaking(false);
     }
@@ -75,7 +77,17 @@ export function FamilyDevicesScreen({ navigation }: Props) {
       if (list && list.length > knownCount.current) {
         setCode(null);
         track('family_device_connected');
-        Alert.alert('Connected', `${list[list.length - 1].name} is now a family device.`);
+        sheet.show({
+          emoji: '🎉',
+          emojiBg: '#E4F7EA',
+          title: `${list[list.length - 1].name} is in!`,
+          body: 'Your kids can open their trails there and tap things done.',
+          rows: [
+            { icon: '👀', title: 'You stay in charge', small: 'Every tap comes to you for a yes.' },
+            { icon: '🔒', title: 'No Settings, no money', small: 'Little hands can’t change a thing.' },
+          ],
+          actions: [{ label: 'Done' }, { label: 'Add another device', kind: 'link', onPress: makeCode }],
+        });
       }
     }, 3000);
     return () => {
@@ -85,14 +97,14 @@ export function FamilyDevicesScreen({ navigation }: Props) {
   }, [code, load]);
 
   const confirmRemove = (device: FamilyDevice) => {
-    Alert.alert(
-      `Remove ${device.name}?`,
-      'It signs out right away and can’t show your kids’ screens any more. You can set it up again with a new code.',
-      [
-        { text: 'Cancel', style: 'cancel' },
+    sheet.show({
+      subject: { icon: '📱', title: device.name, small: `Added ${formatShortDate(device.createdAt.slice(0, 10))}` },
+      title: `Unplug ${device.name}?`,
+      body: 'It signs out within a minute. Nothing is lost from your phone, and you can reconnect any time with a new code.',
+      actions: [
         {
-          text: 'Remove',
-          style: 'destructive',
+          label: 'Remove it',
+          kind: 'danger',
           onPress: async () => {
             if (!token) return;
             try {
@@ -100,12 +112,13 @@ export function FamilyDevicesScreen({ navigation }: Props) {
               track('family_device_removed');
               load();
             } catch {
-              Alert.alert('Couldn’t remove it', 'Check your connection and try again.');
+              sheet.show(offlineSheet('Couldn’t remove it', 'The internet seems to be napping. Try again in a sec.'));
             }
           },
         },
-      ]
-    );
+        { label: 'Keep it', kind: 'ghost' },
+      ],
+    });
   };
 
   const remaining = code ? code.expiresAt - now : 0;
@@ -147,11 +160,11 @@ export function FamilyDevicesScreen({ navigation }: Props) {
       <Modal visible={making || code !== null} transparent animationType="fade" onRequestClose={() => setCode(null)}>
         <Pressable style={styles.backdrop} onPress={() => setCode(null)}>
           <Pressable style={[styles.card, { marginBottom: 20 + insets.bottom }]} onPress={() => {}}>
-            <Text style={styles.cardTitle}>Enter this code on the other device</Text>
+            <Text style={styles.cardTitle}>Let’s connect a device</Text>
             {code ? (
               <>
                 <Text style={styles.cardText}>
-                  Install Trekker there, choose “Set up a family device”, then type this code.
+                  1. On the other device, open Trekker and tap “Set up a family device”.{'\n'}2. Type in this code. It only works once.
                 </Text>
                 <View style={styles.codeRow}>
                   {code.value.split('').map((ch, i) => (
@@ -161,7 +174,7 @@ export function FamilyDevicesScreen({ navigation }: Props) {
                   ))}
                 </View>
                 <Text style={styles.expires}>
-                  {remaining > 0 ? `Expires in ${formatCountdown(remaining)}` : 'This code has expired'}
+                  {remaining > 0 ? `Waiting for the device… ${formatCountdown(remaining)} left` : 'This code has expired'}
                 </Text>
                 <Pressable style={styles.secondary} onPress={makeCode}>
                   <Text style={styles.secondaryText}>Make a new code</Text>

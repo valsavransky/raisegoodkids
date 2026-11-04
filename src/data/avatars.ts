@@ -34,3 +34,17 @@ const DEFAULT_AVATAR = AVATAR_OPTIONS[0].Icon;
 export function getAvatarIcon(avatarId: string | undefined): ComponentType<{ size?: number }> {
   return AVATAR_OPTIONS.find((a) => a.id === avatarId)?.Icon ?? DEFAULT_AVATAR;
 }
+
+/** Each avatar's main color and a light tint of it, so a child's card on the approval
+ * screen can echo their avatar and be told apart from a sibling's at a glance. */
+const AVATAR_COLORS: Record<string, { main: string; tint: string }> = {
+  'avatar-1': { main: '#E8890C', tint: '#FCEBD2' },
+  'avatar-2': { main: '#0F9B8E', tint: '#E1F3F0' },
+  'avatar-3': { main: '#6C63B5', tint: '#ECEAF8' },
+  'avatar-4': { main: '#D6568F', tint: '#FBE6EF' },
+  'avatar-5': { main: '#B97A33', tint: '#F5E8D6' },
+};
+
+export function getAvatarColors(avatarId: string | undefined): { main: string; tint: string } {
+  return AVATAR_COLORS[avatarId ?? ''] ?? AVATAR_COLORS['avatar-1'];
+}
