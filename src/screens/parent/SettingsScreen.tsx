@@ -17,7 +17,7 @@ import { useAuth } from '../../context/AuthContext';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { ChildChips } from '../../components/ChildChips';
 import { signOut as signOutOfGoogle } from '../../services/googleAuth';
-import { loadReminderSettings, hasNotificationPermission } from '../../services/dailyReminder';
+import { hasNotificationPermission } from '../../services/dailyReminder';
 import { formatTime12h } from '../../utils/time';
 import { isAnalyticsEnabled, setAnalyticsEnabled } from '../../services/analytics';
 import { colors } from '../../theme/colors';
@@ -80,9 +80,9 @@ export function SettingsScreen({ navigation }: Props) {
   useFocusEffect(
     useCallback(() => {
       (async () => {
-        const stored = await loadReminderSettings();
-        const on = stored.enabled && (await hasNotificationPermission());
-        setReminderSubtitle(on ? `On · ${formatTime12h(stored.time)}` : 'Off');
+        // The Notifications screen holds everything (reminders, pushes, quiet hours), so this just says
+        // whether this phone is allowed to show them.
+        setReminderSubtitle((await hasNotificationPermission()) ? 'On' : 'Off');
       })();
     }, [])
   );
@@ -163,7 +163,7 @@ export function SettingsScreen({ navigation }: Props) {
         <View style={styles.group}>
           <SettingsRow
             icon="🔔"
-            label="Daily reminder"
+            label="Notifications"
             value={reminderSubtitle}
             onPress={() => navigation.navigate('NotificationSettings')}
           />
