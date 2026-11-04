@@ -74,6 +74,7 @@ export function GoalPickerScreen() {
     futureFund,
     recordFutureFundContribution,
     deviceMode,
+    photoSource,
     waitingGoalRequests,
     householdGoals,
   } = useAppData();
@@ -262,7 +263,7 @@ export function GoalPickerScreen() {
         <View style={[styles.goalRow, styles.goalRowActive]}>
           <View style={styles.goalRowTop}>
             <View style={styles.goalRowTitleGroup}>
-              {item.photoUri && <Image source={{ uri: item.photoUri }} style={styles.goalPhoto} />}
+              {photoSource(item) && <Image source={photoSource(item) as { uri: string }} style={styles.goalPhoto} />}
               <Text style={styles.goalName}>{item.name}</Text>
             </View>
             <View style={styles.activeBadge}>
@@ -285,7 +286,7 @@ export function GoalPickerScreen() {
         <View style={styles.goalRow}>
           <View style={styles.goalRowTop}>
             <View style={styles.goalRowTitleGroup}>
-              {item.photoUri && <Image source={{ uri: item.photoUri }} style={styles.goalPhoto} />}
+              {photoSource(item) && <Image source={photoSource(item) as { uri: string }} style={styles.goalPhoto} />}
               <Text style={styles.goalName}>{item.name}</Text>
             </View>
           </View>
@@ -323,7 +324,7 @@ export function GoalPickerScreen() {
         <View style={[styles.goalRow, styles.goalRowAchieved]}>
           <View style={styles.goalRowTop}>
             <View style={styles.goalRowTitleGroup}>
-              {item.photoUri && <Image source={{ uri: item.photoUri }} style={styles.goalPhoto} />}
+              {photoSource(item) && <Image source={photoSource(item) as { uri: string }} style={styles.goalPhoto} />}
               <Text style={styles.goalName}>{item.name}</Text>
             </View>
             <Text style={styles.achievedLabel}>🏆 Achieved</Text>
@@ -343,7 +344,7 @@ export function GoalPickerScreen() {
       <View style={styles.goalRow}>
         <View style={styles.goalRowTop}>
           <View style={styles.goalRowTitleGroup}>
-            {item.photoUri && <Image source={{ uri: item.photoUri }} style={styles.goalPhoto} />}
+            {photoSource(item) && <Image source={photoSource(item) as { uri: string }} style={styles.goalPhoto} />}
             <Text style={styles.goalName}>{item.name}</Text>
           </View>
           <Text style={styles.fulfilledLabel}>✓ Fulfilled</Text>

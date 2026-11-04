@@ -16,6 +16,8 @@ import {
   fetchChildData,
   sendChildSubmission,
   takeBackChildSubmission,
+  uploadGoalPhoto,
+  goalPhotoUrl,
   ApiError,
 } from '../services/api';
 import { useSheet } from '../components/SheetProvider';
@@ -106,6 +108,7 @@ const CHILD_STORAGE_KEY = '@trekker/childDevice/data/v1';
 const CHILD_CHOSEN_KEY = '@trekker/childDevice/child';
 const CHILD_SEEN_KEY = '@trekker/childDevice/seen';
 const CHILD_REFRESH_MS = 40_000;
+const PHOTOS_UPLOADED_KEY = '@trekker/goalPhotosUploaded';
 const ANSWER_VISIBLE_MS = 24 * 60 * 60 * 1000;
 
 interface PersistedAppData {
@@ -385,6 +388,8 @@ interface AppDataContextValue {
   /** Family device only: answers from a parent this child hasn't seen yet. */
   childNotices: Submission[];
   dismissNotice: (id: string) => void;
+  /** Where to load a goal's photo from on this device (its own file, or the server's copy). */
+  photoSource: (goal: Goal) => { uri: string; headers?: Record<string, string> } | null;
   /** Family device only: forget who was using it, so the next child picks their name. */
   forgetDeviceChild: () => void;
   /** Family device only: pull the latest from the family's account. */
@@ -1292,6 +1297,47 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
     AsyncStorage.removeItem(CHILD_CHOSEN_KEY).catch(() => {});
   };
 
+  const photoSource: AppDataContextValue['photoSource'] = (goal) => {
+    if (goal.photoUri) return { uri: goal.photoUri };
+    const authToken = childDevice?.token ?? token;
+    if (goal.photoRemote && authToken) {
+      return { uri: goalPhotoUrl(goal.id, goal.photoRemote), headers: { Authorization: `Bearer ${authToken}` } };
+    }
+    return null;
+  };
+
+  // Parent's phone: upload each goal's photo once, so a family device can show it.
+  const uploadingPhotos = useRef(new Set<string>());
+  useEffect(() => {
+    if (deviceMode || !token || !hasReconciled || !isHydrated) return;
+    const pending = allGoals.filter((g) => g.photoUri && !uploadingPhotos.current.has(`${g.id}|${g.photoUri}`));
+    if (pending.length === 0) return;
+    (async () => {
+      let done: Record<string, string> = {};
+      try {
+        done = JSON.parse((await AsyncStorage.getItem(PHOTOS_UPLOADED_KEY)) ?? '{}');
+      } catch {
+        done = {};
+      }
+      for (const goal of pending) {
+        const key = `${goal.id}|${goal.photoUri}`;
+        if (done[goal.id] === goal.photoUri && goal.photoRemote) continue;
+        uploadingPhotos.current.add(key);
+        try {
+          await uploadGoalPhoto(token, goal.id, goal.photoUri as string);
+          done[goal.id] = goal.photoUri as string;
+          await AsyncStorage.setItem(PHOTOS_UPLOADED_KEY, JSON.stringify(done));
+          const version = Date.now();
+          setGoals((prev) => prev.map((g) => (g.id === goal.id ? { ...g, photoRemote: version } : g)));
+        } catch (e) {
+          console.warn('Goal photo upload failed', e);
+          uploadingPhotos.current.delete(key); // try again next time goals change
+        }
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allGoals, token, hasReconciled, isHydrated]);
+
   const waitingFor = (kind: 'expected' | 'gig', itemId: string, day?: string) =>
     deviceSubs.find(
       (s) => s.status === 'pending' && s.childId === childId && s.kind === kind && s.itemId === itemId && (!day || s.day === day)
@@ -1792,6 +1838,7 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
         dismissNotice,
         refreshChildData,
         forgetDeviceChild,
+        photoSource,
         ...deviceOverrides,
       }}
     >

@@ -213,6 +213,9 @@ export interface Goal {
    * Stored as a local file URI, not uploaded anywhere, so it's device-local
    * only and won't follow the goal across a cross-device account recovery. */
   photoUri?: string;
+  /** Set once the parent's phone has uploaded the photo, so other devices (a family device)
+   * can show it. The number changes whenever the photo does. */
+  photoRemote?: number;
 }
 
 /** Fixed "pay yourself first" skim off every gig's earned value, taken before

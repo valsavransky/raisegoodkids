@@ -59,6 +59,15 @@ export async function runMigrations(): Promise<void> {
       last_seen_at TIMESTAMPTZ,
       revoked_at TIMESTAMPTZ
     );
+    -- A goal's photo, uploaded by the parent's phone so a family device can show it too.
+    CREATE TABLE IF NOT EXISTS goal_photos (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      goal_id TEXT NOT NULL,
+      content_type TEXT NOT NULL,
+      data BYTEA NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      PRIMARY KEY (user_id, goal_id)
+    );
     CREATE TABLE IF NOT EXISTS pairing_codes (
       code_hash TEXT PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

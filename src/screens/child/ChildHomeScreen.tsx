@@ -417,6 +417,7 @@ export function ChildHomeScreen() {
     expectedStreak,
     scheduleEvents,
     deviceMode,
+    photoSource,
     isWaiting,
     childNotices,
     dismissNotice,
@@ -449,9 +450,11 @@ export function ChildHomeScreen() {
   const moreRef = useRef<View>(null);
   const openMenu = () => {
     // Place the menu just under the ⋯ button.
+    // Open right away (with a sensible spot), then nudge the menu under the button once measured, so a
+    // failed measurement can never leave the button doing nothing.
+    setMenuVisible(true);
     moreRef.current?.measureInWindow((_x, y, _w, h) => {
-      setMenuTop(y + h + 4);
-      setMenuVisible(true);
+      if (Number.isFinite(y) && Number.isFinite(h)) setMenuTop(y + h + 4);
     });
   };
 
@@ -909,6 +912,9 @@ export function ChildHomeScreen() {
           <FamilyDeviceCard onSetUp={() => navigation.navigate('FamilyDevices')} />
         )}
 
+        {/* A parent's Today stays uncluttered: the goal lives on the Goal tab. A child still sees it here,
+         * and a parent with no goal yet still gets the nudge. */}
+        {(deviceMode || !goal) && (
         <View style={styles.goalCardWrapper}>
           {!goal ? (
             <Pressable style={styles.emptyGoalCard} onPress={() => navigation.navigate('Goal')}>
@@ -919,8 +925,8 @@ export function ChildHomeScreen() {
           ) : (
             <View style={styles.goalCard}>
               <View style={styles.goalTop}>
-                {goal.photoUri ? (
-                  <Image source={{ uri: goal.photoUri }} style={styles.goalPhoto} />
+                {photoSource(goal) ? (
+                  <Image source={photoSource(goal) as { uri: string }} style={styles.goalPhoto} />
                 ) : (
                   <View style={[styles.goalPhoto, styles.goalPhotoPlaceholder]}>
                     <Text style={styles.goalPhotoIcon}>🎯</Text>
@@ -939,6 +945,7 @@ export function ChildHomeScreen() {
             </View>
           )}
         </View>
+        )}
       </View>
 
       <ScrollView
@@ -981,7 +988,7 @@ export function ChildHomeScreen() {
               <Pressable
                 ref={moreRef}
                 onPress={openMenu}
-                hitSlop={10}
+                hitSlop={14}
                 accessibilityLabel="More options"
                 style={styles.moreButton}
               >
@@ -1124,7 +1131,7 @@ export function ChildHomeScreen() {
                     <TaskIcon name={guessTaskIcon(stop.name)} size={22} color={iconColor} />
                   </Pressable>
                   <View style={[styles.stopLabelWrap, { left: point.x - 62, top: point.y + 32 }]}>
-                    <Text style={styles.stopLabel} numberOfLines={2}>{stop.name}</Text>
+                    <Text style={styles.stopLabel} numberOfLines={stop.waiting ? 1 : 2}>{stop.name}</Text>
                     {stop.waiting && <Text style={[styles.stopWaiting, { color: categoryColor }]}>Waiting for a parent</Text>}
                     {stop.kind === 'expected' && stop.excused && !stop.done && (
                       <Text style={styles.stopExcused}>Excused</Text>

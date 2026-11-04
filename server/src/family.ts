@@ -6,7 +6,7 @@
 // approves or declines them. Approving is applied by the parent's own phone (it
 // turns the submission into a normal completion), so the one copy of the data
 // that parents write is never touched by a child's device.
-import { Router, Request, Response, NextFunction } from 'express';
+import express, { Router, Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { pool } from './db';
@@ -103,6 +103,14 @@ export function dataForChild(data: Record<string, unknown> | null): Record<strin
   delete copy.futureFunds;
   delete copy.gigEffortValues;
   delete copy.parentName;
+  // A goal's photo file lives on the parent's phone; the device gets it from /goal-photos instead.
+  if (Array.isArray(copy.goals)) {
+    copy.goals = (copy.goals as Record<string, unknown>[]).map((g) => {
+      const { photoUri, ...rest } = g;
+      void photoUri;
+      return rest;
+    });
+  }
   return copy;
 }
 
@@ -352,5 +360,79 @@ familyRouter.delete('/child/submissions/:id', requireDevice, async (req: DeviceR
   } catch (err) {
     console.error('DELETE /child/submissions failed', err);
     res.status(500).json({ error: 'Could not take that back right now' });
+  }
+});
+
+
+// ---- Goal photos -------------------------------------------------------------
+// The parent's phone uploads a goal's photo once; the parent's other phones and
+// the family devices download it with their own token.
+
+familyRouter.put(
+  '/goal-photos/:goalId',
+  requireAuth,
+  express.raw({ type: 'image/*', limit: '8mb' }),
+  async (req: AuthedRequest, res: Response) => {
+    try {
+      const goalId = String(req.params.goalId);
+      if (!Buffer.isBuffer(req.body) || req.body.length === 0 || goalId.length > 80) {
+        res.status(400).json({ error: 'Send the photo as an image' });
+        return;
+      }
+      await pool.query(
+        `INSERT INTO goal_photos (user_id, goal_id, content_type, data, updated_at)
+         VALUES ($1, $2, $3, $4, now())
+         ON CONFLICT (user_id, goal_id) DO UPDATE SET content_type = $3, data = $4, updated_at = now()`,
+        [req.userId, goalId, req.header('content-type') ?? 'image/jpeg', req.body]
+      );
+      res.json({ ok: true });
+    } catch (err) {
+      console.error('PUT /goal-photos failed', err);
+      res.status(500).json({ error: 'Could not save the photo' });
+    }
+  }
+);
+
+/** The signed-in parent, or a family device that has not been removed. */
+async function accountFromAnyToken(req: Request): Promise<number | null> {
+  const header = req.header('authorization');
+  const token = header?.startsWith('Bearer ') ? header.slice('Bearer '.length) : null;
+  if (!token || !JWT_SECRET) return null;
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as { userId: number; deviceId?: number; role?: string };
+    if (payload.role === 'child') {
+      const device = await pool.query(
+        'SELECT id FROM family_devices WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL',
+        [payload.deviceId, payload.userId]
+      );
+      return device.rowCount ? payload.userId : null;
+    }
+    return payload.userId;
+  } catch {
+    return null;
+  }
+}
+
+familyRouter.get('/goal-photos/:goalId', async (req: Request, res: Response) => {
+  try {
+    const userId = await accountFromAnyToken(req);
+    if (!userId) {
+      res.status(401).json({ error: 'Missing or invalid token' });
+      return;
+    }
+    const result = await pool.query('SELECT content_type, data FROM goal_photos WHERE user_id = $1 AND goal_id = $2', [
+      userId,
+      req.params.goalId,
+    ]);
+    if (!result.rows[0]) {
+      res.status(404).json({ error: 'No photo' });
+      return;
+    }
+    res.setHeader('Content-Type', result.rows[0].content_type);
+    res.setHeader('Cache-Control', 'private, max-age=86400');
+    res.send(result.rows[0].data);
+  } catch (err) {
+    console.error('GET /goal-photos failed', err);
+    res.status(500).json({ error: 'Could not load the photo' });
   }
 });

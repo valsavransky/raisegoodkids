@@ -136,3 +136,21 @@ export function sendChildSubmission(
 export function takeBackChildSubmission(token: string, id: string): Promise<{ ok: true; removed: boolean }> {
   return request(`/child/submissions/${encodeURIComponent(id)}`, { method: 'DELETE', token });
 }
+
+// ---- Goal photos ----
+
+export function goalPhotoUrl(goalId: string, version: number): string {
+  return `${API_BASE_URL}/goal-photos/${encodeURIComponent(goalId)}?v=${version}`;
+}
+
+/** Sends a goal's photo (a file on this phone) to the server so a family device can show it. */
+export async function uploadGoalPhoto(token: string, goalId: string, fileUri: string): Promise<void> {
+  if (!API_BASE_URL) throw new Error('API base URL not configured');
+  const blob = await (await fetch(fileUri)).blob();
+  const res = await fetch(`${API_BASE_URL}/goal-photos/${encodeURIComponent(goalId)}`, {
+    method: 'PUT',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': blob.type || 'image/jpeg' },
+    body: blob,
+  });
+  if (!res.ok) throw new ApiError(res.status, `Photo upload failed (${res.status})`);
+}
