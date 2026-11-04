@@ -14,7 +14,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'GoalAchieved'>;
 
 export function GoalAchievedScreen({ route, navigation }: Props) {
   const { goalId } = route.params;
-  const { getGoal, activeGoal, soundEnabled } = useAppData();
+  const { getGoal, activeGoal, soundEnabled, deviceMode } = useAppData();
   const goal = getGoal(goalId);
   // The next queued goal auto-activates the moment this one is achieved
   // (see AppDataContext.markGigDone), so by the time this screen renders
@@ -56,7 +56,7 @@ export function GoalAchievedScreen({ route, navigation }: Props) {
         </View>
       )}
 
-      <Pressable style={styles.continueButton} onPress={() => navigation.replace('FulfillGoal', { goalId })}>
+      <Pressable style={styles.continueButton} onPress={() => (deviceMode ? navigation.goBack() : navigation.replace('FulfillGoal', { goalId }))}>
         <Text style={styles.continueButtonText}>Continue</Text>
       </Pressable>
     </View>

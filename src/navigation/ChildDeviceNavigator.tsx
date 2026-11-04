@@ -8,6 +8,7 @@ import { useDevice } from '../context/DeviceContext';
 import { MainNavigator } from './MainNavigator';
 import { RootStackParamList } from './types';
 import { ChildPickerScreen } from '../screens/child/ChildPickerScreen';
+import { GoalAchievedScreen } from '../screens/child/GoalAchievedScreen';
 import { BadgeUnlockScreen } from '../screens/child/BadgeUnlockScreen';
 import { LoadingScreen } from '../screens/LoadingScreen';
 import { colors } from '../theme/colors';
@@ -78,6 +79,7 @@ export function ChildDeviceNavigator() {
       <Stack.Screen name="MainTabs" component={MainNavigator} />
       <Stack.Group screenOptions={{ presentation: 'fullScreenModal' }}>
         <Stack.Screen name="BadgeUnlock" component={BadgeUnlockScreen} />
+        <Stack.Screen name="GoalAchieved" component={GoalAchievedScreen} />
       </Stack.Group>
     </Stack.Navigator>
     </View>
