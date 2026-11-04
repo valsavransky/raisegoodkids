@@ -22,7 +22,7 @@ export function GoalAchievedScreen({ route, navigation }: Props) {
     },
     [celebrationId]
   );
-  const { getGoal, activeGoal, soundEnabled, deviceMode } = useAppData();
+  const { getGoal, activeGoal, deviceMode } = useAppData();
   const goal = getGoal(goalId);
   // The next queued goal auto-activates the moment this one is achieved
   // (see AppDataContext.markGigDone), so by the time this screen renders
@@ -38,7 +38,8 @@ export function GoalAchievedScreen({ route, navigation }: Props) {
   }, [trophyScale]);
 
   const playFanfare = () => {
-    playSound('fanfare', soundEnabled);
+    // The child tapped "Play the fanfare", so it plays even if the family's sound setting is off.
+    playSound('fanfare', true);
     setConfettiTrigger((n) => n + 1);
   };
 

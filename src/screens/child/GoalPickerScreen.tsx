@@ -283,7 +283,7 @@ export function GoalPickerScreen() {
 
     if (item.status === 'queued') {
       return (
-        <View style={styles.goalRow}>
+        <View style={[styles.goalRow, styles.goalRowQueued]}>
           <View style={styles.goalRowTop}>
             <View style={styles.goalRowTitleGroup}>
               <GoalPhoto goal={item} style={styles.goalPhoto} />
@@ -341,7 +341,7 @@ export function GoalPickerScreen() {
     }
 
     return (
-      <View style={styles.goalRow}>
+      <View style={[styles.goalRow, styles.goalRowDone]}>
         <View style={styles.goalRowTop}>
           <View style={styles.goalRowTitleGroup}>
             <GoalPhoto goal={item} style={styles.goalPhoto} />
@@ -386,7 +386,16 @@ export function GoalPickerScreen() {
             </Pressable>
           </View>
         }
-        renderSectionHeader={({ section }) => <Text style={styles.sectionHeader}>{section.title}</Text>}
+        renderSectionHeader={({ section }) => {
+          const tone = SECTION_TONES[section.title] ?? SECTION_TONES['Active goal'];
+          return (
+            <View style={[styles.sectionPill, { backgroundColor: tone.tint }]}>
+              <View style={[styles.sectionDot, { backgroundColor: tone.main }]} />
+              <Text style={[styles.sectionPillText, { color: tone.main }]}>{section.title}</Text>
+              <Text style={[styles.sectionCount, { color: tone.main }]}>{section.data.length}</Text>
+            </View>
+          );
+        }}
         renderItem={({ item }) => renderGoalRow(item)}
         ListFooterComponent={
           <>
@@ -619,6 +628,13 @@ export function GoalPickerScreen() {
   );
 }
 
+// Each section of Your goals has its own color, so Active, Up next and Completed read at a glance.
+const SECTION_TONES: Record<string, { main: string; tint: string }> = {
+  'Active goal': { main: '#B96A08', tint: '#FCEBD2' },
+  'Up next': { main: '#3F5FA8', tint: '#E6ECF8' },
+  Completed: { main: '#1E7B3E', tint: '#E4F7EA' },
+};
+
 const styles = StyleSheet.create({
   waitingText: { fontSize: 14, fontWeight: '700', color: colors.gigs },
   waitingRow: {
@@ -641,6 +657,12 @@ const styles = StyleSheet.create({
   emptySkip: { marginTop: 12, paddingVertical: 6 },
   emptySkipText: { color: colors.expected, fontSize: 15, fontWeight: '600' },
   promptButtons: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 20 },
+  sectionPill: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', borderRadius: 99, paddingVertical: 6, paddingHorizontal: 14, marginTop: 16, marginBottom: 10 },
+  sectionDot: { width: 9, height: 9, borderRadius: 5 },
+  sectionPillText: { fontSize: 13, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' },
+  sectionCount: { fontSize: 13, fontWeight: '800', opacity: 0.7 },
+  goalRowQueued: { borderColor: '#C9D5EE', backgroundColor: '#F5F8FD' },
+  goalRowDone: { borderColor: '#BFE5CB', backgroundColor: '#F3FBF6' },
   sectionHeader: { fontSize: 13, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', marginTop: 12, marginBottom: 8 },
   goalRow: {
     borderWidth: 1,
@@ -651,8 +673,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   activeProgressText: { fontSize: 12.5, color: '#B96A08', fontWeight: '700', marginTop: 8 },
-  goalRowActive: { borderColor: colors.gigs, borderWidth: 2 },
-  goalRowAchieved: { borderColor: colors.gigs, borderStyle: 'dashed' },
+  goalRowActive: { borderColor: colors.gigs, borderWidth: 2, backgroundColor: '#FFF8EC' },
+  goalRowAchieved: { borderColor: colors.gigs, borderStyle: 'dashed', backgroundColor: '#FFF8EC' },
   goalRowTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   goalRowTitleGroup: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
   goalPhoto: { width: 32, height: 32, borderRadius: 8 },

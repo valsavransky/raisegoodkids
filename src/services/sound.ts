@@ -3,7 +3,15 @@
 // reusing one instance, since these are short, infrequent, fire-and-forget
 // clips (a chore checkoff) rather than anything needing gapless replay —
 // simplicity here matters more than the small overhead of a new player.
-import { createAudioPlayer } from 'expo-audio';
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
+
+// Let these sounds play even when an iPhone or iPad's silent switch is on (a kid's tablet often is).
+let audioModeSet = false;
+function ensureAudioMode() {
+  if (audioModeSet) return;
+  audioModeSet = true;
+  setAudioModeAsync({ playsInSilentMode: true }).catch((e) => console.warn('[sound] audio mode failed', e));
+}
 
 const SOUNDS = {
   checkoff: require('../../assets/sounds/checkoff.wav'),
@@ -20,6 +28,7 @@ type SoundName = keyof typeof SOUNDS;
  * mutable state, so there's no risk of a stale toggle value. */
 export function playSound(name: SoundName, enabled: boolean) {
   if (!enabled) return;
+  ensureAudioMode();
   try {
     const player = createAudioPlayer(SOUNDS[name]);
     player.volume = 0.7;
@@ -34,8 +43,9 @@ export function playSound(name: SoundName, enabled: boolean) {
         // Already released — nothing to do.
       }
     }, 3000);
-  } catch {
+  } catch (e) {
     // A missing/broken sound file should never block the real action
     // (marking an item done) that triggered it.
+    console.warn('[sound] could not play', name, String(e));
   }
 }
