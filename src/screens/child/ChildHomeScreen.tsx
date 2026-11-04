@@ -58,6 +58,7 @@ import { TodayTipsSheet, TAP_HINT } from '../../components/TodayTipsSheet';
 import { WaitingBanner } from '../../components/WaitingBanner';
 import { FamilyDeviceCard } from '../../components/FamilyDeviceCard';
 import { useApprovals } from '../../context/ApprovalsContext';
+import { GoalPhoto } from '../../components/GoalPhoto';
 import { useSheet } from '../../components/SheetProvider';
 import { useNewTag } from '../../hooks/useNewTag';
 import { useSubmissionLabels } from '../../hooks/useSubmissionLabels';
@@ -417,7 +418,6 @@ export function ChildHomeScreen() {
     expectedStreak,
     scheduleEvents,
     deviceMode,
-    photoSource,
     isWaiting,
     childNotices,
     dismissNotice,
@@ -925,13 +925,15 @@ export function ChildHomeScreen() {
           ) : (
             <View style={styles.goalCard}>
               <View style={styles.goalTop}>
-                {photoSource(goal) ? (
-                  <Image source={photoSource(goal) as { uri: string }} style={styles.goalPhoto} />
-                ) : (
-                  <View style={[styles.goalPhoto, styles.goalPhotoPlaceholder]}>
-                    <Text style={styles.goalPhotoIcon}>🎯</Text>
-                  </View>
-                )}
+                <GoalPhoto
+                  goal={goal}
+                  style={styles.goalPhoto}
+                  placeholder={
+                    <View style={[styles.goalPhoto, styles.goalPhotoPlaceholder]}>
+                      <Text style={styles.goalPhotoIcon}>🎯</Text>
+                    </View>
+                  }
+                />
                 <View style={styles.goalTitleWrap}>
                   <Text style={styles.goalKicker}>Saving toward</Text>
                   <Text style={styles.goalName} numberOfLines={2}>{goal.name}</Text>

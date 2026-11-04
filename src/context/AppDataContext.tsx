@@ -1298,7 +1298,8 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
   };
 
   const photoSource: AppDataContextValue['photoSource'] = (goal) => {
-    if (goal.photoUri) return { uri: goal.photoUri };
+    // A family device never has the parent's file: it always loads the server's copy.
+    if (!childDevice && goal.photoUri) return { uri: goal.photoUri };
     const authToken = childDevice?.token ?? token;
     if (goal.photoRemote && authToken) {
       return { uri: goalPhotoUrl(goal.id, goal.photoRemote), headers: { Authorization: `Bearer ${authToken}` } };

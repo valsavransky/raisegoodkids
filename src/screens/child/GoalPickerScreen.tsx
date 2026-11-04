@@ -32,6 +32,7 @@ import { useNavigation, CompositeNavigationProp } from '@react-navigation/native
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAppData } from '../../context/AppDataContext';
+import { GoalPhoto } from '../../components/GoalPhoto';
 import { useSheet } from '../../components/SheetProvider';
 import { useAuth } from '../../context/AuthContext';
 import { Goal } from '../../types/models';
@@ -74,7 +75,6 @@ export function GoalPickerScreen() {
     futureFund,
     recordFutureFundContribution,
     deviceMode,
-    photoSource,
     waitingGoalRequests,
     householdGoals,
   } = useAppData();
@@ -263,7 +263,7 @@ export function GoalPickerScreen() {
         <View style={[styles.goalRow, styles.goalRowActive]}>
           <View style={styles.goalRowTop}>
             <View style={styles.goalRowTitleGroup}>
-              {photoSource(item) && <Image source={photoSource(item) as { uri: string }} style={styles.goalPhoto} />}
+              <GoalPhoto goal={item} style={styles.goalPhoto} />
               <Text style={styles.goalName}>{item.name}</Text>
             </View>
             <View style={styles.activeBadge}>
@@ -286,7 +286,7 @@ export function GoalPickerScreen() {
         <View style={styles.goalRow}>
           <View style={styles.goalRowTop}>
             <View style={styles.goalRowTitleGroup}>
-              {photoSource(item) && <Image source={photoSource(item) as { uri: string }} style={styles.goalPhoto} />}
+              <GoalPhoto goal={item} style={styles.goalPhoto} />
               <Text style={styles.goalName}>{item.name}</Text>
             </View>
           </View>
@@ -324,7 +324,7 @@ export function GoalPickerScreen() {
         <View style={[styles.goalRow, styles.goalRowAchieved]}>
           <View style={styles.goalRowTop}>
             <View style={styles.goalRowTitleGroup}>
-              {photoSource(item) && <Image source={photoSource(item) as { uri: string }} style={styles.goalPhoto} />}
+              <GoalPhoto goal={item} style={styles.goalPhoto} />
               <Text style={styles.goalName}>{item.name}</Text>
             </View>
             <Text style={styles.achievedLabel}>🏆 Achieved</Text>
@@ -344,7 +344,7 @@ export function GoalPickerScreen() {
       <View style={styles.goalRow}>
         <View style={styles.goalRowTop}>
           <View style={styles.goalRowTitleGroup}>
-            {photoSource(item) && <Image source={photoSource(item) as { uri: string }} style={styles.goalPhoto} />}
+            <GoalPhoto goal={item} style={styles.goalPhoto} />
             <Text style={styles.goalName}>{item.name}</Text>
           </View>
           <Text style={styles.fulfilledLabel}>✓ Fulfilled</Text>
