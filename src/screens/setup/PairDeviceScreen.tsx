@@ -32,7 +32,7 @@ export function PairDeviceScreen({ navigation }: Props) {
       setError(
         e instanceof ApiError
           ? e.message
-          : "Couldn't connect. Check the internet connection and try again."
+          : 'Couldn’t connect. The internet seems to be napping. Try again in a sec.'
       );
       setBusy(false);
     }
@@ -45,9 +45,21 @@ export function PairDeviceScreen({ navigation }: Props) {
       </Pressable>
       <KeyboardAwareScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Join your family</Text>
-        <Text style={styles.body}>
-          Ask a parent to open <Text style={styles.bold}>Settings → Family devices → + Add</Text> on their phone. Then type the code here.
-        </Text>
+        <Text style={styles.body}>Your trail, your goal, and everything you need to check off your day.</Text>
+        <View style={styles.steps}>
+          {[
+            'Ask a parent to open Family devices in Settings on their phone.',
+            'They tap “Connect a device” to get a code.',
+            'Type the code in below. That’s it!',
+          ].map((text, i) => (
+            <View key={i} style={[styles.step, i > 0 && styles.stepDivider]}>
+              <View style={styles.stepNum}>
+                <Text style={styles.stepNumText}>{i + 1}</Text>
+              </View>
+              <Text style={styles.stepText}>{text}</Text>
+            </View>
+          ))}
+        </View>
 
         <View style={styles.codeWrap}>
           <View style={styles.codeRow} pointerEvents="none">
@@ -96,7 +108,7 @@ const styles = StyleSheet.create({
   backText: { fontSize: 17, color: colors.expected, fontWeight: '600' },
   content: { paddingHorizontal: 24, paddingTop: 12 },
   title: { fontSize: 26, fontWeight: '700', color: colors.text, marginBottom: 10 },
-  body: { fontSize: 16, color: colors.textMuted, lineHeight: 23, marginBottom: 24 },
+  body: { fontSize: 16, color: colors.textMuted, lineHeight: 23, marginBottom: 18 },
   label: { fontSize: 11, fontWeight: '800', letterSpacing: 0.7, color: colors.textMuted, marginBottom: 6, marginTop: 14 },
   input: {
     borderWidth: 1.5,
@@ -108,7 +120,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     backgroundColor: '#fff',
   },
-  bold: { fontWeight: '800', color: colors.text },
+  steps: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#EEE6D8', borderRadius: 18, paddingHorizontal: 16, marginBottom: 20 },
+  step: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 13 },
+  stepDivider: { borderTopWidth: 1, borderTopColor: '#F1EBDD' },
+  stepNum: { width: 26, height: 26, borderRadius: 13, backgroundColor: '#E4F4F1', alignItems: 'center', justifyContent: 'center' },
+  stepNumText: { fontSize: 13, fontWeight: '800', color: '#0B6D63' },
+  stepText: { flex: 1, fontSize: 15, fontWeight: '600', color: colors.text, lineHeight: 22, marginTop: 1 },
   codeWrap: { marginBottom: 12, height: 62 },
   codeRow: { flexDirection: 'row', gap: 8, justifyContent: 'space-between' },
   codeBox: { flex: 1, height: 62, borderRadius: 12, borderWidth: 2, borderColor: '#BFE3DD', backgroundColor: '#EAF6F4', alignItems: 'center', justifyContent: 'center' },
