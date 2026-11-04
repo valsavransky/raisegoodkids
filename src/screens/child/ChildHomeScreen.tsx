@@ -449,6 +449,7 @@ export function ChildHomeScreen() {
   const [menuTop, setMenuTop] = useState(160);
   const moreRef = useRef<View>(null);
   const openMenu = () => {
+    console.warn('[menu-debug] ⋯ pressed, opening menu');
     // Place the menu just under the ⋯ button.
     // Open right away (with a sensible spot), then nudge the menu under the button once measured, so a
     // failed measurement can never leave the button doing nothing.
@@ -950,6 +951,7 @@ export function ChildHomeScreen() {
 
       <ScrollView
         ref={scrollRef}
+        onTouchStart={(e) => console.warn(`[menu-debug] touch in scroll at x=${Math.round(e.nativeEvent.pageX)} y=${Math.round(e.nativeEvent.pageY)}`)}
         style={styles.scroll}
         contentContainerStyle={styles.content}
         onLayout={(e) => setViewportHeight(e.nativeEvent.layout.height)}
@@ -988,6 +990,7 @@ export function ChildHomeScreen() {
               <Pressable
                 ref={moreRef}
                 onPress={openMenu}
+                onTouchStart={() => console.warn('[menu-debug] touch started on ⋯')}
                 accessibilityRole="button"
                 accessibilityLabel="More options"
                 style={styles.moreButton}
@@ -1233,7 +1236,7 @@ export function ChildHomeScreen() {
         )}
       </ScrollView>
 
-      <Modal visible={menuVisible} transparent animationType="fade" onRequestClose={() => setMenuVisible(false)}>
+      <Modal visible={menuVisible} transparent animationType="fade" onShow={() => console.warn('[menu-debug] menu shown')} onRequestClose={() => setMenuVisible(false)}>
         <Pressable style={styles.menuBackdrop} onPress={() => setMenuVisible(false)}>
           <View style={[styles.menu, { top: menuTop }]}>
             <Pressable
