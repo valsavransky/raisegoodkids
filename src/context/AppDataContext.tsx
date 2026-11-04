@@ -871,7 +871,7 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
     goals
       .filter((g) => g.status === 'achieved' || g.status === 'fulfilled')
       .sort((a, b) => (b.achievedAt ?? '').localeCompare(a.achievedAt ?? ''));
-  const getGoal = (goalId: string): Goal | undefined => goals.find((g) => g.id === goalId);
+  const getGoal = (goalId: string): Goal | undefined => allGoals.find((g) => g.id === goalId);
 
   const addGoal = (name: string, realWorldCost: number, category?: GoalCategory, photoUri?: string) => {
     const hasActive = goals.some((g) => g.status === 'active');

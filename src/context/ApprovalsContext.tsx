@@ -7,7 +7,7 @@ import { AppState } from 'react-native';
 import { useAuth } from './AuthContext';
 import { useAppData } from './AppDataContext';
 import { listSubmissions, decideSubmission, ApiError } from '../services/api';
-import { Submission } from '../types/models';
+import { Goal, Submission } from '../types/models';
 import { track } from '../services/analytics';
 
 const POLL_MS = 60 * 1000;
@@ -16,6 +16,10 @@ interface ApprovalsValue {
   /** Everything the server returned: waiting, and recently decided. */
   submissions: Submission[];
   pending: Submission[];
+  /** Goals a child has reached that a parent hasn't marked fulfilled yet. */
+  goalsToFinish: Goal[];
+  /** Everything waiting on a parent: requests to review plus goals to finish. */
+  waitingCount: number;
   refresh: () => Promise<void>;
   /** 'ok' when saved; 'already' if it was decided or taken back meanwhile. */
   decide: (
@@ -29,7 +33,7 @@ const ApprovalsContext = createContext<ApprovalsValue | undefined>(undefined);
 
 export function ApprovalsProvider({ children }: { children: ReactNode }) {
   const { token } = useAuth();
-  const { childProfile, applySubmissions } = useAppData();
+  const { childProfile, applySubmissions, householdGoals } = useAppData();
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const hasProfile = !!childProfile;
   const tokenRef = useRef(token);
@@ -86,10 +90,14 @@ export function ApprovalsProvider({ children }: { children: ReactNode }) {
   };
 
   const value = useMemo<ApprovalsValue>(
-    () => ({ submissions, pending: submissions.filter((s) => s.status === 'pending'), refresh, decide }),
+    () => {
+      const pending = submissions.filter((s) => s.status === 'pending');
+      const goalsToFinish = householdGoals.filter((g) => g.status === 'achieved');
+      return { submissions, pending, goalsToFinish, waitingCount: pending.length + goalsToFinish.length, refresh, decide };
+    },
     // decide only reads refs and stable setters
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [submissions, refresh]
+    [submissions, refresh, householdGoals]
   );
   return <ApprovalsContext.Provider value={value}>{children}</ApprovalsContext.Provider>;
 }
@@ -97,6 +105,8 @@ export function ApprovalsProvider({ children }: { children: ReactNode }) {
 const NO_APPROVALS: ApprovalsValue = {
   submissions: [],
   pending: [],
+  goalsToFinish: [],
+  waitingCount: 0,
   refresh: async () => {},
   decide: async () => 'error',
 };

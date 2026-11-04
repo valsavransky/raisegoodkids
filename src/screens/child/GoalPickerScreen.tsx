@@ -108,7 +108,12 @@ export function GoalPickerScreen() {
   const sections = [
     ...(active ? [{ title: 'Active goal', data: [active] }] : []),
     ...(queued.length > 0 ? [{ title: 'Up next', data: queued }] : []),
-    ...(completed.length > 0 ? [{ title: 'Completed', data: completed }] : []),
+    ...(completed.filter((g) => g.status === 'achieved').length > 0
+      ? [{ title: 'Completed', data: completed.filter((g) => g.status === 'achieved') }]
+      : []),
+    ...(completed.filter((g) => g.status === 'fulfilled').length > 0
+      ? [{ title: 'Fulfilled', data: completed.filter((g) => g.status === 'fulfilled') }]
+      : []),
   ];
 
   const suggestedIdeas = suggestGoalIdeas(goals, childProfile?.grade);
@@ -329,7 +334,7 @@ export function GoalPickerScreen() {
 
     if (item.status === 'achieved') {
       return (
-        <View style={[styles.goalRow, styles.goalRowAchieved]}>
+        <View style={[styles.goalRow, styles.goalRowReached]}>
           <View style={styles.goalRowTop}>
             <View style={styles.goalRowTitleGroup}>
               <GoalPhoto goal={item} style={styles.goalPhoto} />
@@ -341,7 +346,7 @@ export function GoalPickerScreen() {
             <Text style={styles.waitingText}>You did it! Ask a grown-up about your reward.</Text>
           ) : (
             <Pressable style={styles.makeActiveButton} onPress={() => navigation.navigate('FulfillGoal', { goalId: item.id })}>
-              <Text style={styles.makeActiveButtonText}>Finish up</Text>
+              <Text style={styles.makeActiveButtonText}>Mark as fulfilled</Text>
             </Pressable>
           )}
         </View>
@@ -640,7 +645,9 @@ export function GoalPickerScreen() {
 const SECTION_TONES: Record<string, { main: string; tint: string }> = {
   'Active goal': { main: '#B96A08', tint: '#FCEBD2' },
   'Up next': { main: '#3F5FA8', tint: '#E6ECF8' },
-  Completed: { main: '#1E7B3E', tint: '#E4F7EA' },
+  // Reached, waiting for a parent to hand over the real thing.
+  Completed: { main: '#6C63B5', tint: '#ECEAF8' },
+  Fulfilled: { main: '#1E7B3E', tint: '#E4F7EA' },
 };
 
 const styles = StyleSheet.create({
@@ -671,6 +678,7 @@ const styles = StyleSheet.create({
   sectionCount: { fontSize: 13, fontWeight: '800', opacity: 0.7 },
   goalRowQueued: { borderColor: '#C9D5EE', backgroundColor: '#F5F8FD' },
   goalRowDone: { borderColor: '#BFE5CB', backgroundColor: '#F3FBF6' },
+  goalRowReached: { borderColor: '#CFCBEB', backgroundColor: '#F7F6FD' },
   sectionHeader: { fontSize: 13, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', marginTop: 12, marginBottom: 8 },
   goalRow: {
     borderWidth: 1,
@@ -689,7 +697,7 @@ const styles = StyleSheet.create({
   goalName: { fontSize: 16, fontWeight: '600', color: colors.text, flexShrink: 1 },
   activeBadge: { backgroundColor: colors.gigs, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
   activeBadgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  achievedLabel: { fontSize: 12, color: colors.gigs, fontWeight: '700' },
+  achievedLabel: { fontSize: 12, color: '#6C63B5', fontWeight: '700' },
   fulfilledLabel: { fontSize: 12, color: colors.success, fontWeight: '700' },
   progressBarTrack: { height: 8, borderRadius: 4, backgroundColor: colors.border, marginTop: 12, overflow: 'hidden' },
   progressBarFill: { height: 8, borderRadius: 4, backgroundColor: colors.gigs },

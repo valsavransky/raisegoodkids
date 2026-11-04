@@ -26,8 +26,9 @@ function daysBetween(startIso: string, endIso: string): number {
 
 export function FulfillGoalScreen({ route, navigation }: Props) {
   const { goalId } = route.params;
-  const { getGoal, childProfile, markGoalFulfilled } = useAppData();
+  const { getGoal, childProfiles, markGoalFulfilled } = useAppData();
   const goal = getGoal(goalId);
+  const childProfile = childProfiles.find((c) => c.id === goal?.childProfileId);
 
   const daysTaken = goal?.achievedAt ? daysBetween(goal.createdAt, goal.achievedAt) : null;
 

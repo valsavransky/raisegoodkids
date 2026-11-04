@@ -474,6 +474,33 @@ export function ChildHomeScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceMode, celebLoaded, celebTick, badges, goals, childProfile?.id]);
 
+  // Parent's phone: a gig a parent approves can finish a goal. Celebrate it right away, so the parent
+  // can mark it fulfilled while the moment is fresh. Goals reached before this was added stay quiet
+  // (they appear under "Goals to finish" instead).
+  const { householdGoals } = useAppData();
+  const [parentCelebLoaded, setParentCelebLoaded] = useState(false);
+  useEffect(() => {
+    if (deviceMode) return;
+    loadCelebrated().then(() => setParentCelebLoaded(true));
+    return onCelebrationsChanged(() => setCelebTick((n) => n + 1));
+  }, [deviceMode]);
+  useEffect(() => {
+    if (deviceMode || !parentCelebLoaded || !childProfile) return;
+    const reached = householdGoals.filter((g) => g.status === 'achieved');
+    if (!isCelebrated('seeded:parent')) {
+      markCelebrated('seeded:parent', ...reached.map((g) => `goal:${g.id}`));
+      return;
+    }
+    const open = navigation
+      .getParent()
+      ?.getState()
+      ?.routes?.some((r) => r.name === 'GoalAchieved' || r.name === 'FulfillGoal');
+    if (open) return;
+    const fresh = reached.find((g) => !isCelebrated(`goal:${g.id}`));
+    if (fresh) navigation.navigate('GoalAchieved', { goalId: fresh.id, celebrationId: `goal:${fresh.id}` });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deviceMode, parentCelebLoaded, celebTick, householdGoals, childProfile?.id]);
+
   const [view, setView] = useState<'today' | 'week'>('today');
   // "This Week" sub-tabs — Daily/Gigs/Weekly used to stack as three
   // sections on one screen, which ran very long for a household with a lot
@@ -484,7 +511,7 @@ export function ChildHomeScreen() {
 
   const [excuseSheetVisible, setExcuseSheetVisible] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
-  const { pending } = useApprovals();
+  const { waitingCount } = useApprovals();
   const familyIsNew = useNewTag('family-devices');
   // Setup's family-device step asks for Family devices to open once the app is ready.
   useEffect(() => {
@@ -857,7 +884,7 @@ export function ChildHomeScreen() {
         const activeGoalId = goal?.id;
         const { achievedGoal, newBadgeCatalogId } = markGigDone(gig.id, date);
         if (achievedGoal && activeGoalId) {
-          navigation.navigate('GoalAchieved', { goalId: activeGoalId });
+          navigation.navigate('GoalAchieved', { goalId: activeGoalId, celebrationId: `goal:${activeGoalId}` });
         } else if (newBadgeCatalogId) {
           navigation.navigate('BadgeUnlock', { catalogId: newBadgeCatalogId });
         }
@@ -882,7 +909,7 @@ export function ChildHomeScreen() {
       celebrateGig();
       const { achievedGoal, newBadgeCatalogId, allGigsDoneToday } = markGigDone(gig.id);
       if (achievedGoal) {
-        navigation.navigate('GoalAchieved', { goalId: activeGoalId });
+        navigation.navigate('GoalAchieved', { goalId: activeGoalId, celebrationId: `goal:${activeGoalId}` });
       } else if (allGigsDoneToday) {
         navigation.navigate('AllGigsDone', { badgeCatalogId: newBadgeCatalogId ?? undefined });
       } else if (newBadgeCatalogId) {
@@ -979,8 +1006,8 @@ export function ChildHomeScreen() {
               </>
             );
           })()
-        ) : pending.length > 0 ? (
-          <WaitingBanner count={pending.length} onReview={() => navigation.navigate('Approvals')} />
+        ) : waitingCount > 0 ? (
+          <WaitingBanner count={waitingCount} onReview={() => navigation.navigate('Approvals')} />
         ) : (
           <FamilyDeviceCard onSetUp={() => navigation.navigate('FamilyDevices')} />
         )}

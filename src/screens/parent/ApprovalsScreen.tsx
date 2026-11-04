@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { SettingsSubHeader } from '../../components/SettingsSubHeader';
+import { formatShortDate } from '../../utils/date';
 import { useSheet } from '../../components/SheetProvider';
 import { getAvatarColors } from '../../data/avatars';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
@@ -22,7 +23,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Approvals'>;
 
 export function ApprovalsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { pending, decide, refresh } = useApprovals();
+  const { pending, goalsToFinish, decide, refresh } = useApprovals();
   const { childProfiles } = useAppData();
   const sheet = useSheet();
   const labelOf = useSubmissionLabels();
@@ -73,8 +74,12 @@ export function ApprovalsScreen({ navigation }: Props) {
   };
 
   const groups = childProfiles
-    .map((child) => ({ child, items: pending.filter((s) => s.childId === child.id) }))
-    .filter((g) => g.items.length > 0);
+    .map((child) => ({
+      child,
+      items: pending.filter((s) => s.childId === child.id),
+      finish: goalsToFinish.filter((g) => g.childProfileId === child.id),
+    }))
+    .filter((g) => g.items.length > 0 || g.finish.length > 0);
 
   const renderSection = (title: string, items: Submission[], kind: 'goal' | 'expected' | 'gig') => {
     if (items.length === 0) return null;
@@ -130,10 +135,10 @@ export function ApprovalsScreen({ navigation }: Props) {
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>✓</Text>
             <Text style={styles.emptyTitle}>Nothing waiting</Text>
-            <Text style={styles.emptyText}>When a child sends something in from a family device, it shows up here.</Text>
+            <Text style={styles.emptyText}>When a child sends something in from a family device, or reaches a goal, it shows up here.</Text>
           </View>
         ) : (
-          groups.map(({ child, items }) => {
+          groups.map(({ child, items, finish }) => {
             const doable = items.filter((s) => !labelOf(s).isGoal);
             const approveCount = doable.filter((s) => !unticked.has(s.id)).length;
             const backCount = doable.length - approveCount;
@@ -153,9 +158,26 @@ export function ApprovalsScreen({ navigation }: Props) {
                     <AvatarGlyph avatarId={child.avatarId} size={30} />
                   </View>
                   <Text style={styles.childName}>{child.name}</Text>
-                  <Text style={styles.waiting}>{items.length} waiting</Text>
+                  <Text style={styles.waiting}>{items.length + finish.length} waiting</Text>
                 </View>
                 <View style={{ paddingHorizontal: 14, paddingBottom: 14 }}>
+                {finish.length > 0 && (
+                  <>
+                    <Text style={styles.sectionLabel}>Goals to finish</Text>
+                    {finish.map((g) => (
+                      <Pressable key={g.id} style={styles.row} onPress={() => navigation.navigate('FulfillGoal', { goalId: g.id })}>
+                        <Text style={{ fontSize: 22 }}>🏆</Text>
+                        <View style={styles.rowText}>
+                          <Text style={styles.rowTitle}>{g.name}</Text>
+                          <Text style={styles.rowDetail}>
+                            Reached{g.achievedAt ? ` ${formatShortDate(g.achievedAt.slice(0, 10))}` : ''}. Mark it fulfilled once you’ve handled it.
+                          </Text>
+                        </View>
+                        <Text style={styles.chevron}>{'›'}</Text>
+                      </Pressable>
+                    ))}
+                  </>
+                )}
                 {renderSection('Goals', items.filter((s) => labelOf(s).isGoal), 'goal')}
                 {renderSection('Expected', items.filter((s) => s.kind === 'expected'), 'expected')}
                 {renderSection('Gigs', items.filter((s) => s.kind === 'gig'), 'gig')}

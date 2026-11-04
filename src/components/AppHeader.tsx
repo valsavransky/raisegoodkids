@@ -30,7 +30,7 @@ export function AppHeader() {
   const { childProfile, childProfiles, viewingEveryone, setViewingEveryone, deviceMode } = useAppData();
   const [switcherVisible, setSwitcherVisible] = useState(false);
   const { isAutoAccount } = useAuth();
-  const { pending } = useApprovals();
+  const { waitingCount } = useApprovals();
 
   const hasSeveralChildren = childProfiles.length > 1;
   const firstName = hasSeveralChildren && viewingEveryone ? 'Everyone' : childProfile?.name?.trim().split(' ')[0];
@@ -62,11 +62,11 @@ export function AppHeader() {
           {/* Nudges the parent toward the Account tab's "Secure your
            * account" flow — the account exists and is already backing up
            * data invisibly, so nothing else surfaces this on its own. */}
-          {!deviceMode && isAutoAccount && pending.length === 0 && <View style={styles.chipDot} />}
+          {!deviceMode && isAutoAccount && waitingCount === 0 && <View style={styles.chipDot} />}
           {/* How many things children have sent in, waiting for a parent. */}
-          {pending.length > 0 && (
+          {waitingCount > 0 && (
             <View style={styles.countBadge}>
-              <Text style={styles.countBadgeText}>{pending.length > 9 ? '9+' : pending.length}</Text>
+              <Text style={styles.countBadgeText}>{waitingCount > 9 ? '9+' : waitingCount}</Text>
             </View>
           )}
         </Pressable>
