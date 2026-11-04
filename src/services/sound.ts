@@ -5,6 +5,7 @@
 // simplicity here matters more than the small overhead of a new player.
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { Asset } from 'expo-asset';
+import { SOUND_DATA } from './soundData';
 
 // Let these sounds play even when an iPhone or iPad's silent switch is on (a kid's tablet often is).
 let audioModeSet = false;
@@ -40,7 +41,7 @@ export function playSound(name: SoundName, enabled: boolean, debug?: (text: stri
   // Make sure the sound file is on this device first, then play it from that local copy. (Handing the
   // player the bundled asset directly can silently never load, which is what a silent fanfare looked like.)
   (async () => {
-    let source: string | number = SOUNDS[name];
+    let source: string | number | { uri: string } = SOUNDS[name];
     try {
       const asset = Asset.fromModule(SOUNDS[name]);
       if (!asset.localUri) await asset.downloadAsync();
@@ -48,7 +49,10 @@ export function playSound(name: SoundName, enabled: boolean, debug?: (text: stri
       say(`file ready: ${uri.slice(-40)}`);
       source = uri;
     } catch (e) {
-      say(`couldn't fetch the sound file: ${String(e)}`);
+      // Fall back to the copy built into the app, so a bad connection to a server can't silence it.
+      say(`using the built-in copy (download failed)`);
+      console.warn('[sound] download error', String(e));
+      source = { uri: `data:audio/wav;base64,${SOUND_DATA[name]}` };
     }
     try {
       const player = createAudioPlayer(source);
