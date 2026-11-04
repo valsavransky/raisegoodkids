@@ -9,7 +9,7 @@ import * as Haptics from 'expo-haptics';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { getBadgeCatalogEntry } from '../../data/badgeCatalog';
-import { markCelebrated } from '../../utils/childCelebrations';
+import { markCelebrated, wasAwayFor } from '../../utils/childCelebrations';
 import { useAppData } from '../../context/AppDataContext';
 import { playSound } from '../../services/sound';
 import { Confetti } from '../../components/Confetti';
@@ -56,6 +56,7 @@ export function BadgeUnlockScreen({ route, navigation }: Props) {
         <BadgeIconGlyph icon={entry?.icon ?? '🏅'} size={48} color={entry?.color} textStyle={styles.badgeIcon} />
       </Animated.View>
 
+      {wasAwayFor(route.params.whenIso) && <Text style={styles.awayKicker}>🌙 While you were away…</Text>}
       <Text style={styles.title}>{entry?.title ?? 'Badge earned'}</Text>
       <Text style={styles.subtitle}>{entry?.subtitle ?? 'Nice work!'}</Text>
 
@@ -79,6 +80,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   badgeIcon: { fontSize: 48 },
+  awayKicker: { fontSize: 15, fontWeight: '700', color: colors.gigs, marginBottom: 8, textAlign: 'center' },
   title: { fontSize: 24, fontWeight: '800', color: colors.text, textAlign: 'center' },
   subtitle: { fontSize: 15, color: colors.textMuted, marginTop: 6, textAlign: 'center' },
   continueButton: {

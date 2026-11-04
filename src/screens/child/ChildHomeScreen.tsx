@@ -464,12 +464,12 @@ export function ChildHomeScreen() {
     if (freshGoal) {
       // A badge that arrives with a goal goes to the shelf, as on a parent's phone.
       markCelebrated(...badges.filter((b) => !isCelebrated(`badge:${b.id}`)).map((b) => `badge:${b.id}`));
-      navigation.navigate('GoalAchieved', { goalId: freshGoal.id, celebrationId: `goal:${freshGoal.id}` });
+      navigation.navigate('GoalAchieved', { goalId: freshGoal.id, celebrationId: `goal:${freshGoal.id}`, whenIso: freshGoal.achievedAt });
       return;
     }
     const freshBadge = badges.find((b) => !isCelebrated(`badge:${b.id}`));
     if (freshBadge) {
-      navigation.navigate('BadgeUnlock', { catalogId: freshBadge.catalogId, celebrationId: `badge:${freshBadge.id}` });
+      navigation.navigate('BadgeUnlock', { catalogId: freshBadge.catalogId, celebrationId: `badge:${freshBadge.id}`, whenIso: freshBadge.earnedAt });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deviceMode, celebLoaded, celebTick, badges, goals, childProfile?.id]);

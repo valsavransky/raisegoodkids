@@ -6,7 +6,7 @@ import { View, Text, Pressable, Animated, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { useAppData } from '../../context/AppDataContext';
-import { markCelebrated } from '../../utils/childCelebrations';
+import { markCelebrated, wasAwayFor } from '../../utils/childCelebrations';
 import { Confetti } from '../../components/Confetti';
 import { playSound } from '../../services/sound';
 import { colors } from '../../theme/colors';
@@ -48,6 +48,7 @@ export function GoalAchievedScreen({ route, navigation }: Props) {
 
       <Animated.Text style={[styles.trophy, { transform: [{ scale: trophyScale }] }]}>🏆</Animated.Text>
 
+      {wasAwayFor(route.params.whenIso) && <Text style={styles.awayKicker}>🌙 While you were away…</Text>}
       <Text style={styles.title}>You did it!</Text>
       <Text style={styles.goalName}>{goal ? `${goal.name} is yours` : 'Goal reached'}</Text>
 
@@ -74,6 +75,7 @@ export function GoalAchievedScreen({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 24 },
   trophy: { fontSize: 80, marginBottom: 16 },
+  awayKicker: { fontSize: 15, fontWeight: '700', color: colors.gigs, marginBottom: 8, textAlign: 'center' },
   title: { fontSize: 26, fontWeight: '800', color: colors.text, textAlign: 'center' },
   goalName: { fontSize: 18, fontWeight: '600', color: colors.gigs, textAlign: 'center', marginTop: 8 },
   fanfareButton: {

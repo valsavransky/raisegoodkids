@@ -24,9 +24,9 @@ export type MainTabParamList = {
 
 export type RootStackParamList = {
   MainTabs: undefined;
-  GoalAchieved: { goalId: string; celebrationId?: string };
+  GoalAchieved: { goalId: string; celebrationId?: string; whenIso?: string };
   FulfillGoal: { goalId: string };
-  BadgeUnlock: { catalogId: string; celebrationId?: string };
+  BadgeUnlock: { catalogId: string; celebrationId?: string; whenIso?: string };
   AllExpectedDone: { badgeCatalogId?: string };
   AllWeeklyExpectedDone: { badgeCatalogId?: string };
   AllGigsDone: { badgeCatalogId?: string };
