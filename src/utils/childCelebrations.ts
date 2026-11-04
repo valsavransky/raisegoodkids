@@ -39,5 +39,5 @@ export function onCelebrationsChanged(fn: () => void): () => void {
 /** True when the thing being celebrated happened a while ago (the child wasn't looking). */
 export function wasAwayFor(whenIso?: string): boolean {
   if (!whenIso) return false;
-  return Date.now() - new Date(whenIso).getTime() > 30 * 60 * 1000;
+  return Date.now() - new Date(whenIso).getTime() > 2 * 60 * 1000;
 }
