@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "831077853980",
+    "project_id": "trekker-1346c",
+    "storage_bucket": "trekker-1346c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:831077853980:android:e6aecb41bd50ac9907a8d9",
+        "android_client_info": {
+          "package_name": "com.valsavransky.merit"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCnSTnRVR3LMSy-IwPYeT5tI8yipMZFe94"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
