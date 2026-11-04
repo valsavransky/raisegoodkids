@@ -1308,6 +1308,20 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
 
   // Parent's phone: upload each goal's photo once, so a family device can show it.
   const uploadingPhotos = useRef(new Set<string>());
+  // Retry a failed upload (the server may have been busy or still updating) every minute and when
+  // the app comes back to the foreground.
+  const [photoTick, setPhotoTick] = useState(0);
+  useEffect(() => {
+    if (deviceMode) return;
+    const timer = setInterval(() => setPhotoTick((n) => n + 1), 60_000);
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') setPhotoTick((n) => n + 1);
+    });
+    return () => {
+      clearInterval(timer);
+      sub.remove();
+    };
+  }, [deviceMode]);
   useEffect(() => {
     if (deviceMode || !token || !hasReconciled || !isHydrated) return;
     const pending = allGoals.filter((g) => g.photoUri && !uploadingPhotos.current.has(`${g.id}|${g.photoUri}`));
@@ -1336,7 +1350,7 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allGoals, token, hasReconciled, isHydrated]);
+  }, [allGoals, token, hasReconciled, isHydrated, photoTick]);
 
   const waitingFor = (kind: 'expected' | 'gig', itemId: string, day?: string) =>
     deviceSubs.find(

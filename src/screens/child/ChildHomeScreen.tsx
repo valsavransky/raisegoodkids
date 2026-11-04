@@ -988,7 +988,7 @@ export function ChildHomeScreen() {
               <Pressable
                 ref={moreRef}
                 onPress={openMenu}
-                hitSlop={14}
+                accessibilityRole="button"
                 accessibilityLabel="More options"
                 style={styles.moreButton}
               >
@@ -1415,7 +1415,8 @@ const styles = StyleSheet.create({
   toggleTabText: { fontSize: 12.5, fontWeight: '800', color: '#8a8578' },
   toggleTabTextActive: { color: '#FFFFFF' },
   streakRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  moreButton: { paddingHorizontal: 6, paddingBottom: 4 },
+  // A generous 48 x 44 touch target (the glyph itself is tiny).
+  moreButton: { width: 48, height: 44, alignItems: 'center', justifyContent: 'center', marginRight: -8 },
   menuBackdrop: { flex: 1 },
   menu: {
     position: 'absolute',
