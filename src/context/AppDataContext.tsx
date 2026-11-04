@@ -1241,7 +1241,12 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
     }
   };
   const hasPendingRef = useRef(false);
-  hasPendingRef.current = deviceSubs.some((s) => s.status === 'pending');
+  // Keep checking every 10 seconds while something is waiting, and for a couple of minutes after a
+  // parent answers: the answer reaches this device slightly before the badge or goal it earned does.
+  hasPendingRef.current = deviceSubs.some(
+    (s) =>
+      s.status === 'pending' || (!!s.decidedAt && Date.now() - new Date(s.decidedAt).getTime() < 3 * 60 * 1000)
+  );
   const refreshChildDataRef = useRef(refreshChildData);
   refreshChildDataRef.current = refreshChildData;
   useEffect(() => {

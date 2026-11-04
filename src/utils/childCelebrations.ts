@@ -1,6 +1,7 @@
 // Which celebrations (a goal reached, a badge earned) this family device has already shown to the
 // child. A celebration only counts as seen once its screen is closed, so one that was interrupted
 // (the app closed, the screen turned off) shows again the next time the app is open.
+import { AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const KEY = '@trekker/childDevice/celebrated';
@@ -36,8 +37,15 @@ export function onCelebrationsChanged(fn: () => void): () => void {
   };
 }
 
-/** True when the thing being celebrated happened a while ago (the child wasn't looking). */
+// "Away" means the app really was in the background (screen off, another app, closed) at some point
+// after the thing happened. When the app starts, that counts as the last time it was away.
+let lastInactiveAt = Date.now();
+AppState.addEventListener('change', (state) => {
+  if (state !== 'active') lastInactiveAt = Date.now();
+});
+
+/** True when the child wasn't looking when the thing being celebrated happened. */
 export function wasAwayFor(whenIso?: string): boolean {
   if (!whenIso) return false;
-  return Date.now() - new Date(whenIso).getTime() > 2 * 60 * 1000;
+  return lastInactiveAt > new Date(whenIso).getTime() + 2000;
 }

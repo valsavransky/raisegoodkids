@@ -31,18 +31,47 @@ export function playSound(name: SoundName, enabled: boolean) {
   ensureAudioMode();
   try {
     const player = createAudioPlayer(SOUNDS[name]);
-    player.volume = 0.7;
-    player.play();
-    // Release once the short clip has definitely finished — these are all
-    // well under a second, so this is a generous margin, not a timer tied
-    // to actual playback completion.
+    player.volume = 1;
+    let started = false;
+    const start = (why: string) => {
+      if (started) return;
+      started = true;
+      try {
+        player.play();
+        console.warn(`[sound] ${name}: play() called (${why})`);
+      } catch (e) {
+        console.warn('[sound] play failed', name, String(e));
+      }
+    };
+    // Start as soon as the clip has loaded (starting before that can silently do nothing on Android),
+    // and fall back to starting anyway shortly after.
+    let sub: { remove: () => void } | null = null;
+    try {
+      sub = player.addListener('playbackStatusUpdate', (status: { isLoaded?: boolean; didJustFinish?: boolean }) => {
+        if (status.isLoaded) start('loaded');
+        if (status.didJustFinish) {
+          sub?.remove();
+          try {
+            player.remove();
+          } catch {
+            // Already released.
+          }
+        }
+      });
+    } catch (e) {
+      console.warn('[sound] could not listen for load', String(e));
+    }
+    if (player.isLoaded) start('already loaded');
+    setTimeout(() => start('fallback'), 250);
+    // Release the player if the finish event never came.
     setTimeout(() => {
       try {
+        sub?.remove();
         player.remove();
       } catch {
-        // Already released — nothing to do.
+        // Already released.
       }
-    }, 3000);
+    }, 5000);
   } catch (e) {
     // A missing/broken sound file should never block the real action
     // (marking an item done) that triggered it.
