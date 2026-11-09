@@ -11,7 +11,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { AddPill } from '../../components/AddPill';
 import { useSetup, DraftGig, makeLocalId } from '../../context/SetupContext';
 import { getContentLibraryForGrade, getMoreIdeaNames, isStarterGig, SuggestedGig } from '../../data/contentLibrary';
-import { GradeBanner, SectionLabel, MoreIdeas } from '../../components/SetupSuggestionParts';
+import { GradeBanner, SectionLabel, MoreIdeas, SizeTag } from '../../components/SetupSuggestionParts';
 import { GigEffortTier } from '../../types/models';
 import { useTrackSetupStep } from '../../hooks/useTrackScreen';
 import { colors } from '../../theme/colors';
@@ -34,6 +34,7 @@ export function GigsSetupScreen({ navigation }: Props) {
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [draftName, setDraftName] = useState('');
   const [draftEffortTier, setDraftEffortTier] = useState<GigEffortTier>('quick');
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     // A yard/car gig only makes sense if the household actually has one —
@@ -78,12 +79,8 @@ export function GigsSetupScreen({ navigation }: Props) {
   const moreGigs = gigs.filter(isMore);
   const chosen = gigs.filter((gig) => !isMore(gig));
   const chosenCount = chosen.filter((gig) => gig.active).length;
-  // One row's size picker is open at a time; the tag shows the current size.
-  const [openTierId, setOpenTierId] = useState<string | null>(null);
-
   const renderGig = (gig: DraftGig) => {
     const more = isMore(gig);
-    const tierLabel = EFFORT_TIERS.find((t) => t.value === gig.effortTier)?.label ?? '';
     return (
       <View key={gig.localId} style={styles.gigRow}>
         <View style={styles.gigTopRow}>
@@ -93,34 +90,11 @@ export function GigsSetupScreen({ navigation }: Props) {
             </View>
             <Text style={[styles.itemName, !gig.active && !more && styles.itemNameInactive]}>{gig.name}</Text>
           </Pressable>
-          <Pressable
-            hitSlop={8}
-            style={[styles.sizeTag, gig.effortTier === 'quick' && styles.sizeTagQuick, gig.effortTier === 'big_job' && styles.sizeTagBig]}
-            onPress={() => setOpenTierId(openTierId === gig.localId ? null : gig.localId)}
-            accessibilityLabel={`Size: ${tierLabel}. Tap to change.`}
-          >
-            <Text style={styles.sizeTagText}>{tierLabel} ▾</Text>
+          <SizeTag tier={gig.effortTier} />
+          <Pressable hitSlop={8} onPress={() => openEditModal(gig)}>
+            <Text style={styles.editLink}>Edit</Text>
           </Pressable>
         </View>
-        {openTierId === gig.localId && (
-          <View style={styles.effortRow}>
-            {EFFORT_TIERS.map((tier) => {
-              const selected = gig.effortTier === tier.value;
-              return (
-                <Pressable
-                  key={tier.value}
-                  onPress={() => {
-                    setGigEffortTier(gig.localId, tier.value);
-                    setOpenTierId(null);
-                  }}
-                  style={[styles.effortChip, selected && styles.effortChipSelected]}
-                >
-                  <Text style={[styles.effortChipText, selected && styles.effortChipTextSelected]}>{tier.label}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        )}
       </View>
     );
   };
@@ -133,7 +107,15 @@ export function GigsSetupScreen({ navigation }: Props) {
     setGigs(gigs.map((gig) => (gig.localId === localId ? { ...gig, effortTier } : gig)));
   };
 
+  const openEditModal = (gig: DraftGig) => {
+    setEditingId(gig.localId);
+    setDraftName(gig.name);
+    setDraftEffortTier(gig.effortTier);
+    setAddModalVisible(true);
+  };
+
   const openAddModal = () => {
+    setEditingId(null);
     setDraftName('');
     setDraftEffortTier('quick');
     setAddModalVisible(true);
@@ -141,6 +123,11 @@ export function GigsSetupScreen({ navigation }: Props) {
 
   const confirmAdd = () => {
     if (!draftName.trim()) return;
+    if (editingId) {
+      setGigs(gigs.map((g) => (g.localId === editingId ? { ...g, name: draftName.trim(), effortTier: draftEffortTier } : g)));
+      setAddModalVisible(false);
+      return;
+    }
     const gig: DraftGig = {
       localId: makeLocalId('gig'),
       name: draftName.trim(),
@@ -204,7 +191,7 @@ export function GigsSetupScreen({ navigation }: Props) {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
           <Pressable style={styles.modalBackdrop} onPress={() => setAddModalVisible(false)}>
           <Pressable style={[styles.modalCard, { paddingBottom: 20 + insets.bottom }]} onPress={() => {}}>
-            <Text style={styles.modalTitle}>Add gig</Text>
+            <Text style={styles.modalTitle}>{editingId ? 'Edit gig' : 'Add gig'}</Text>
             <TextInput style={styles.input} placeholder="Name" value={draftName} onChangeText={setDraftName} />
             <View style={styles.effortRow}>
               {EFFORT_TIERS.map((tier) => {
@@ -227,7 +214,7 @@ export function GigsSetupScreen({ navigation }: Props) {
                 <Text style={styles.modalCancelText}>Cancel</Text>
               </Pressable>
               <Pressable style={styles.modalAddButton} onPress={confirmAdd}>
-                <Text style={styles.modalAddText}>Add</Text>
+                <Text style={styles.modalAddText}>{editingId ? 'Save' : 'Add'}</Text>
               </Pressable>
             </View>
           </Pressable>
@@ -246,10 +233,7 @@ const styles = StyleSheet.create({
   gigRow: { paddingVertical: 9, gap: 8 },
   gigTopRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   gigCheckboxRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  sizeTag: { backgroundColor: '#FCEBD2', borderRadius: 99, paddingHorizontal: 9, paddingVertical: 4 },
-  sizeTagQuick: { backgroundColor: '#E4F4F1' },
-  sizeTagBig: { backgroundColor: '#F1E9FF' },
-  sizeTagText: { fontSize: 11.5, fontWeight: '700', color: colors.text },
+  editLink: { fontSize: 14, fontWeight: '600', color: colors.expected },
   checkbox: {
     width: 22,
     height: 22,
