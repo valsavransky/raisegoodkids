@@ -19,6 +19,9 @@ import { colors } from '../../theme/colors';
 import { LINK_HIT_SLOP } from '../../theme/hitSlop';
 import { DEFAULT_GIG_EFFORT_VALUES } from '../../utils/gigValue';
 import { useSheet, confirmSheet, noticeSheet } from '../../components/SheetProvider';
+import { getContentLibraryForGrade } from '../../data/contentLibrary';
+import { gradeName, childFirstName } from '../../utils/setupCopy';
+import { GradeBanner, MoreIdeas, IdeaRow } from '../../components/SetupSuggestionParts';
 
 const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
   { value: 'quick', label: 'Quick' },
@@ -70,6 +73,16 @@ export function GigsScreen({ navigation }: Props) {
     updateGigEffortValues(parsed);
     showSavedThenGoBack();
   };
+
+  // Library suggestions for this child's grade that aren't on the list yet.
+  const library = getContentLibraryForGrade(childProfile?.grade);
+  const existingNames = new Set(gigs.map((g) => g.name));
+  const ideas = (library?.gigs ?? []).filter((idea) => {
+    if (existingNames.has(idea.name)) return false;
+    if (idea.ifApplicable === 'yard') return !!childProfile?.hasYard;
+    if (idea.ifApplicable === 'car') return !!childProfile?.hasCar;
+    return true;
+  });
 
   const openAdd = () => {
     setDraftName('');
@@ -128,6 +141,13 @@ export function GigsScreen({ navigation }: Props) {
       <KeyboardAwareScrollView scrollEnabled={!dragging} contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
         {subTab === 'list' ? (
           <>
+            {library && childProfile?.grade ? (
+              <GradeBanner
+                childName={childFirstName(childProfile.name)}
+                gradeText={gradeName(childProfile.grade)}
+                onChange={() => navigation.navigate('EditProfile')}
+              />
+            ) : null}
             <Text style={styles.helper}>Optional, paid work they choose that builds toward their goal. Drag the dots to set the order they appear on the Today trail.</Text>
 
             <DraggableList
@@ -154,6 +174,19 @@ export function GigsScreen({ navigation }: Props) {
                 </View>
               )}
             />
+
+            {library && childProfile?.grade ? (
+              <MoreIdeas gradeText={gradeName(childProfile.grade)} count={ideas.length}>
+                {ideas.map((idea) => (
+                  <IdeaRow
+                    key={idea.name}
+                    name={idea.name}
+                    meta={EFFORT_TIERS.find((t) => t.value === idea.effortTier)?.label}
+                    onAdd={() => addGig({ name: idea.name, effortTier: idea.effortTier })}
+                  />
+                ))}
+              </MoreIdeas>
+            ) : null}
           </>
         ) : (
           <>

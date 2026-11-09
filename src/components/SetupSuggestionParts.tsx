@@ -50,7 +50,25 @@ export function MoreIdeas({ gradeText, count, children }: { gradeText: string; c
   );
 }
 
+/** A not-yet-added suggestion in Settings: tap anywhere on the row to add it to the list. */
+export function IdeaRow({ name, meta, onAdd }: { name: string; meta?: string; onAdd: () => void }) {
+  return (
+    <Pressable style={styles.ideaRow} onPress={onAdd} accessibilityRole="button" accessibilityLabel={`Add ${name}`}>
+      <View style={styles.ideaPlus}>
+        <Text style={styles.ideaPlusText}>+</Text>
+      </View>
+      <Text style={styles.ideaName}>{name}</Text>
+      {meta ? <Text style={styles.ideaMeta}>{meta}</Text> : null}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
+  ideaRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
+  ideaPlus: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: TEAL_DARK, alignItems: 'center', justifyContent: 'center' },
+  ideaPlusText: { color: TEAL_DARK, fontSize: 15, fontWeight: '700', lineHeight: 17 },
+  ideaName: { flex: 1, fontSize: 15, color: colors.text },
+  ideaMeta: { fontSize: 12, color: colors.textMuted },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',

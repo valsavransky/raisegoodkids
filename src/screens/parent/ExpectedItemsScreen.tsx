@@ -15,6 +15,9 @@ import { isItemExcusable } from '../../utils/excuse';
 import { colors } from '../../theme/colors';
 import { LINK_HIT_SLOP } from '../../theme/hitSlop';
 import { useSheet, confirmSheet, noticeSheet } from '../../components/SheetProvider';
+import { getContentLibraryForGrade } from '../../data/contentLibrary';
+import { gradeName, childFirstName } from '../../utils/setupCopy';
+import { GradeBanner, MoreIdeas, IdeaRow } from '../../components/SetupSuggestionParts';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExpectedItemsSettings'>;
 
@@ -23,7 +26,12 @@ type ModalMode = { editingId: string | null } | null;
 export function ExpectedItemsScreen({ navigation }: Props) {
   const sheet = useSheet();
   const insets = useSafeAreaInsets();
-  const { expectedItems, addExpectedItem, updateExpectedItem, deleteExpectedItem, setExpectedOrder, setItemExcusable } = useAppData();
+  const { expectedItems, addExpectedItem, updateExpectedItem, deleteExpectedItem, setExpectedOrder, setItemExcusable, childProfile } = useAppData();
+
+  // Library suggestions for this child's grade that aren't on the list yet.
+  const library = getContentLibraryForGrade(childProfile?.grade);
+  const existingNames = new Set(expectedItems.map((i) => i.name));
+  const ideas = (library?.expectedItems ?? []).filter((idea) => !existingNames.has(idea.name));
 
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [dragging, setDragging] = useState(false);
@@ -77,6 +85,13 @@ export function ExpectedItemsScreen({ navigation }: Props) {
       <ChildSettingsHeader title="Expected Activities" onBack={() => navigation.goBack()} action={<AddPill onPress={openAdd} />} />
 
       <ScrollView scrollEnabled={!dragging} contentContainerStyle={[styles.content, { paddingBottom: 24 + insets.bottom }]}>
+        {library && childProfile?.grade ? (
+          <GradeBanner
+            childName={childFirstName(childProfile.name)}
+            gradeText={gradeName(childProfile.grade)}
+            onChange={() => navigation.navigate('EditProfile')}
+          />
+        ) : null}
         <Text style={styles.helper}>Drag the dots to set the order on the Today trail.</Text>
 
         {(['daily', 'weekly'] as const).map((frequency) => {
@@ -114,6 +129,19 @@ export function ExpectedItemsScreen({ navigation }: Props) {
             </React.Fragment>
           );
         })}
+
+        {library && childProfile?.grade ? (
+          <MoreIdeas gradeText={gradeName(childProfile.grade)} count={ideas.length}>
+            {ideas.map((idea) => (
+              <IdeaRow
+                key={idea.name}
+                name={idea.name}
+                meta={idea.frequency === 'daily' ? 'Daily' : 'Weekly'}
+                onAdd={() => addExpectedItem({ name: idea.name, frequency: idea.frequency })}
+              />
+            ))}
+          </MoreIdeas>
+        ) : null}
       </ScrollView>
 
       <Modal visible={modalMode !== null} animationType="slide" transparent onRequestClose={() => setModalMode(null)}>
