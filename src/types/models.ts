@@ -299,3 +299,24 @@ export interface FamilyDevice {
   createdAt: string;
   lastSeenAt?: string | null;
 }
+
+/** What the parent has done with "next step" ideas (see src/utils/nextSteps.ts). Parent phone only. */
+export interface NextStepState {
+  /** Keys (`childId|activity name`) the parent chose "Not for us" on, for good. */
+  dismissed: string[];
+  /** Key to the day (YYYY-MM-DD) before which the idea isn't offered again. */
+  snoozedUntil: Record<string, string>;
+  /** Child id to the day an idea was last added, so ideas come at most monthly. */
+  lastAdded: Record<string, string>;
+}
+
+/** A suggestion that a child is ready for a harder activity. */
+export interface NextStepIdea {
+  key: string;
+  childId: string;
+  fromItemId: string;
+  fromName: string;
+  /** How many weeks the child has been steady. */
+  weeks: number;
+  next: { name: string; frequency: 'daily' | 'weekly' };
+}

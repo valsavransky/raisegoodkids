@@ -14,10 +14,12 @@ interface Props {
   /** Left out on a family device: a child can only pick who they are. */
   onEveryone?: () => void;
   onAddChild?: () => void;
+  onApprovals?: () => void;
+  approvalsCount?: number;
   onSettings?: () => void;
 }
 
-export function ChildSwitcherSheet({ visible, onClose, onEveryone, onAddChild, onSettings }: Props) {
+export function ChildSwitcherSheet({ visible, onClose, onEveryone, onAddChild, onSettings, onApprovals, approvalsCount }: Props) {
   const insets = useSafeAreaInsets();
   const { childProfiles, childProfile, selectChild, viewingEveryone } = useAppData();
 
@@ -52,6 +54,17 @@ export function ChildSwitcherSheet({ visible, onClose, onEveryone, onAddChild, o
             </Pressable>
           ))}
 
+          {onApprovals && (
+            <Pressable style={styles.row} onPress={onApprovals}>
+              <View style={[styles.circle, styles.settingsCircle]}>
+                <Text style={styles.everyoneIcon}>✉</Text>
+              </View>
+              <Text style={styles.name}>Approvals</Text>
+              {approvalsCount ? <Text style={styles.approvalsCount}>{approvalsCount}</Text> : null}
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+          )}
+
           {onAddChild && (
             <Pressable style={styles.row} onPress={onAddChild}>
               <View style={[styles.circle, styles.addCircle]}>
@@ -80,6 +93,7 @@ export function ChildSwitcherSheet({ visible, onClose, onEveryone, onAddChild, o
 }
 
 const styles = StyleSheet.create({
+  approvalsCount: { backgroundColor: '#E8890C', color: '#fff', fontSize: 12, fontWeight: '800', borderRadius: 9, minWidth: 18, textAlign: 'center', paddingHorizontal: 5, overflow: 'hidden', marginRight: 6 },
   backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.background,

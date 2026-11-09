@@ -16,7 +16,7 @@ import { NoteSheet } from '../../components/NoteSheet';
 import { useApprovals } from '../../context/ApprovalsContext';
 import { useAppData } from '../../context/AppDataContext';
 import { useSubmissionLabels } from '../../hooks/useSubmissionLabels';
-import { Submission } from '../../types/models';
+import { NextStepIdea, Submission } from '../../types/models';
 import { colors } from '../../theme/colors';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Approvals'>;
@@ -24,7 +24,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Approvals'>;
 export function ApprovalsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { pending, goalsToFinish, decide, refresh } = useApprovals();
-  const { childProfiles } = useAppData();
+  const { childProfiles, nextStepIdeas, addNextStep, snoozeNextStep, dismissNextStep, selectChild } = useAppData();
   const sheet = useSheet();
   const labelOf = useSubmissionLabels();
   // Items the parent unticked (to be sent back), and the notes written for them.
@@ -78,8 +78,42 @@ export function ApprovalsScreen({ navigation }: Props) {
       child,
       items: pending.filter((s) => s.childId === child.id),
       finish: goalsToFinish.filter((g) => g.childProfileId === child.id),
+      ideas: nextStepIdeas.filter((i) => i.childId === child.id),
     }))
-    .filter((g) => g.items.length > 0 || g.finish.length > 0);
+    .filter((g) => g.items.length > 0 || g.finish.length > 0 || g.ideas.length > 0);
+
+  // "Ready for more": the evidence, what would be added, and what a parent can do about it.
+  const openIdea = (idea: NextStepIdea) => {
+    const first = childProfiles.find((c) => c.id === idea.childId)?.name.trim().split(/\s+/)[0] ?? 'They';
+    sheet.show({
+      emoji: '🌱',
+      emojiBg: '#E4F4F1',
+      title: `${first} is ready for more`,
+      body: `${idea.weeks} weeks steady on “${idea.fromName}”. Here is a next step.`,
+      subject: {
+        icon: '✅',
+        title: idea.next.name,
+        small: idea.next.frequency === 'daily' ? 'Daily' : 'Weekly',
+        tag: 'Expected',
+        tagTone: 'good',
+      },
+      actions: [
+        { label: `Add to ${first}’s list`, kind: 'primary', onPress: () => addNextStep(idea) },
+        {
+          label: 'Change it first',
+          kind: 'ghost',
+          onPress: () => {
+            selectChild(idea.childId);
+            navigation.navigate('ExpectedItemsSettings', {
+              prefill: { name: idea.next.name, frequency: idea.next.frequency, childId: idea.childId },
+            });
+          },
+        },
+        { label: 'Ask me again in a month', kind: 'link', onPress: () => snoozeNextStep(idea) },
+        { label: 'Not for us', kind: 'link', onPress: () => dismissNextStep(idea) },
+      ],
+    });
+  };
 
   const renderSection = (title: string, items: Submission[], kind: 'goal' | 'expected' | 'gig') => {
     if (items.length === 0) return null;
@@ -135,10 +169,10 @@ export function ApprovalsScreen({ navigation }: Props) {
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>✓</Text>
             <Text style={styles.emptyTitle}>Nothing waiting</Text>
-            <Text style={styles.emptyText}>When a child sends something in from a family device, or reaches a goal, it shows up here.</Text>
+            <Text style={styles.emptyText}>Requests from a family device, goals to finish, and ideas for each child’s next step show up here.</Text>
           </View>
         ) : (
-          groups.map(({ child, items, finish }) => {
+          groups.map(({ child, items, finish, ideas }) => {
             const doable = items.filter((s) => !labelOf(s).isGoal);
             const approveCount = doable.filter((s) => !unticked.has(s.id)).length;
             const backCount = doable.length - approveCount;
@@ -158,7 +192,9 @@ export function ApprovalsScreen({ navigation }: Props) {
                     <AvatarGlyph avatarId={child.avatarId} size={30} />
                   </View>
                   <Text style={styles.childName}>{child.name}</Text>
-                  <Text style={styles.waiting}>{items.length + finish.length} waiting</Text>
+                  <Text style={styles.waiting}>
+                    {items.length + finish.length > 0 ? `${items.length + finish.length} waiting` : ideas.length === 1 ? '1 idea' : `${ideas.length} ideas`}
+                  </Text>
                 </View>
                 <View style={{ paddingHorizontal: 14, paddingBottom: 14 }}>
                 {finish.length > 0 && (
@@ -181,6 +217,21 @@ export function ApprovalsScreen({ navigation }: Props) {
                 {renderSection('Goals', items.filter((s) => labelOf(s).isGoal), 'goal')}
                 {renderSection('Expected', items.filter((s) => s.kind === 'expected'), 'expected')}
                 {renderSection('Gigs', items.filter((s) => s.kind === 'gig'), 'gig')}
+                {ideas.length > 0 && (
+                  <>
+                    <Text style={styles.sectionLabel}>Ideas for {firstName}</Text>
+                    {ideas.map((idea) => (
+                      <Pressable key={idea.key} style={styles.row} onPress={() => openIdea(idea)}>
+                        <Text style={{ fontSize: 22 }}>🌱</Text>
+                        <View style={styles.rowText}>
+                          <Text style={styles.rowTitle}>{idea.next.name}</Text>
+                          <Text style={styles.rowDetail}>{idea.fromName}, {idea.weeks} weeks steady</Text>
+                        </View>
+                        <Text style={styles.lookLink}>Look</Text>
+                      </Pressable>
+                    ))}
+                  </>
+                )}
                 {doable.length > 0 && (
                   <Pressable style={[styles.button, { backgroundColor: tone.main }, busy && { opacity: 0.6 }]} disabled={busy} onPress={() => submitChild(child.id, doable)}>
                     {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{buttonLabel}</Text>}
@@ -230,6 +281,7 @@ const styles = StyleSheet.create({
   rowTitle: { fontSize: 15, fontWeight: '600', color: colors.text },
   rowDetail: { fontSize: 12, color: colors.textMuted, marginTop: 1 },
   chevron: { fontSize: 20, color: colors.textMuted },
+  lookLink: { fontSize: 14, fontWeight: '800', color: colors.expected },
   box: { width: 24, height: 24, borderRadius: 7, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   boxOff: { backgroundColor: '#fff', borderColor: '#C9CCD3' },
   boxMark: { color: '#fff', fontSize: 15, fontWeight: '800' },

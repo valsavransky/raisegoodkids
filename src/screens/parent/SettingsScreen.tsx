@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { useAppData } from '../../context/AppDataContext';
+import { useApprovals } from '../../context/ApprovalsContext';
 import { useAuth } from '../../context/AuthContext';
 import { AvatarGlyph } from '../../components/AvatarGlyph';
 import { ChildChips } from '../../components/ChildChips';
@@ -66,7 +67,9 @@ function SettingsRow({
 export function SettingsScreen({ navigation }: Props) {
   const sheet = useSheet();
   const insets = useSafeAreaInsets();
-  const { childProfile, parentName, resetAllData, soundEnabled, setSoundEnabled, futureFund } = useAppData();
+  const { childProfile, parentName, resetAllData, soundEnabled, setSoundEnabled, futureFund, nextStepIdeas, devBackfillCheckoffs } = useAppData();
+  const { waitingCount: requestCount } = useApprovals();
+  const approvalsWaiting = requestCount + nextStepIdeas.length;
   const { isAutoAccount, accountEmail } = useAuth();
   const childFirstName = childProfile?.name?.trim().split(' ')[0];
   const familyIsNew = useNewTag('family-devices');
@@ -162,6 +165,12 @@ export function SettingsScreen({ navigation }: Props) {
         <Text style={styles.sectionLabel}>Whole family</Text>
         <View style={styles.group}>
           <SettingsRow
+            icon="✉️"
+            label="Approvals"
+            value={approvalsWaiting > 0 ? `${approvalsWaiting} waiting` : undefined}
+            onPress={() => navigation.navigate('Approvals')}
+          />
+          <SettingsRow
             icon="🔔"
             label="Notifications"
             value={reminderSubtitle}
@@ -234,6 +243,9 @@ export function SettingsScreen({ navigation }: Props) {
             <Text style={styles.sectionLabel}>Developer tools</Text>
             <Pressable style={styles.resetButton} onPress={confirmDisconnectGoogle}>
               <Text style={styles.resetButtonText}>Disconnect Google Calendar</Text>
+            </Pressable>
+            <Pressable style={[styles.resetButton, styles.resetButtonSpaced]} onPress={devBackfillCheckoffs}>
+              <Text style={styles.resetButtonText}>Fill 45 days of check-offs (test next steps)</Text>
             </Pressable>
             <Pressable style={[styles.resetButton, styles.resetButtonSpaced]} onPress={confirmResetAllData}>
               <Text style={styles.resetButtonText}>Reset all data</Text>

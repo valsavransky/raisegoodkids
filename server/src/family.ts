@@ -107,6 +107,8 @@ export function dataForChild(data: Record<string, unknown> | null): Record<strin
   delete copy.futureFunds;
   delete copy.gigEffortValues;
   delete copy.parentName;
+  // Next-step ideas are for the parent only.
+  delete copy.nextStepState;
   // A goal's photo file lives on the parent's phone; the device gets it from /goal-photos instead.
   if (Array.isArray(copy.goals)) {
     copy.goals = (copy.goals as Record<string, unknown>[]).map((g) => {

@@ -41,7 +41,10 @@ import {
   DailyExcuseReason,
   DailyExcuseTrigger,
   Submission,
+  NextStepIdea,
+  NextStepState,
 } from '../types/models';
+import { computeNextStepIdea, EMPTY_NEXT_STEP_STATE } from '../utils/nextSteps';
 import { DraftChildProfile, DraftScheduleEvent, DraftExpectedItem, DraftGig } from './SetupContext';
 import { makeId } from '../utils/id';
 import { todayString, localDateOf, startOfWeek, addDays } from '../utils/date';
@@ -145,6 +148,8 @@ interface PersistedAppData {
   /** Ids of approved child submissions already turned into completions or goals
    * here, so an approval is applied exactly once. Newest last; capped. */
   appliedSubmissions?: string[];
+  /** What the parent did with "next step" ideas. Parent phone only. */
+  nextStepState?: NextStepState;
   /** Family device only: what each gig adds toward its child's goal, worked out by the server. */
   gigPercents?: Record<string, number>;
 }
@@ -218,6 +223,18 @@ interface AppDataContextValue {
   /** Every child in the household, in the order they were added. */
   childProfiles: ChildProfile[];
   selectChild: (childId: string) => void;
+  /** Children who have done a daily activity steadily for 6 weeks, with a harder one to offer. At most one per child. */
+  nextStepIdeas: NextStepIdea[];
+  /** Development builds only: fills in the last 45 days of check-offs for the selected child's daily activities, to try next-step ideas without waiting six weeks. */
+  devBackfillCheckoffs: () => void;
+  /** Adds the suggested activity to the child's list. */
+  addNextStep: (idea: NextStepIdea) => void;
+  /** Counts a suggestion as taken when the parent edited it first and saved it. */
+  recordNextStepAdded: (childId: string) => void;
+  /** "Ask me again in a month". */
+  snoozeNextStep: (idea: NextStepIdea) => void;
+  /** "Not for us": never suggest this one again. */
+  dismissNextStep: (idea: NextStepIdea) => void;
   /** True while the parent is looking at the "Everyone" family overview on Today. */
   viewingEveryone: boolean;
   setViewingEveryone: (value: boolean) => void;
@@ -457,6 +474,7 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
   const [allDailyExcuses, setDailyExcuses] = useState<DailyExcuse[]>([]);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [appliedSubmissions, setAppliedSubmissions] = useState<string[]>([]);
+  const [nextStepState, setNextStepState] = useState<NextStepState>(EMPTY_NEXT_STEP_STATE);
   const [deviceGigPercents, setDeviceGigPercents] = useState<Record<string, number>>({});
   // ---- Family device (child) state ----
   const deviceMode = !!childDevice;
@@ -503,6 +521,7 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
     dailyExcuses: allDailyExcuses,
     soundEnabled,
     appliedSubmissions,
+    nextStepState,
     ...(deviceMode ? { gigPercents: deviceGigPercents } : {}),
   });
 
@@ -527,6 +546,7 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
     setDailyExcuses(data.dailyExcuses ?? []);
     setSoundEnabled(data.soundEnabled ?? true);
     setAppliedSubmissions(data.appliedSubmissions ?? []);
+    setNextStepState(data.nextStepState ?? EMPTY_NEXT_STEP_STATE);
     setDeviceGigPercents(data.gigPercents ?? {});
   };
 
@@ -613,6 +633,7 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
     allDailyExcuses,
     soundEnabled,
     appliedSubmissions,
+    nextStepState,
   ]);
 
   const updateChildProfile: AppDataContextValue['updateChildProfile'] = (fields) => {
@@ -1235,6 +1256,64 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
     return null;
   };
 
+  // ---- Next-step ideas (parent phone only) ----
+  const nextStepIdeas: NextStepIdea[] = deviceMode
+    ? []
+    : childProfiles.flatMap((child) => {
+        const idea = computeNextStepIdea({
+          child,
+          items: allExpectedItems.filter((i) => i.childProfileId === child.id),
+          completions: allExpectedCompletions.filter((c) => c.childProfileId === child.id),
+          excusedDates: new Set(allDailyExcuses.filter((e) => e.childProfileId === child.id).map((e) => e.date)),
+          today: todayString(),
+          state: nextStepState,
+        });
+        return idea ? [idea] : [];
+      });
+
+  const devBackfillCheckoffs = () => {
+    const today = todayString();
+    const have = new Set(allExpectedCompletions.map((c) => `${c.expectedItemId}|${c.date}`));
+    const added: ExpectedCompletion[] = [];
+    for (const item of allExpectedItems.filter((i) => i.childProfileId === childId && i.active && i.frequency === 'daily')) {
+      for (let d = 1; d <= 45; d++) {
+        const date = addDays(today, -d);
+        if (have.has(`${item.id}|${date}`)) continue;
+        added.push({
+          id: makeId('expectedCompletion'),
+          expectedItemId: item.id,
+          childProfileId: childId,
+          date,
+          markedDoneAt: new Date().toISOString(),
+          correctedByParent: false,
+        });
+      }
+    }
+    setExpectedCompletions((prev) => [...prev, ...added]);
+  };
+
+  const recordNextStepAdded = (id: string) =>
+    setNextStepState((prev) => ({ ...prev, lastAdded: { ...prev.lastAdded, [id]: todayString() } }));
+
+  const addNextStep = (idea: NextStepIdea) => {
+    setExpectedItems((prev) => [
+      ...prev,
+      { id: makeId('expectedItem'), childProfileId: idea.childId, name: idea.next.name, frequency: idea.next.frequency, active: true },
+    ]);
+    recordNextStepAdded(idea.childId);
+    track('next_step_added', { from: idea.fromName, next: idea.next.name });
+  };
+
+  const snoozeNextStep = (idea: NextStepIdea) => {
+    setNextStepState((prev) => ({ ...prev, snoozedUntil: { ...prev.snoozedUntil, [idea.key]: addDays(todayString(), 30) } }));
+    track('next_step_snoozed', { from: idea.fromName });
+  };
+
+  const dismissNextStep = (idea: NextStepIdea) => {
+    setNextStepState((prev) => ({ ...prev, dismissed: prev.dismissed.includes(idea.key) ? prev.dismissed : [...prev.dismissed, idea.key] }));
+    track('next_step_dismissed', { from: idea.fromName });
+  };
+
   const selectChild = (id: string) => {
     if (childProfiles.some((c) => c.id === id)) setSelectedChildId(id);
     setViewingEveryone(false);
@@ -1782,6 +1861,7 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
     setBadges([]);
     setDailyExcuses([]);
     setAppliedSubmissions([]);
+    setNextStepState(EMPTY_NEXT_STEP_STATE);
     await disconnectAndStartFresh();
   };
 
@@ -1837,6 +1917,12 @@ export function AppDataProvider({ children, childDevice }: { children: ReactNode
         childProfile,
         childProfiles,
         selectChild,
+        nextStepIdeas,
+        devBackfillCheckoffs,
+        addNextStep,
+        recordNextStepAdded,
+        snoozeNextStep,
+        dismissNextStep,
         viewingEveryone,
         setViewingEveryone,
         addChild,

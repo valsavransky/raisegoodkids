@@ -34,7 +34,7 @@ export type RootStackParamList = {
   ImportGoogleCalendar: undefined;
   ImportGoogleCalendarEvents: { calendarId: string };
   Settings: undefined;
-  ExpectedItemsSettings: undefined;
+  ExpectedItemsSettings: { prefill?: { name: string; frequency: 'daily' | 'weekly'; childId: string } } | undefined;
   GigsSettings: undefined;
   ScheduleSettings: undefined;
   ExcusedDaysSettings: { openAdd?: boolean } | undefined;

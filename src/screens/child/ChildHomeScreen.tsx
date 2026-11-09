@@ -56,6 +56,7 @@ import { FamilyOverview } from '../../components/FamilyOverview';
 import { HistoryIcon } from '../../components/HistoryIcon';
 import { TodayTipsSheet, TAP_HINT } from '../../components/TodayTipsSheet';
 import { WaitingBanner } from '../../components/WaitingBanner';
+import { IdeaBanner } from '../../components/IdeaBanner';
 import { FamilyDeviceCard } from '../../components/FamilyDeviceCard';
 import { useApprovals } from '../../context/ApprovalsContext';
 import { dayStatus } from '../../utils/streak';
@@ -426,6 +427,7 @@ export function ChildHomeScreen() {
     isWaiting,
     childNotices,
     dismissNotice,
+    nextStepIdeas,
   } = useAppData();
   const labelFor = useSubmissionLabels();
   const sheet = useSheet();
@@ -955,6 +957,9 @@ export function ChildHomeScreen() {
   // A tablet held sideways gets two panes; held upright (or a phone) it keeps the single column.
   const wide = windowWidth >= 900 && windowWidth > windowHeight;
 
+  // Next-step ideas for whoever is showing (everyone, or the selected child).
+  const ideasHere = viewingEveryone ? nextStepIdeas : nextStepIdeas.filter((i) => i.childId === childProfile?.id);
+
   const bannerEl = (
     <>
       {deviceMode ? (
@@ -994,6 +999,16 @@ export function ChildHomeScreen() {
         ) : (
           <FamilyDeviceCard onSetUp={() => navigation.navigate('FamilyDevices')} />
         )}
+      {!deviceMode && ideasHere.length > 0 && (
+        <IdeaBanner
+          text={
+            ideasHere.length === 1
+              ? `1 idea for ${childProfiles.find((c) => c.id === ideasHere[0].childId)?.name.trim().split(/\s+/)[0] ?? 'your child'}`
+              : `${ideasHere.length} ideas for your kids`
+          }
+          onLook={() => navigation.navigate('Approvals')}
+        />
+      )}
     </>
   );
 

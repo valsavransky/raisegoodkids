@@ -1,7 +1,7 @@
 // Settings → Expected Items. Split out from the old ManageExpectedGigsScreen
 // (which crammed Expected/Gigs/Account into tabs) as part of the Settings
 // redesign — now its own screen, reached from a row on the Settings list.
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, Modal, KeyboardAvoidingView, Platform, Switch, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -23,10 +23,10 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ExpectedItemsSettings'>
 
 type ModalMode = { editingId: string | null } | null;
 
-export function ExpectedItemsScreen({ navigation }: Props) {
+export function ExpectedItemsScreen({ navigation, route }: Props) {
   const sheet = useSheet();
   const insets = useSafeAreaInsets();
-  const { expectedItems, addExpectedItem, updateExpectedItem, deleteExpectedItem, setExpectedOrder, setItemExcusable, childProfile } = useAppData();
+  const { expectedItems, addExpectedItem, updateExpectedItem, deleteExpectedItem, setExpectedOrder, setItemExcusable, childProfile, recordNextStepAdded } = useAppData();
 
   // Library suggestions for this child's grade that aren't on the list yet.
   const library = getContentLibraryForGrade(childProfile?.grade);
@@ -40,7 +40,21 @@ export function ExpectedItemsScreen({ navigation }: Props) {
   // True when the activity stays on the list on a sick day, trip or birthday.
   const [draftRequired, setDraftRequired] = useState(false);
 
+  // "Change it first" on a next-step idea opens the Add sheet already filled in.
+  const prefillRef = useRef<{ childId: string } | null>(null);
+  const prefill = route.params?.prefill;
+  useEffect(() => {
+    if (!prefill) return;
+    prefillRef.current = { childId: prefill.childId };
+    setDraftName(prefill.name);
+    setDraftFrequency(prefill.frequency);
+    setDraftRequired(false);
+    setModalMode({ editingId: null });
+    navigation.setParams({ prefill: undefined });
+  }, [prefill, navigation]);
+
   const openAdd = () => {
+    prefillRef.current = null;
     setDraftName('');
     setDraftFrequency('daily');
     setDraftRequired(false);
@@ -62,6 +76,10 @@ export function ExpectedItemsScreen({ navigation }: Props) {
     } else {
       // Left unset unless required, so personal-care names still default to required.
       addExpectedItem({ name: draftName.trim(), frequency: draftFrequency, excusable: draftRequired ? false : undefined });
+      if (prefillRef.current) {
+        recordNextStepAdded(prefillRef.current.childId);
+        prefillRef.current = null;
+      }
     }
     setModalMode(null);
   };

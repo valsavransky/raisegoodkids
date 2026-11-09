@@ -27,10 +27,12 @@ import { colors } from '../theme/colors';
 export function AppHeader() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { childProfile, childProfiles, viewingEveryone, setViewingEveryone, deviceMode } = useAppData();
+  const { childProfile, childProfiles, viewingEveryone, setViewingEveryone, deviceMode, nextStepIdeas } = useAppData();
   const [switcherVisible, setSwitcherVisible] = useState(false);
   const { isAutoAccount } = useAuth();
-  const { waitingCount } = useApprovals();
+  const { waitingCount: requestCount } = useApprovals();
+  // Requests, goals to finish and next-step ideas all live in Approvals, so one number covers them.
+  const waitingCount = requestCount + nextStepIdeas.length;
 
   const hasSeveralChildren = childProfiles.length > 1;
   const firstName = hasSeveralChildren && viewingEveryone ? 'Everyone' : childProfile?.name?.trim().split(' ')[0];
@@ -81,6 +83,15 @@ export function AppHeader() {
                 setViewingEveryone(true);
                 setSwitcherVisible(false);
                 goTo('Home');
+              }
+        }
+        approvalsCount={deviceMode ? undefined : waitingCount}
+        onApprovals={
+          deviceMode
+            ? undefined
+            : () => {
+                setSwitcherVisible(false);
+                navigation.navigate('Approvals');
               }
         }
         onAddChild={
