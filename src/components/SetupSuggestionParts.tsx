@@ -8,16 +8,18 @@ import { colors } from '../theme/colors';
 const TEAL_SOFT = '#E4F4F1';
 const TEAL_DARK = '#0B6D63';
 
-export function GradeBanner({ childName, gradeText, onChange }: { childName: string; gradeText: string; onChange: () => void }) {
+export function GradeBanner({ childName, gradeText, onChange }: { childName: string; gradeText: string; onChange?: () => void }) {
   return (
     <View style={styles.banner}>
       <Text style={styles.bannerEmoji}>🎒</Text>
       <Text style={styles.bannerText} numberOfLines={2}>
         Picked for {childName}, {gradeText}
       </Text>
-      <Pressable onPress={onChange} hitSlop={10}>
-        <Text style={styles.bannerLink}>Change</Text>
-      </Pressable>
+      {onChange ? (
+        <Pressable onPress={onChange} hitSlop={10}>
+          <Text style={styles.bannerLink}>Change</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -50,20 +52,33 @@ export function MoreIdeas({ gradeText, count, children }: { gradeText: string; c
   );
 }
 
+/** Small colored pill for a gig's size (Quick / Medium / Big job). */
+export function SizeTag({ tier, label }: { tier: 'quick' | 'medium' | 'big_job'; label: string }) {
+  return (
+    <View style={[styles.sizeTag, tier === 'quick' && styles.sizeTagQuick, tier === 'big_job' && styles.sizeTagBig]}>
+      <Text style={styles.sizeTagText}>{label}</Text>
+    </View>
+  );
+}
+
 /** A not-yet-added suggestion in Settings: tap anywhere on the row to add it to the list. */
-export function IdeaRow({ name, meta, onAdd }: { name: string; meta?: string; onAdd: () => void }) {
+export function IdeaRow({ name, meta, tier, onAdd }: { name: string; meta?: string; tier?: 'quick' | 'medium' | 'big_job'; onAdd: () => void }) {
   return (
     <Pressable style={styles.ideaRow} onPress={onAdd} accessibilityRole="button" accessibilityLabel={`Add ${name}`}>
       <View style={styles.ideaPlus}>
         <Text style={styles.ideaPlusText}>+</Text>
       </View>
       <Text style={styles.ideaName}>{name}</Text>
-      {meta ? <Text style={styles.ideaMeta}>{meta}</Text> : null}
+      {tier && meta ? <SizeTag tier={tier} label={meta} /> : meta ? <Text style={styles.ideaMeta}>{meta}</Text> : null}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  sizeTag: { alignSelf: 'flex-start', backgroundColor: '#FCEBD2', borderRadius: 99, paddingHorizontal: 9, paddingVertical: 3 },
+  sizeTagQuick: { backgroundColor: '#E4F4F1' },
+  sizeTagBig: { backgroundColor: '#F1E9FF' },
+  sizeTagText: { fontSize: 11.5, fontWeight: '700', color: colors.text },
   ideaRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
   ideaPlus: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: TEAL_DARK, alignItems: 'center', justifyContent: 'center' },
   ideaPlusText: { color: TEAL_DARK, fontSize: 15, fontWeight: '700', lineHeight: 17 },

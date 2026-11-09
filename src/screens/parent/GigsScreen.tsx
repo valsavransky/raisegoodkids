@@ -21,7 +21,7 @@ import { DEFAULT_GIG_EFFORT_VALUES } from '../../utils/gigValue';
 import { useSheet, confirmSheet, noticeSheet } from '../../components/SheetProvider';
 import { getContentLibraryForGrade } from '../../data/contentLibrary';
 import { gradeName, childFirstName } from '../../utils/setupCopy';
-import { GradeBanner, MoreIdeas, IdeaRow } from '../../components/SetupSuggestionParts';
+import { GradeBanner, MoreIdeas, IdeaRow, SizeTag } from '../../components/SetupSuggestionParts';
 
 const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
   { value: 'quick', label: 'Quick' },
@@ -161,7 +161,7 @@ export function GigsScreen({ navigation }: Props) {
                   {grip}
                   <View style={styles.rowInfo}>
                     <Text style={styles.rowName}>{gig.name}</Text>
-                    <Text style={styles.rowMeta}>{EFFORT_TIERS.find((t) => t.value === gig.effortTier)?.label}</Text>
+                    <View style={{ marginTop: 4 }}><SizeTag tier={gig.effortTier} label={EFFORT_TIERS.find((t) => t.value === gig.effortTier)?.label ?? ''} /></View>
                   </View>
                   <View style={styles.rowActions}>
                     <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => openEdit(gig)}>
@@ -181,6 +181,7 @@ export function GigsScreen({ navigation }: Props) {
                   <IdeaRow
                     key={idea.name}
                     name={idea.name}
+                    tier={idea.effortTier}
                     meta={EFFORT_TIERS.find((t) => t.value === idea.effortTier)?.label}
                     onAdd={() => addGig({ name: idea.name, effortTier: idea.effortTier })}
                   />

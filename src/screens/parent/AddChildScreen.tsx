@@ -10,7 +10,9 @@ import { RootStackParamList } from '../../navigation/types';
 import { SettingsSubHeader } from '../../components/SettingsSubHeader';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { useAppData } from '../../context/AppDataContext';
-import { GRADE_OPTIONS, getContentLibraryForGrade, suggestMoreGigs } from '../../data/contentLibrary';
+import { GRADE_OPTIONS, getContentLibraryForGrade } from '../../data/contentLibrary';
+import { gradeName } from '../../utils/setupCopy';
+import { GradeBanner, SectionLabel, MoreIdeas, SizeTag } from '../../components/SetupSuggestionParts';
 import { AVATAR_OPTIONS } from '../../data/avatars';
 import { colors } from '../../theme/colors';
 import { toLocalDateString } from '../../utils/date';
@@ -34,8 +36,9 @@ export function AddChildScreen({ navigation }: Props) {
   const [name, setName] = useState('');
   const [birthday, setBirthday] = useState('');
   const [grade, setGrade] = useState<string | undefined>();
-  // Suggestions start ticked; this holds the ones the parent unticked.
-  const [unticked, setUnticked] = useState<Set<string>>(new Set());
+  // Starter suggestions start ticked and the rest start unticked under "More ideas";
+  // this holds only what the parent changed from that default.
+  const [overrides, setOverrides] = useState<Map<string, boolean>>(new Map());
   const [showPicker, setShowPicker] = useState(false);
   const [tempDate, setTempDate] = useState<Date>(yearsAgo(8));
 
@@ -44,24 +47,30 @@ export function AddChildScreen({ navigation }: Props) {
     ? parsedBirthday.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
     : null;
 
-  const expectedSuggestions = useMemo(() => getContentLibraryForGrade(grade)?.expectedItems ?? [], [grade]);
+  const library = useMemo(() => getContentLibraryForGrade(grade), [grade]);
+  const expectedSuggestions = library?.expectedItems ?? [];
   const gigSuggestions = useMemo(
-    () => (grade ? suggestMoreGigs({ ...household, grade }, [], 5) : []),
-    [grade, household]
+    () =>
+      (library?.gigs ?? []).filter((g) => {
+        if (g.ifApplicable === 'yard') return !!household?.hasYard;
+        if (g.ifApplicable === 'car') return !!household?.hasCar;
+        return true;
+      }),
+    [library, household]
   );
+  const isOn = (key: string, starter: boolean) => overrides.get(key) ?? starter;
   const canAdd = name.trim().length > 0 && !!birthday && !!grade;
 
-  const toggle = (key: string) =>
-    setUnticked((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
+  const toggle = (key: string, current: boolean) =>
+    setOverrides((prev) => {
+      const next = new Map(prev);
+      next.set(key, !current);
       return next;
     });
 
   const pickGrade = (g: string) => {
     setGrade(g);
-    setUnticked(new Set());
+    setOverrides(new Map());
   };
 
   const openPicker = () => {
@@ -76,21 +85,48 @@ export function AddChildScreen({ navigation }: Props) {
       avatarId,
       birthday,
       grade,
-      expectedItems: expectedSuggestions.filter((i) => !unticked.has(`e:${i.name}`)),
-      gigs: gigSuggestions.filter((g) => !unticked.has(`g:${g.name}`)).map((g) => ({ name: g.name, effortTier: g.effortTier })),
+      expectedItems: expectedSuggestions.filter((i) => isOn(`e:${i.name}`, library!.starterExpected.includes(i.name))),
+      gigs: gigSuggestions
+        .filter((g) => isOn(`g:${g.name}`, library!.starterGigs.includes(g.name)))
+        .map((g) => ({ name: g.name, effortTier: g.effortTier })),
     });
     navigation.navigate('MainTabs');
   };
 
-  const SuggestionRow = ({ keyName, label }: { keyName: string; label: string }) => {
-    const on = !unticked.has(keyName);
+  const SuggestionRow = ({
+    keyName,
+    label,
+    starter,
+    tier,
+    tierLabel,
+  }: {
+    keyName: string;
+    label: string;
+    starter: boolean;
+    tier?: 'quick' | 'medium' | 'big_job';
+    tierLabel?: string;
+  }) => {
+    const on = isOn(keyName, starter);
     return (
-      <Pressable style={styles.suggestionRow} onPress={() => toggle(keyName)}>
+      <Pressable style={styles.suggestionRow} onPress={() => toggle(keyName, on)}>
         <View style={[styles.check, on && styles.checkOn]}>{on && <Text style={styles.checkMark}>✓</Text>}</View>
         <Text style={styles.suggestionText}>{label}</Text>
+        {tier && tierLabel ? <SizeTag tier={tier} label={tierLabel} /> : null}
       </Pressable>
     );
   };
+
+  const TIER_LABEL = { quick: 'Quick', medium: 'Medium', big_job: 'Big job' } as const;
+  // A "More ideas" row moves up into the chosen list once it's ticked.
+  const starterE = (name: string) => library?.starterExpected.includes(name) ?? false;
+  const starterG = (name: string) => library?.starterGigs.includes(name) ?? false;
+  const expectedChosen = expectedSuggestions.filter((i) => isOn(`e:${i.name}`, starterE(i.name)) || starterE(i.name));
+  const expectedMore = expectedSuggestions.filter((i) => !expectedChosen.includes(i));
+  const gigsChosen = gigSuggestions.filter((g) => isOn(`g:${g.name}`, starterG(g.name)) || starterG(g.name));
+  const gigsMore = gigSuggestions.filter((g) => !gigsChosen.includes(g));
+  const chosenCount =
+    expectedChosen.filter((i) => isOn(`e:${i.name}`, starterE(i.name))).length +
+    gigsChosen.filter((g) => isOn(`g:${g.name}`, starterG(g.name))).length;
 
   return (
     <View style={styles.screen}>
@@ -173,25 +209,44 @@ export function AddChildScreen({ navigation }: Props) {
             ))}
           </View>
 
-          {expectedSuggestions.length > 0 && (
+          {library && grade ? (
             <>
-              <Text style={styles.sectionLabel}>Suggested Expected activities</Text>
-              {expectedSuggestions.map((i) => (
-                <SuggestionRow key={i.name} keyName={`e:${i.name}`} label={i.name} />
+              <View style={{ height: 20 }} />
+              <GradeBanner childName={name.trim() || 'your child'} gradeText={gradeName(grade)} />
+              <SectionLabel title="Starter activities and gigs" note={`${chosenCount} chosen`} />
+              {expectedChosen.length > 0 && <Text style={styles.subLabel}>Expected</Text>}
+              {expectedChosen.map((i) => (
+                <SuggestionRow key={i.name} keyName={`e:${i.name}`} label={i.name} starter={starterE(i.name)} />
               ))}
-            </>
-          )}
-          {gigSuggestions.length > 0 && (
-            <>
-              <Text style={styles.sectionLabel}>Suggested gigs</Text>
-              {gigSuggestions.map((g) => (
-                <SuggestionRow key={g.name} keyName={`g:${g.name}`} label={g.name} />
+              {gigsChosen.length > 0 && <Text style={styles.subLabel}>Gigs</Text>}
+              {gigsChosen.map((g) => (
+                <SuggestionRow
+                  key={g.name}
+                  keyName={`g:${g.name}`}
+                  label={g.name}
+                  starter={starterG(g.name)}
+                  tier={g.effortTier}
+                  tierLabel={TIER_LABEL[g.effortTier]}
+                />
               ))}
+              <MoreIdeas gradeText={gradeName(grade)} count={expectedMore.length + gigsMore.length}>
+                {expectedMore.map((i) => (
+                  <SuggestionRow key={i.name} keyName={`e:${i.name}`} label={i.name} starter={false} />
+                ))}
+                {gigsMore.map((g) => (
+                  <SuggestionRow
+                    key={g.name}
+                    keyName={`g:${g.name}`}
+                    label={g.name}
+                    starter={false}
+                    tier={g.effortTier}
+                    tierLabel={TIER_LABEL[g.effortTier]}
+                  />
+                ))}
+              </MoreIdeas>
+              <Text style={styles.helper}>You can change any of these later in Settings.</Text>
             </>
-          )}
-          {grade && (
-            <Text style={styles.helper}>You can change any of these later in Settings.</Text>
-          )}
+          ) : null}
 
           <Pressable style={[styles.addButton, !canAdd && styles.addButtonDisabled]} disabled={!canAdd} onPress={save}>
             <Text style={styles.addButtonText}>{name.trim() ? `Add ${name.trim()}` : 'Add child'}</Text>
@@ -215,7 +270,8 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginBottom: 4,
   },
-  helper: { fontSize: 13, color: colors.textMuted, marginBottom: 8 },
+  helper: { fontSize: 13, color: colors.textMuted, marginBottom: 8, marginTop: 10 },
+  subLabel: { fontSize: 12, fontWeight: '700', color: colors.textMuted, marginTop: 10 },
   input: {
     borderWidth: 1,
     borderColor: colors.border,
