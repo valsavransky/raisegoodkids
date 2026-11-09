@@ -21,7 +21,7 @@ import { DEFAULT_GIG_EFFORT_VALUES } from '../../utils/gigValue';
 import { useSheet, confirmSheet, noticeSheet } from '../../components/SheetProvider';
 import { getContentLibraryForGrade } from '../../data/contentLibrary';
 import { gradeName, childFirstName } from '../../utils/setupCopy';
-import { GradeBanner, MoreIdeas, IdeaRow, SizeTag } from '../../components/SetupSuggestionParts';
+import { GradeBanner, MoreIdeas, IdeaRow, SizeTag, SizePicker } from '../../components/SetupSuggestionParts';
 
 const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
   { value: 'quick', label: 'Quick' },
@@ -41,6 +41,7 @@ export function GigsScreen({ navigation }: Props) {
     useAppData();
 
   const [subTab, setSubTab] = useState<SubTab>('list');
+  const [openSizeId, setOpenSizeId] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [draftName, setDraftName] = useState('');
@@ -161,7 +162,18 @@ export function GigsScreen({ navigation }: Props) {
                   {grip}
                   <View style={styles.rowInfo}>
                     <Text style={styles.rowName}>{gig.name}</Text>
-                    <View style={{ marginTop: 4 }}><SizeTag tier={gig.effortTier} label={EFFORT_TIERS.find((t) => t.value === gig.effortTier)?.label ?? ''} /></View>
+                    <View style={{ marginTop: 4 }}>
+                      <SizeTag tier={gig.effortTier} onPress={() => setOpenSizeId(openSizeId === gig.id ? null : gig.id)} />
+                    </View>
+                    {openSizeId === gig.id && (
+                      <SizePicker
+                        value={gig.effortTier}
+                        onSelect={(tier) => {
+                          updateGig(gig.id, { name: gig.name, effortTier: tier });
+                          setOpenSizeId(null);
+                        }}
+                      />
+                    )}
                   </View>
                   <View style={styles.rowActions}>
                     <Pressable hitSlop={LINK_HIT_SLOP} onPress={() => openEdit(gig)}>
@@ -182,7 +194,6 @@ export function GigsScreen({ navigation }: Props) {
                     key={idea.name}
                     name={idea.name}
                     tier={idea.effortTier}
-                    meta={EFFORT_TIERS.find((t) => t.value === idea.effortTier)?.label}
                     onAdd={() => addGig({ name: idea.name, effortTier: idea.effortTier })}
                   />
                 ))}

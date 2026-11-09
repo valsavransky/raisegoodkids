@@ -16,7 +16,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { AddPill } from '../../components/AddPill';
 import { useSetup, DraftExpectedItem, makeLocalId } from '../../context/SetupContext';
 import { getContentLibraryForGrade, getMoreIdeaNames, isStarterExpected } from '../../data/contentLibrary';
-import { GradeBanner, SectionLabel, MoreIdeas } from '../../components/SetupSuggestionParts';
+import { GradeBanner, SectionLabel, MoreIdeas, FrequencyTag } from '../../components/SetupSuggestionParts';
 import { useTrackSetupStep } from '../../hooks/useTrackScreen';
 import { colors } from '../../theme/colors';
 import { childFirstName, gradeName } from '../../utils/setupCopy';
@@ -105,6 +105,7 @@ export function ExpectedSetupScreen({ navigation }: Props) {
         {item.active && <Text style={styles.checkboxMark}>✓</Text>}
       </View>
       <Text style={[styles.itemName, !item.active && !isMore(item) && styles.itemNameInactive]}>{item.name}</Text>
+      <FrequencyTag frequency={item.frequency} />
     </Pressable>
   );
 
@@ -222,7 +223,7 @@ const styles = StyleSheet.create({
   },
   checkboxChecked: { backgroundColor: colors.expected, borderColor: colors.expected },
   checkboxMark: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  itemName: { fontSize: 15, color: colors.text, flexShrink: 1 },
+  itemName: { fontSize: 15, color: colors.text, flex: 1 },
   itemNameInactive: { color: colors.textMuted, textDecorationLine: 'line-through' },
   effortRow: { flexDirection: 'row', gap: 6, marginLeft: 0, marginBottom: 4 },
   effortChip: {

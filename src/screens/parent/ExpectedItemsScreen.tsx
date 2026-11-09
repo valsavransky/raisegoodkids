@@ -17,7 +17,7 @@ import { LINK_HIT_SLOP } from '../../theme/hitSlop';
 import { useSheet, confirmSheet, noticeSheet } from '../../components/SheetProvider';
 import { getContentLibraryForGrade } from '../../data/contentLibrary';
 import { gradeName, childFirstName } from '../../utils/setupCopy';
-import { GradeBanner, MoreIdeas, IdeaRow } from '../../components/SetupSuggestionParts';
+import { GradeBanner, MoreIdeas, IdeaRow, FrequencyTag } from '../../components/SetupSuggestionParts';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ExpectedItemsSettings'>;
 
@@ -111,6 +111,9 @@ export function ExpectedItemsScreen({ navigation }: Props) {
                     {grip}
                     <View style={styles.rowInfo}>
                       <Text style={styles.rowName}>{item.name}</Text>
+                      <View style={{ marginTop: 4 }}>
+                        <FrequencyTag frequency={item.frequency} />
+                      </View>
                       {item.linkedEventTitle && (
                         <Text style={styles.rowLinked}>🗓 From {item.linkedEventTitle}</Text>
                       )}
@@ -136,7 +139,7 @@ export function ExpectedItemsScreen({ navigation }: Props) {
               <IdeaRow
                 key={idea.name}
                 name={idea.name}
-                meta={idea.frequency === 'daily' ? 'Daily' : 'Weekly'}
+                frequency={idea.frequency}
                 onAdd={() => addExpectedItem({ name: idea.name, frequency: idea.frequency })}
               />
             ))}

@@ -52,29 +52,71 @@ export function MoreIdeas({ gradeText, count, children }: { gradeText: string; c
   );
 }
 
-/** Small colored pill for a gig's size (Quick / Medium / Big job). */
-export function SizeTag({ tier, label }: { tier: 'quick' | 'medium' | 'big_job'; label: string }) {
-  return (
+type Tier = 'quick' | 'medium' | 'big_job';
+const TIER_LABELS: Record<Tier, string> = { quick: 'Quick', medium: 'Medium', big_job: 'Big job' };
+
+/** Small colored pill for a gig's size. With onPress it shows a ▾ and opens a picker. */
+export function SizeTag({ tier, label, onPress }: { tier: Tier; label?: string; onPress?: () => void }) {
+  const text = `${label ?? TIER_LABELS[tier]}${onPress ? ' ▾' : ''}`;
+  const pill = (
     <View style={[styles.sizeTag, tier === 'quick' && styles.sizeTagQuick, tier === 'big_job' && styles.sizeTagBig]}>
-      <Text style={styles.sizeTagText}>{label}</Text>
+      <Text style={styles.sizeTagText}>{text}</Text>
+    </View>
+  );
+  if (!onPress) return pill;
+  return (
+    <Pressable onPress={onPress} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Size: ${TIER_LABELS[tier]}. Tap to change.`}>
+      {pill}
+    </Pressable>
+  );
+}
+
+/** Three pills to choose a gig's size. */
+export function SizePicker({ value, onSelect }: { value: Tier; onSelect: (tier: Tier) => void }) {
+  return (
+    <View style={styles.pickerRow}>
+      {(['quick', 'medium', 'big_job'] as Tier[]).map((tier) => (
+        <Pressable
+          key={tier}
+          onPress={() => onSelect(tier)}
+          style={[styles.pickerPill, value === tier && styles.pickerPillOn]}
+        >
+          <Text style={[styles.pickerText, value === tier && styles.pickerTextOn]}>{TIER_LABELS[tier]}</Text>
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+/** Matching pill for an Expected activity's frequency. */
+export function FrequencyTag({ frequency }: { frequency: 'daily' | 'weekly' }) {
+  return (
+    <View style={[styles.sizeTag, styles.freqTag]}>
+      <Text style={styles.sizeTagText}>{frequency === 'daily' ? 'Daily' : 'Weekly'}</Text>
     </View>
   );
 }
 
 /** A not-yet-added suggestion in Settings: tap anywhere on the row to add it to the list. */
-export function IdeaRow({ name, meta, tier, onAdd }: { name: string; meta?: string; tier?: 'quick' | 'medium' | 'big_job'; onAdd: () => void }) {
+export function IdeaRow({ name, meta, tier, frequency, onAdd }: { name: string; meta?: string; tier?: Tier; frequency?: 'daily' | 'weekly'; onAdd: () => void }) {
   return (
     <Pressable style={styles.ideaRow} onPress={onAdd} accessibilityRole="button" accessibilityLabel={`Add ${name}`}>
       <View style={styles.ideaPlus}>
         <Text style={styles.ideaPlusText}>+</Text>
       </View>
       <Text style={styles.ideaName}>{name}</Text>
-      {tier && meta ? <SizeTag tier={tier} label={meta} /> : meta ? <Text style={styles.ideaMeta}>{meta}</Text> : null}
+      {tier ? <SizeTag tier={tier} /> : frequency ? <FrequencyTag frequency={frequency} /> : meta ? <Text style={styles.ideaMeta}>{meta}</Text> : null}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
+  freqTag: { backgroundColor: '#EEF1F6' },
+  pickerRow: { flexDirection: 'row', gap: 6, marginTop: 6 },
+  pickerPill: { borderRadius: 99, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, paddingHorizontal: 11, paddingVertical: 5 },
+  pickerPillOn: { backgroundColor: colors.gigs, borderColor: colors.gigs },
+  pickerText: { fontSize: 12, color: colors.text },
+  pickerTextOn: { color: '#fff', fontWeight: '700' },
   sizeTag: { alignSelf: 'flex-start', backgroundColor: '#FCEBD2', borderRadius: 99, paddingHorizontal: 9, paddingVertical: 3 },
   sizeTagQuick: { backgroundColor: '#E4F4F1' },
   sizeTagBig: { backgroundColor: '#F1E9FF' },

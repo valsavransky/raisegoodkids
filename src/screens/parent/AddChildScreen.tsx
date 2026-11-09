@@ -12,7 +12,7 @@ import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollVie
 import { useAppData } from '../../context/AppDataContext';
 import { GRADE_OPTIONS, getContentLibraryForGrade } from '../../data/contentLibrary';
 import { gradeName } from '../../utils/setupCopy';
-import { GradeBanner, SectionLabel, MoreIdeas, SizeTag } from '../../components/SetupSuggestionParts';
+import { GradeBanner, SectionLabel, MoreIdeas, SizeTag, FrequencyTag } from '../../components/SetupSuggestionParts';
 import { AVATAR_OPTIONS } from '../../data/avatars';
 import { colors } from '../../theme/colors';
 import { toLocalDateString } from '../../utils/date';
@@ -99,19 +99,21 @@ export function AddChildScreen({ navigation }: Props) {
     starter,
     tier,
     tierLabel,
+    frequency,
   }: {
     keyName: string;
     label: string;
     starter: boolean;
     tier?: 'quick' | 'medium' | 'big_job';
     tierLabel?: string;
+    frequency?: 'daily' | 'weekly';
   }) => {
     const on = isOn(keyName, starter);
     return (
       <Pressable style={styles.suggestionRow} onPress={() => toggle(keyName, on)}>
         <View style={[styles.check, on && styles.checkOn]}>{on && <Text style={styles.checkMark}>✓</Text>}</View>
         <Text style={styles.suggestionText}>{label}</Text>
-        {tier && tierLabel ? <SizeTag tier={tier} label={tierLabel} /> : null}
+        {tier && tierLabel ? <SizeTag tier={tier} label={tierLabel} /> : frequency ? <FrequencyTag frequency={frequency} /> : null}
       </Pressable>
     );
   };
@@ -216,7 +218,7 @@ export function AddChildScreen({ navigation }: Props) {
               <SectionLabel title="Starter activities and gigs" note={`${chosenCount} chosen`} />
               {expectedChosen.length > 0 && <Text style={styles.subLabel}>Expected</Text>}
               {expectedChosen.map((i) => (
-                <SuggestionRow key={i.name} keyName={`e:${i.name}`} label={i.name} starter={starterE(i.name)} />
+                <SuggestionRow key={i.name} keyName={`e:${i.name}`} label={i.name} starter={starterE(i.name)} frequency={i.frequency} />
               ))}
               {gigsChosen.length > 0 && <Text style={styles.subLabel}>Gigs</Text>}
               {gigsChosen.map((g) => (
@@ -231,7 +233,7 @@ export function AddChildScreen({ navigation }: Props) {
               ))}
               <MoreIdeas gradeText={gradeName(grade)} count={expectedMore.length + gigsMore.length}>
                 {expectedMore.map((i) => (
-                  <SuggestionRow key={i.name} keyName={`e:${i.name}`} label={i.name} starter={false} />
+                  <SuggestionRow key={i.name} keyName={`e:${i.name}`} label={i.name} starter={false} frequency={i.frequency} />
                 ))}
                 {gigsMore.map((g) => (
                   <SuggestionRow
