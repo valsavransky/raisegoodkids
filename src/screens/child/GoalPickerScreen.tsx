@@ -379,9 +379,11 @@ export function GoalPickerScreen() {
       <AppHeader />
       <View style={styles.header}>
         <Text style={styles.title} numberOfLines={2}>
-          {goals.length === 0 ? `What's ${childName} working toward?` : 'Your goals'}
+          {goals.length === 0 ? 'Goals' : 'Your goals'}
         </Text>
-        <AddPill onPress={openAddModal} color={colors.gigs} />
+        {/* With no active goal the card below has the one big Add button, so the
+         * header pill is hidden to leave a single obvious path. */}
+        {active ? <AddPill onPress={openAddModal} color={colors.gigs} /> : null}
       </View>
 
       <SectionList
@@ -400,7 +402,7 @@ export function GoalPickerScreen() {
                 {goals.length === 0
                   ? deviceMode
                     ? 'What do you want to save for?'
-                    : `What's ${childName} working toward?`
+                    : `Pick ${childName}’s first goal`
                   : deviceMode
                     ? 'You did it! What’s next?'
                     : `Ready for ${childName}’s next goal?`}
@@ -410,6 +412,7 @@ export function GoalPickerScreen() {
                   ? 'Pick something you’d love. Every gig gets you closer. A parent will set it up with you.'
                   : 'Pick something they’d love. Every gig they do gets them closer.'}
               </Text>
+              {suggestedIdeas.length > 0 && <Text style={styles.nextGoalHint}>Tap an idea, or type your own.</Text>}
               {suggestedIdeas.length > 0 && (
                 <View style={styles.nextGoalChips}>
                   {suggestedIdeas.slice(0, 3).map((idea) => (
@@ -424,8 +427,8 @@ export function GoalPickerScreen() {
                 <Text style={styles.nextGoalButtonText}>{deviceMode ? 'Ask for a goal' : 'Add a goal'}</Text>
               </Pressable>
               {goals.length === 0 && (
-                <Pressable style={styles.emptySkip} onPress={() => navigation.navigate('Home')} hitSlop={LINK_HIT_SLOP}>
-                  <Text style={styles.emptySkipText}>Skip for now</Text>
+                <Pressable style={styles.emptySkip} onPress={() => navigation.navigate('Home')}>
+                  <Text style={styles.emptySkipText}>Not now</Text>
                 </Pressable>
               )}
             </View>
@@ -482,7 +485,13 @@ export function GoalPickerScreen() {
               </View>
             )}
 
-            {futureFund && (futureFund.percentage > 0 || futureFund.balance > 0) && (
+            {futureFund && !active && balance === 0 && (futureFund.percentage > 0 || futureFund.balance > 0) && (
+              <View style={styles.futureFundMini}>
+                <Text style={styles.futureFundMiniTitle}>📈 Future Fund</Text>
+                <Text style={styles.futureFundMiniNote}>Starts with the first gig</Text>
+              </View>
+            )}
+            {futureFund && !(!active && balance === 0) && (futureFund.percentage > 0 || futureFund.balance > 0) && (
               <View style={styles.futureFundCard}>
                 <View style={styles.futureFundHeaderRow}>
                   <Text style={styles.futureFundIcon}>📈</Text>
@@ -726,8 +735,12 @@ const styles = StyleSheet.create({
   nextGoalChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 2 },
   nextGoalButton: { alignSelf: 'stretch', backgroundColor: colors.gigs, borderRadius: 14, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
   nextGoalButtonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
-  emptySkip: { marginTop: 12, paddingVertical: 6 },
-  emptySkipText: { color: colors.expected, fontSize: 15, fontWeight: '600' },
+  nextGoalHint: { fontSize: 12.5, color: '#7A5A2A', textAlign: 'center', marginTop: -4 },
+  emptySkip: { alignSelf: 'stretch', marginTop: 2, paddingVertical: 13, borderRadius: 14, borderWidth: 1.5, borderColor: '#E3C9A0', alignItems: 'center', backgroundColor: '#fff' },
+  emptySkipText: { color: '#5b4a2e', fontSize: 15, fontWeight: '700' },
+  futureFundMini: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: colors.border },
+  futureFundMiniTitle: { fontSize: 13, fontWeight: '800', color: colors.futureFund },
+  futureFundMiniNote: { flex: 1, textAlign: 'right', fontSize: 12, color: colors.textMuted },
   promptButtons: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: 20 },
   sectionPill: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', borderRadius: 99, paddingVertical: 6, paddingHorizontal: 14, marginTop: 16, marginBottom: 10 },
   sectionDot: { width: 9, height: 9, borderRadius: 5 },

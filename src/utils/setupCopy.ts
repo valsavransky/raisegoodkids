@@ -16,3 +16,8 @@ export function gradeLabel(grade: string): string {
   if (grade === 'K') return 'a kindergartner';
   return `${grade === '8th' ? 'an' : 'a'} ${grade} grader`;
 }
+
+/** "Kindergarten", "3rd grade" — for GRADE_OPTIONS values. */
+export function gradeName(grade: string): string {
+  return grade === 'K' ? 'Kindergarten' : `${grade} grade`;
+}

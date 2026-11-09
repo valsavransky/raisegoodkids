@@ -10,12 +10,13 @@ import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { AddPill } from '../../components/AddPill';
 import { useSetup, DraftGig, makeLocalId } from '../../context/SetupContext';
-import { getContentLibraryForGrade, SuggestedGig } from '../../data/contentLibrary';
+import { getContentLibraryForGrade, getMoreIdeaNames, isStarterGig, SuggestedGig } from '../../data/contentLibrary';
+import { GradeBanner, SectionLabel, MoreIdeas } from '../../components/SetupSuggestionParts';
 import { GigEffortTier } from '../../types/models';
 import { useTrackSetupStep } from '../../hooks/useTrackScreen';
 import { colors } from '../../theme/colors';
 import { DEFAULT_GIG_EFFORT_VALUES as GIG_DEFAULTS } from '../../utils/gigValue';
-import { childFirstName, gradeLabel } from '../../utils/setupCopy';
+import { childFirstName, gradeName } from '../../utils/setupCopy';
 
 const EFFORT_TIERS: { value: GigEffortTier; label: string }[] = [
   { value: 'quick', label: 'Quick' },
@@ -60,7 +61,8 @@ export function GigsSetupScreen({ navigation }: Props) {
         localId: makeLocalId('gig'),
         name: gig.name,
         effortTier: gig.effortTier,
-        active: true,
+        // Only the starter set starts checked; the rest wait under "More ideas".
+        active: gig.name.startsWith('Walk ') || isStarterGig(childProfile.grade, gig.name),
       }));
     if (newGigs.length > 0) {
       setGigs([...gigs, ...newGigs]);
@@ -70,6 +72,58 @@ export function GigsSetupScreen({ navigation }: Props) {
   }, []);
 
   const library = getContentLibraryForGrade(childProfile.grade);
+
+  const moreNames = getMoreIdeaNames(childProfile.grade).gigs;
+  const isMore = (gig: DraftGig) => moreNames.has(gig.name) && !gig.active;
+  const moreGigs = gigs.filter(isMore);
+  const chosen = gigs.filter((gig) => !isMore(gig));
+  const chosenCount = chosen.filter((gig) => gig.active).length;
+  // One row's size picker is open at a time; the tag shows the current size.
+  const [openTierId, setOpenTierId] = useState<string | null>(null);
+
+  const renderGig = (gig: DraftGig) => {
+    const more = isMore(gig);
+    const tierLabel = EFFORT_TIERS.find((t) => t.value === gig.effortTier)?.label ?? '';
+    return (
+      <View key={gig.localId} style={styles.gigRow}>
+        <View style={styles.gigTopRow}>
+          <Pressable style={styles.gigCheckboxRow} onPress={() => toggleGig(gig.localId)}>
+            <View style={[styles.checkbox, gig.active && styles.checkboxChecked]}>
+              {gig.active && <Text style={styles.checkboxMark}>✓</Text>}
+            </View>
+            <Text style={[styles.itemName, !gig.active && !more && styles.itemNameInactive]}>{gig.name}</Text>
+          </Pressable>
+          <Pressable
+            hitSlop={8}
+            style={[styles.sizeTag, gig.effortTier === 'quick' && styles.sizeTagQuick, gig.effortTier === 'big_job' && styles.sizeTagBig]}
+            onPress={() => setOpenTierId(openTierId === gig.localId ? null : gig.localId)}
+            accessibilityLabel={`Size: ${tierLabel}. Tap to change.`}
+          >
+            <Text style={styles.sizeTagText}>{tierLabel} ▾</Text>
+          </Pressable>
+        </View>
+        {openTierId === gig.localId && (
+          <View style={styles.effortRow}>
+            {EFFORT_TIERS.map((tier) => {
+              const selected = gig.effortTier === tier.value;
+              return (
+                <Pressable
+                  key={tier.value}
+                  onPress={() => {
+                    setGigEffortTier(gig.localId, tier.value);
+                    setOpenTierId(null);
+                  }}
+                  style={[styles.effortChip, selected && styles.effortChipSelected]}
+                >
+                  <Text style={[styles.effortChipText, selected && styles.effortChipTextSelected]}>{tier.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
+      </View>
+    );
+  };
 
   const toggleGig = (localId: string) => {
     setGigs(gigs.map((gig) => (gig.localId === localId ? { ...gig, active: !gig.active } : gig)));
@@ -111,44 +165,32 @@ export function GigsSetupScreen({ navigation }: Props) {
       />
 
       <ScrollView contentContainerStyle={styles.content}>
+        {library && childProfile.grade ? (
+          <GradeBanner
+            childName={childFirstName(childProfile.name)}
+            gradeText={gradeName(childProfile.grade)}
+            onChange={() => navigation.navigate('ChildProfile')}
+          />
+        ) : null}
+
         <Text style={styles.introText}>
-          Gigs are optional jobs that count toward a goal {childFirstName(childProfile.name)} can set. Gigs have 3
-          sizes: quick, medium or big jobs. We set a default value for these jobs (${GIG_DEFAULTS.quick}, ${GIG_DEFAULTS.medium}, ${GIG_DEFAULTS.big_job}), but you
-          can change them anytime in Settings &gt; Gigs &gt; Gig values.
+          Gigs are optional, paid jobs that move {childFirstName(childProfile.name)} toward a goal. Start with a few. You
+          can add more any time.
         </Text>
-
         <Text style={styles.helperText}>
-          {library && childProfile.grade
-            ? `Suggestions below are typical for ${gradeLabel(childProfile.grade)}. Remove what doesn't apply and feel free to add your own!`
-            : "We don't have grade-specific suggestions yet — add items below."}
+          Tap a size to change it. Quick ${GIG_DEFAULTS.quick}, Medium ${GIG_DEFAULTS.medium}, Big job ${GIG_DEFAULTS.big_job}
+          . Change these any time in Settings &gt; Gigs &gt; Gig values.
+          {library && childProfile.grade ? '' : " We don't have grade-specific suggestions yet. Add gigs with + Add."}
         </Text>
 
-        {gigs.map((gig) => (
-          <View key={gig.localId} style={styles.gigRow}>
-            <Pressable style={styles.gigCheckboxRow} onPress={() => toggleGig(gig.localId)}>
-              <View style={[styles.checkbox, gig.active && styles.checkboxChecked]}>
-                {gig.active && <Text style={styles.checkboxMark}>✓</Text>}
-              </View>
-              <Text style={[styles.itemName, !gig.active && styles.itemNameInactive]}>{gig.name}</Text>
-            </Pressable>
-            <View style={styles.effortRow}>
-              {EFFORT_TIERS.map((tier) => {
-                const selected = gig.effortTier === tier.value;
-                return (
-                  <Pressable
-                    key={tier.value}
-                    onPress={() => setGigEffortTier(gig.localId, tier.value)}
-                    style={[styles.effortChip, selected && styles.effortChipSelected]}
-                  >
-                    <Text style={[styles.effortChipText, selected && styles.effortChipTextSelected]}>
-                      {tier.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        ))}
+        <SectionLabel title="Starter gigs" note={`${chosenCount} chosen`} />
+        {chosen.map(renderGig)}
+
+        {library && childProfile.grade ? (
+          <MoreIdeas gradeText={gradeName(childProfile.grade)} count={moreGigs.length}>
+            {moreGigs.map(renderGig)}
+          </MoreIdeas>
+        ) : null}
       </ScrollView>
 
       <Pressable
@@ -201,8 +243,13 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingBottom: 12 },
   introText: { fontSize: 14, color: colors.text, marginBottom: 14, lineHeight: 20 },
   helperText: { fontSize: 13, color: colors.textMuted, marginBottom: 16, lineHeight: 19 },
-  gigRow: { paddingVertical: 10, gap: 8 },
-  gigCheckboxRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  gigRow: { paddingVertical: 9, gap: 8 },
+  gigTopRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  gigCheckboxRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  sizeTag: { backgroundColor: '#FCEBD2', borderRadius: 99, paddingHorizontal: 9, paddingVertical: 4 },
+  sizeTagQuick: { backgroundColor: '#E4F4F1' },
+  sizeTagBig: { backgroundColor: '#F1E9FF' },
+  sizeTagText: { fontSize: 11.5, fontWeight: '700', color: colors.text },
   checkbox: {
     width: 22,
     height: 22,

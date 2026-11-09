@@ -15,10 +15,11 @@ import { SetupStackParamList } from '../../navigation/types';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { AddPill } from '../../components/AddPill';
 import { useSetup, DraftExpectedItem, makeLocalId } from '../../context/SetupContext';
-import { getContentLibraryForGrade } from '../../data/contentLibrary';
+import { getContentLibraryForGrade, getMoreIdeaNames, isStarterExpected } from '../../data/contentLibrary';
+import { GradeBanner, SectionLabel, MoreIdeas } from '../../components/SetupSuggestionParts';
 import { useTrackSetupStep } from '../../hooks/useTrackScreen';
 import { colors } from '../../theme/colors';
-import { childFirstName, gradeLabel } from '../../utils/setupCopy';
+import { childFirstName, gradeName } from '../../utils/setupCopy';
 
 type Props = NativeStackScreenProps<SetupStackParamList, 'ExpectedSetup'>;
 
@@ -52,7 +53,8 @@ export function ExpectedSetupScreen({ navigation }: Props) {
         localId: makeLocalId('expected'),
         name: item.name,
         frequency: item.frequency,
-        active: true,
+        // Only the starter set starts checked; the rest wait under "More ideas".
+        active: isStarterExpected(childProfile.grade, item.name),
       }));
     if (newItems.length > 0) {
       setExpectedItems([...expectedItems, ...newItems]);
@@ -87,8 +89,24 @@ export function ExpectedSetupScreen({ navigation }: Props) {
     setAddModalVisible(false);
   };
 
-  const dailyItems = expectedItems.filter((item) => item.frequency === 'daily');
-  const weeklyItems = expectedItems.filter((item) => item.frequency === 'weekly');
+  // Library suggestions outside the starter set stay tucked under "More ideas"
+  // until the parent checks one; once checked, it moves up into the chosen list.
+  const moreNames = getMoreIdeaNames(childProfile.grade).expected;
+  const isMore = (item: DraftExpectedItem) => moreNames.has(item.name) && !item.active;
+  const moreItems = expectedItems.filter(isMore);
+  const chosen = expectedItems.filter((item) => !isMore(item));
+  const chosenDaily = chosen.filter((item) => item.frequency === 'daily');
+  const chosenWeekly = chosen.filter((item) => item.frequency === 'weekly');
+  const chosenCount = chosen.filter((item) => item.active).length;
+
+  const renderRow = (item: DraftExpectedItem) => (
+    <Pressable key={item.localId} style={styles.expectedRow} onPress={() => toggleExpected(item.localId)}>
+      <View style={[styles.checkbox, item.active && styles.checkboxChecked]}>
+        {item.active && <Text style={styles.checkboxMark}>✓</Text>}
+      </View>
+      <Text style={[styles.itemName, !item.active && !isMore(item) && styles.itemNameInactive]}>{item.name}</Text>
+    </Pressable>
+  );
 
   return (
     <View style={styles.screen}>
@@ -104,43 +122,33 @@ export function ExpectedSetupScreen({ navigation }: Props) {
       />
 
       <ScrollView contentContainerStyle={styles.content}>
+        {library && childProfile.grade ? (
+          <GradeBanner
+            childName={childFirstName(childProfile.name)}
+            gradeText={gradeName(childProfile.grade)}
+            onChange={() => navigation.navigate('ChildProfile')}
+          />
+        ) : null}
+
         <Text style={styles.introText}>
-          Set up expected activities for {childFirstName(childProfile.name)} to build consistency of being a
-          responsible part of the household.
+          Expected activities are everyday responsibilities for being part of the family. They aren't paid. Start with a
+          few. You can add more any time.
         </Text>
-
-        <Text style={styles.helperText}>
-          {library && childProfile.grade
-            ? `Suggestions below are typical for ${gradeLabel(childProfile.grade)}. Remove what doesn't apply and feel free to add your own!`
-            : "We don't have grade-specific suggestions yet — add items below."}
-        </Text>
-
-        {dailyItems.length > 0 && (
-          <>
-            <Text style={styles.subSectionHeader}>Daily</Text>
-            {dailyItems.map((item) => (
-              <Pressable key={item.localId} style={styles.expectedRow} onPress={() => toggleExpected(item.localId)}>
-                <View style={[styles.checkbox, item.active && styles.checkboxChecked]}>
-                  {item.active && <Text style={styles.checkboxMark}>✓</Text>}
-                </View>
-                <Text style={[styles.itemName, !item.active && styles.itemNameInactive]}>{item.name}</Text>
-              </Pressable>
-            ))}
-          </>
+        {!(library && childProfile.grade) && (
+          <Text style={styles.helperText}>We don't have grade-specific suggestions yet. Add items with + Add.</Text>
         )}
-        {weeklyItems.length > 0 && (
-          <>
-            <Text style={styles.subSectionHeader}>Weekly</Text>
-            {weeklyItems.map((item) => (
-              <Pressable key={item.localId} style={styles.expectedRow} onPress={() => toggleExpected(item.localId)}>
-                <View style={[styles.checkbox, item.active && styles.checkboxChecked]}>
-                  {item.active && <Text style={styles.checkboxMark}>✓</Text>}
-                </View>
-                <Text style={[styles.itemName, !item.active && styles.itemNameInactive]}>{item.name}</Text>
-              </Pressable>
-            ))}
-          </>
-        )}
+
+        <SectionLabel title="Chosen" note={`${chosenCount} chosen`} />
+        {chosenDaily.length > 0 && <Text style={styles.subSectionHeader}>Daily</Text>}
+        {chosenDaily.map(renderRow)}
+        {chosenWeekly.length > 0 && <Text style={styles.subSectionHeader}>Weekly</Text>}
+        {chosenWeekly.map(renderRow)}
+
+        {library && childProfile.grade ? (
+          <MoreIdeas gradeText={gradeName(childProfile.grade)} count={moreItems.length}>
+            {moreItems.map(renderRow)}
+          </MoreIdeas>
+        ) : null}
       </ScrollView>
 
       <Pressable

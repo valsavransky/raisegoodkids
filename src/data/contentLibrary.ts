@@ -29,10 +29,34 @@ export interface GradeContentLibrary {
   grades: string[];
   expectedItems: SuggestedExpectedItem[];
   gigs: SuggestedGig[];
+  /**
+   * Names (from expectedItems/gigs above) that start out checked in setup.
+   * Everything else is offered under "More ideas for [grade]", unchecked, so a
+   * parent starts with a short list instead of 20 pre-checked rows.
+   */
+  starterExpected: string[];
+  starterGigs: string[];
 }
 
 const grade3And4: GradeContentLibrary = {
   grades: ['3rd', '4th'],
+  starterExpected: [
+    'Make your bed',
+    'Brush teeth, morning and night',
+    'Pack your own backpack for school',
+    'Homework before screen time',
+    'Put dirty clothes in the hamper',
+    'Clear your place and load into dishwasher after meals',
+    'Tidy your room',
+  ],
+  starterGigs: [
+    'Water the plants',
+    'Empty the wastebaskets around the house',
+    'Wipe down kitchen counters and stovetop',
+    'Vacuum a room',
+    'Fold and put away a full load of family laundry',
+    'Help prepare a simple family meal',
+  ],
   expectedItems: [
     { name: 'Make your bed', frequency: 'daily' },
     { name: 'Brush teeth, morning and night', frequency: 'daily' },
@@ -74,6 +98,23 @@ const grade3And4: GradeContentLibrary = {
 // should require unsupervised heavy lifting or sharp/hot tools at this age.
 const gradeKTo2: GradeContentLibrary = {
   grades: ['K', '1st', '2nd'],
+  starterExpected: [
+    'Get dressed by yourself',
+    'Brush teeth, morning and night',
+    'Make your bed (with help)',
+    'Put toys away before bed',
+    'Put dirty clothes in the hamper',
+    'Clear your plate after meals',
+    'Tidy your room with a grown-up',
+  ],
+  starterGigs: [
+    'Water a houseplant',
+    'Match socks from the laundry',
+    'Wipe down the bathroom sink',
+    'Sort recycling into the bin',
+    'Help fold and put away towels',
+    'Help pack their lunch box',
+  ],
   expectedItems: [
     { name: 'Get dressed by yourself', frequency: 'daily' },
     { name: 'Brush teeth, morning and night', frequency: 'daily' },
@@ -111,6 +152,24 @@ const gradeKTo2: GradeContentLibrary = {
 // framing the whole app is built around. See content-library-grade-5-6.md.
 const grade5And6: GradeContentLibrary = {
   grades: ['5th', '6th'],
+  starterExpected: [
+    'Make your bed',
+    'Brush teeth, morning and night',
+    'Pack your own backpack for school',
+    'Homework before screen time',
+    'Pack your own lunch',
+    'Put dirty clothes in the hamper',
+    'Tidy your room',
+    'Take the trash and recycling bins to the curb',
+  ],
+  starterGigs: [
+    'Water the plants',
+    'Empty the wastebaskets around the house',
+    'Wipe down kitchen counters and stovetop',
+    'Vacuum a room',
+    'Fold and put away a full load of family laundry',
+    'Help prepare a simple family meal',
+  ],
   expectedItems: [
     { name: 'Make your bed', frequency: 'daily' },
     { name: 'Brush teeth, morning and night', frequency: 'daily' },
@@ -156,6 +215,23 @@ const grade5And6: GradeContentLibrary = {
 // content-library-grade-7-8.md.
 const grade7And8: GradeContentLibrary = {
   grades: ['7th', '8th'],
+  starterExpected: [
+    'Make your bed',
+    'Brush teeth, morning and night',
+    'Homework before screen time',
+    'Pack your own lunch',
+    'Tidy your room',
+    'Take the trash and recycling bins to the curb',
+    'Do your own laundry start to finish (wash, dry, fold, put away)',
+  ],
+  starterGigs: [
+    'Water the plants',
+    'Empty the wastebaskets around the house',
+    'Wipe down kitchen counters and stovetop',
+    'Vacuum a room',
+    'Fold and put away a full load of family laundry',
+    'Prepare a simple family meal on your own, with a recipe',
+  ],
   expectedItems: [
     { name: 'Make your bed', frequency: 'daily' },
     { name: 'Brush teeth, morning and night', frequency: 'daily' },
@@ -263,4 +339,24 @@ export function mostFrequentEffortTier(tiers: GigEffortTier[]): GigEffortTier | 
   const counts = new Map<GigEffortTier, number>();
   for (const tier of tiers) counts.set(tier, (counts.get(tier) ?? 0) + 1);
   return [...counts.entries()].sort((a, b) => b[1] - a[1])[0][0];
+}
+
+/** "More ideas" = library suggestions that are not part of the starter set. */
+export function getMoreIdeaNames(grade: string | undefined): { expected: Set<string>; gigs: Set<string> } {
+  const lib = getContentLibraryForGrade(grade);
+  if (!lib) return { expected: new Set(), gigs: new Set() };
+  return {
+    expected: new Set(lib.expectedItems.map((i) => i.name).filter((n) => !lib.starterExpected.includes(n))),
+    gigs: new Set(lib.gigs.map((g) => g.name).filter((n) => !lib.starterGigs.includes(n))),
+  };
+}
+
+export function isStarterExpected(grade: string | undefined, name: string): boolean {
+  const lib = getContentLibraryForGrade(grade);
+  return !lib || lib.starterExpected.includes(name);
+}
+
+export function isStarterGig(grade: string | undefined, name: string): boolean {
+  const lib = getContentLibraryForGrade(grade);
+  return !lib || lib.starterGigs.includes(name);
 }
