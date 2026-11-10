@@ -1,7 +1,8 @@
 // Anonymous usage events for the adoption dashboard (see admin.ts). The app
-// batches events and posts them here; only an app-generated random install id
-// is stored — no user id, email, name, or free text. Requires the normal app
-// session token purely so random strangers can't spam the table.
+// batches events and posts them here. The events themselves carry only an
+// app-generated random install id, no name, email or free text. The signed-in
+// account is remembered separately (install_users) so the private /admin page can
+// show who is using the app. Needs the normal app session token.
 import { Router, Response } from 'express';
 import { pool } from './db';
 import { requireAuth, AuthedRequest } from './auth';
@@ -32,6 +33,12 @@ eventsRouter.post('/', requireAuth, async (req: AuthedRequest, res: Response) =>
       res.status(400).json({ error: 'Bad request' });
       return;
     }
+    // Remember which account this install belongs to (for the private /admin page).
+    await pool.query(
+      `INSERT INTO install_users (install_id, user_id) VALUES ($1, $2)
+       ON CONFLICT (install_id) DO UPDATE SET user_id = EXCLUDED.user_id, last_seen = now()`,
+      [installId, req.userId]
+    );
     const names: string[] = [];
     const props: string[] = [];
     const times: string[] = [];

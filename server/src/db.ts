@@ -37,6 +37,14 @@ export async function runMigrations(): Promise<void> {
       app_version TEXT,
       platform TEXT
     );
+    -- Which account an install belongs to, so the private /admin page can show who is
+    -- using the app. Filled in whenever an install sends events while signed in; it is
+    -- not part of the events themselves.
+    CREATE TABLE IF NOT EXISTS install_users (
+      install_id TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      last_seen TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
     -- Free-text feedback families send from Settings. Unlike events this IS
     -- typed content, so it's only what the parent chose to write (plus an
     -- optional contact line) tied to the random install id, nothing else.

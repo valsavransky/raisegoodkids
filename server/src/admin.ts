@@ -80,7 +80,7 @@ adminRouter.get('/', async (req: Request, res: Response) => {
     return;
   }
   try {
-    const [totals, dau, funnel, retention, features, recent, methods, grades, fundPct, feedback] = await Promise.all([
+    const [totals, dau, funnel, retention, features, recent, methods, grades, fundPct, feedback, people] = await Promise.all([
       pool.query(`
         SELECT
           COUNT(DISTINCT install_id)::int AS installs,
@@ -119,15 +119,34 @@ adminRouter.get('/', async (req: Request, res: Response) => {
         SELECT name, COUNT(*)::int AS events, COUNT(DISTINCT install_id)::int AS installs
         FROM events GROUP BY name ORDER BY installs DESC, events DESC`),
       pool.query(`
-        SELECT name, props, LEFT(install_id, 6) AS who, to_char(received_at AT TIME ZONE 'UTC', 'Mon DD HH24:MI') AS at
-        FROM events ORDER BY id DESC LIMIT 40`),
+        SELECT e.name, e.props, COALESCE(u.email, LEFT(e.install_id, 6)) AS who, to_char(e.received_at AT TIME ZONE 'UTC', 'Mon DD HH24:MI') AS at
+        FROM events e LEFT JOIN install_users iu ON iu.install_id = e.install_id LEFT JOIN users u ON u.id = iu.user_id
+        ORDER BY e.id DESC LIMIT 40`),
       breakdown('signed_in', 'method'),
       breakdown('setup_completed', 'grade'),
       breakdown('future_fund_set', 'percent'),
       pool.query(`
-        SELECT message, contact, LEFT(install_id, 6) AS who, platform, app_version,
-               to_char(created_at AT TIME ZONE 'UTC', 'Mon DD HH24:MI') AS at
-        FROM feedback ORDER BY id DESC LIMIT 50`),
+        SELECT f.message, f.contact, COALESCE(u.email, LEFT(f.install_id, 6)) AS who, f.platform, f.app_version,
+               to_char(f.created_at AT TIME ZONE 'UTC', 'Mon DD HH24:MI') AS at
+        FROM feedback f LEFT JOIN install_users iu ON iu.install_id = f.install_id LEFT JOIN users u ON u.id = iu.user_id
+        ORDER BY f.id DESC LIMIT 50`),
+      // One row per account: when they last opened the app, how many of the last 7 days, and where.
+      pool.query(`
+        SELECT u.email,
+               MAX(e.received_at) FILTER (WHERE e.name = 'app_opened') AS last_open,
+               COUNT(DISTINCT (e.received_at AT TIME ZONE 'UTC')::date)
+                 FILTER (WHERE e.name = 'app_opened' AND e.received_at > now() - interval '7 days')::int AS days_7,
+               COUNT(DISTINCT (e.received_at AT TIME ZONE 'UTC')::date)
+                 FILTER (WHERE e.name = 'app_opened' AND e.received_at > now() - interval '30 days')::int AS days_30,
+               bool_or(e.name = 'setup_completed') AS set_up,
+               COUNT(DISTINCT e.install_id)::int AS installs,
+               (array_agg(e.platform ORDER BY e.id DESC))[1] AS platform,
+               (array_agg(e.app_version ORDER BY e.id DESC))[1] AS app_version
+        FROM install_users iu
+        JOIN users u ON u.id = iu.user_id
+        JOIN events e ON e.install_id = iu.install_id
+        GROUP BY u.id, u.email
+        ORDER BY last_open DESC NULLS LAST`),
     ]);
 
     const t = totals.rows[0];
@@ -166,12 +185,23 @@ table{width:100%;border-collapse:collapse}td,th{padding:6px 4px;border-bottom:1p
 .spark{display:flex;align-items:flex-end;gap:4px;height:110px}.spark div{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;font-size:10px;color:var(--mu)}.spark i{display:block;width:100%;background:var(--acc);border-radius:4px 4px 0 0;min-height:2px}
 .scroll{overflow-x:auto}code{font-size:12px}
 </style></head><body><div class="page">
-<h1>Adoption</h1><p class="muted">Each install counts once (about one family). Dates are UTC. Includes your own test installs. Last event: ${esc(t.last_event ? new Date(t.last_event).toISOString().replace('T', ' ').slice(0, 16) + ' UTC' : 'none yet')}.</p>
+<h1>Adoption</h1><p class="muted">Each install counts once (about one family). Dates are UTC. Includes your own test installs. Emails come from the account each install is signed in to. Last event: ${esc(t.last_event ? new Date(t.last_event).toISOString().replace('T', ' ').slice(0, 16) + ' UTC' : 'none yet')}.</p>
 
 <h2>Right now</h2><div class="grid">
 ${tile('Installs seen', t.installs)}${tile('Finished setup', t.set_up, t.installs ? `${pct(t.set_up, t.installs)}% of installs` : '')}
 ${tile('Active today', t.active_1d, 'last 24 hours')}${tile('Active this week', t.active_7d, 'last 7 days')}${tile('Active this month', t.active_30d, 'last 30 days')}${tile('Events', t.total_events)}
 </div>
+
+<h2>Who is using it (${people.rows.length})</h2><div class="panel scroll">${
+      people.rows.length === 0
+        ? '<span class="muted">Nobody linked yet. An account shows up here the next time its app sends usage, so this fills in as people open the new version.</span>'
+        : `<table><tr><th>Account</th><th>Last opened (UTC)</th><th class="num">Days this week</th><th class="num">Days this month</th><th>Set up</th><th>Phone</th></tr>${people.rows
+            .map(
+              (x) =>
+                `<tr><td>${/@merit\.local$/i.test(x.email) ? '<span class="muted">No email yet (anonymous account)</span>' : esc(x.email)}</td><td>${esc(x.last_open ? new Date(x.last_open).toISOString().replace('T', ' ').slice(0, 16) : 'not yet')}</td><td class="num">${x.days_7}</td><td class="num">${x.days_30}</td><td>${x.set_up ? 'Yes' : 'No'}</td><td class="muted">${esc(x.platform ?? '')} ${esc(x.app_version ?? '')}${x.installs > 1 ? ` &middot; ${x.installs} installs` : ''}</td></tr>`
+            )
+            .join('')}</table>`
+    }<p class="muted" style="margin:8px 0 0">Matched by the signed-in account, so only people who have opened the app since this was added appear. Usage sharing must be on for them.</p></div>
 
 <h2>Active installs per day (last 14 days)</h2><div class="panel"><div class="spark">${dau.rows
       .map((x) => `<div title="${esc(x.label)}: ${x.n}"><span>${x.n || ''}</span><i style="height:${Math.round((x.n / dauMax) * 80)}px"></i></div>`)
@@ -202,12 +232,12 @@ ${retentionCell('Day 1 return', r.d1_ret, r.d1_base)}${retentionCell('Day 7 retu
         : feedback.rows
             .map(
               (x) =>
-                `<div class="panel" style="margin-bottom:8px"><div class="muted">${esc(x.at)} UTC &middot; install <code>${esc(x.who)}</code> &middot; ${esc(x.platform ?? '')} ${esc(x.app_version ?? '')}${x.contact ? ` &middot; contact: ${esc(x.contact)}` : ''}</div><div style="white-space:pre-wrap;margin-top:6px">${esc(x.message)}</div></div>`
+                `<div class="panel" style="margin-bottom:8px"><div class="muted">${esc(x.at)} UTC &middot; <code>${esc(x.who)}</code> &middot; ${esc(x.platform ?? '')} ${esc(x.app_version ?? '')}${x.contact ? ` &middot; contact: ${esc(x.contact)}` : ''}</div><div style="white-space:pre-wrap;margin-top:6px">${esc(x.message)}</div></div>`
             )
             .join('')
     }
 
-<h2>Latest events</h2><div class="panel scroll"><table><tr><th>When (UTC)</th><th>Install</th><th>Event</th><th>Details</th></tr>${recent.rows
+<h2>Latest events</h2><div class="panel scroll"><table><tr><th>When (UTC)</th><th>Account or install</th><th>Event</th><th>Details</th></tr>${recent.rows
       .map((x) => `<tr><td>${esc(x.at)}</td><td><code>${esc(x.who)}</code></td><td>${esc(x.name)}</td><td class="muted">${esc(Object.entries(x.props ?? {}).map(([k, v]) => `${k}=${v}`).join(' '))}</td></tr>`)
       .join('')}</table></div>
 </div></body></html>`;
