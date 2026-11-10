@@ -119,7 +119,7 @@ adminRouter.get('/', async (req: Request, res: Response) => {
         SELECT name, COUNT(*)::int AS events, COUNT(DISTINCT install_id)::int AS installs
         FROM events GROUP BY name ORDER BY installs DESC, events DESC`),
       pool.query(`
-        SELECT e.name, e.props, COALESCE(u.email, LEFT(e.install_id, 6)) AS who, to_char(e.received_at AT TIME ZONE 'UTC', 'Mon DD HH24:MI') AS at
+        SELECT e.name, e.props, LEFT(e.install_id, 6) AS who, u.email, to_char(e.received_at AT TIME ZONE 'UTC', 'Mon DD HH24:MI') AS at
         FROM events e LEFT JOIN install_users iu ON iu.install_id = e.install_id LEFT JOIN users u ON u.id = iu.user_id
         ORDER BY e.id DESC LIMIT 40`),
       breakdown('signed_in', 'method'),
@@ -237,8 +237,8 @@ ${retentionCell('Day 1 return', r.d1_ret, r.d1_base)}${retentionCell('Day 7 retu
             .join('')
     }
 
-<h2>Latest events</h2><div class="panel scroll"><table><tr><th>When (UTC)</th><th>Account or install</th><th>Event</th><th>Details</th></tr>${recent.rows
-      .map((x) => `<tr><td>${esc(x.at)}</td><td><code>${esc(x.who)}</code></td><td>${esc(x.name)}</td><td class="muted">${esc(Object.entries(x.props ?? {}).map(([k, v]) => `${k}=${v}`).join(' '))}</td></tr>`)
+<h2>Latest events</h2><div class="panel scroll"><table><tr><th>When (UTC)</th><th>Install</th><th>Email</th><th>Event</th><th>Details</th></tr>${recent.rows
+      .map((x) => `<tr><td>${esc(x.at)}</td><td><code>${esc(x.who)}</code></td><td>${x.email ? (/@merit\.local$/i.test(x.email) ? '<span class="muted">anonymous</span>' : esc(x.email)) : '<span class="muted">not linked yet</span>'}</td><td>${esc(x.name)}</td><td class="muted">${esc(Object.entries(x.props ?? {}).map(([k, v]) => `${k}=${v}`).join(' '))}</td></tr>`)
       .join('')}</table></div>
 </div></body></html>`;
     res.set('Cache-Control', 'no-store').type('html').send(html);
